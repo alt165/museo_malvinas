@@ -3,6 +3,9 @@ package com.proveedores.controller;
 import com.proveedores.dto.DepositanteRequestDTO;
 import com.proveedores.dto.DepositanteResponseDTO;
 import com.proveedores.service.DepositanteService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "Depositantes", description = "Personas o instituciones depositantes de objetos")
 @RestController
 @RequestMapping("/api/depositantes")
 public class DepositanteController {
@@ -26,26 +30,36 @@ public class DepositanteController {
         this.depositanteService = depositanteService;
     }
 
+    @Operation(summary = "Crear recurso")
+    @ApiResponse(responseCode = "201", description = "Recurso creado")
     @PostMapping
     public ResponseEntity<DepositanteResponseDTO> crear(@RequestBody @Valid DepositanteRequestDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(depositanteService.crear(dto));
     }
 
+    @Operation(summary = "Obtener recurso por id")
+    @ApiResponse(responseCode = "200", description = "Recurso encontrado")
     @GetMapping("/{id}")
     public ResponseEntity<DepositanteResponseDTO> obtenerPorId(@PathVariable Long id) {
         return ResponseEntity.ok(depositanteService.obtenerPorId(id));
     }
 
+    @Operation(summary = "Listar recursos")
+    @ApiResponse(responseCode = "200", description = "Listado obtenido")
     @GetMapping
     public ResponseEntity<List<DepositanteResponseDTO>> listar() {
         return ResponseEntity.ok(depositanteService.listar());
     }
 
+    @Operation(summary = "Actualizar recurso")
+    @ApiResponse(responseCode = "200", description = "Recurso actualizado")
     @PutMapping("/{id}")
     public ResponseEntity<DepositanteResponseDTO> actualizar(@PathVariable Long id, @RequestBody @Valid DepositanteRequestDTO dto) {
         return ResponseEntity.ok(depositanteService.actualizar(id, dto));
     }
 
+    @Operation(summary = "Dar de baja recurso")
+    @ApiResponse(responseCode = "204", description = "Recurso dado de baja")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> bajaLogica(@PathVariable Long id) {
         depositanteService.bajaLogica(id);

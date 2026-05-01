@@ -53,7 +53,11 @@
       ],
       "realmRoles": [
         "ADMIN"
-      ]
+      ],
+      "firstName": "Admin",
+      "lastName": "Local",
+      "requiredActions": [],
+      "email": "admin@local.test"
     },
     {
       "username": "operator",
@@ -68,7 +72,11 @@
       ],
       "realmRoles": [
         "OPERATOR"
-      ]
+      ],
+      "firstName": "Operator",
+      "lastName": "Local",
+      "requiredActions": [],
+      "email": "operator@local.test"
     },
     {
       "username": "viewer",
@@ -83,7 +91,11 @@
       ],
       "realmRoles": [
         "VIEWER"
-      ]
+      ],
+      "firstName": "Viewer",
+      "lastName": "Local",
+      "requiredActions": [],
+      "email": "viewer@local.test"
     }
   ]
 }
