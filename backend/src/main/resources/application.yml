@@ -12,6 +12,10 @@ spring:
       hibernate:
         format_sql: true
     open-in-view: false
+  flyway:
+    enabled: ${SPRING_FLYWAY_ENABLED:false}
+    locations: classpath:db/migration
+    baseline-on-migrate: true
   security:
     oauth2:
       resourceserver:
