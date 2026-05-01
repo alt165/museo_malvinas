@@ -83,19 +83,40 @@ com.proveedores
 ### Entidades principales:
 
 * Usuario
-* Rol
 * ObjetoMuseo
-* Categoria
+* ObjetoDigital
+* CategoriaObjeto
+* ObjetoCategoria
 * Inventario
-* RelacionObjeto
+* MovimientoInventario
 * Auditoria
+* Depositante
+* ObjetoDepositante
+* Veterano
+* Ubicacion
+* Exhibicion
 
 ### Características:
 
-* Un objeto puede estar relacionado con múltiples objetos
-* Los objetos tienen categorías
-* El inventario controla ubicación y estado
+* Los objetos tienen categorías y un objeto puede tener más de una categoría mediante la entidad intermedia ObjetoCategoria
+* ObjetoDigital es un subtipo de ObjetoMuseo usando herencia JPA JOINED; no representa un archivo asociado ni guarda una URL de archivo
+* El inventario controla ubicación, fecha de ingreso, de salida y estado de conservacion
 * Auditoría registra cambios históricos
+* Una exhibición puede ser permanente o temporal y al finalizar debe permitir registrar los objetos devueltos mediante ExhibicionObjeto
+* Un veterano tiene un detalle de actuacion en la guerra
+* Solo se permite borrado lógico: las entidades persistentes deben incluir activo, eliminado y fechaEliminacion
+
+---
+
+
+## 📌 Decisiones de Modelo Vigentes
+
+* Se usa el nombre `Exhibicion` en todo el dominio.
+* `ObjetoDigital` hereda de `ObjetoMuseo` con estrategia JPA `JOINED` y no representa un archivo asociado.
+* `Usuario` es solo referencia local a Keycloak; no hay entidad ni tabla local de roles.
+* El borrado físico está prohibido; usar `activo`, `eliminado` y `fechaEliminacion`.
+* Un `ObjetoMuseo` puede tener múltiples `CategoriaObjeto` mediante `ObjetoCategoria`.
+* Un `ObjetoMuseo` puede tener múltiples `Depositante` mediante `ObjetoDepositante`.
 
 ---
 
@@ -135,13 +156,15 @@ Cliente → Keycloak → Token JWT → Backend → Validación → Acceso permit
 
 Roles definidos:
 
-* ADMIN → acceso total
+* SUDO → superusuario, responsable de todo el sistema
+* ADMIN → acceso total a las tablas administrativas sin poder dar de alta usuarios
 * OPERATOR → gestión de inventario
 * VIEWER → solo lectura
 
 ### Consideraciones
 
 * El backend NO gestiona usuarios directamente (lo hace Keycloak)
+* Los roles no se persisten localmente; se leen desde el JWT emitido por Keycloak
 * Se validan roles en endpoints protegidos
 * Se usa Spring Security
 
@@ -191,6 +214,43 @@ Se implementa búsqueda avanzada:
   * categoría
   * tipo de objeto
   * estado
+  * fecha de ingreso
+  * depositante
+
+---
+
+
+## 🏷️ Relación: ObjetoMuseo ↔ CategoriaObjeto
+
+Tipo: N:N
+
+Implementación:
+
+* Tabla intermedia: `objeto_categoria`
+* Entidad intermedia: `ObjetoCategoria`
+
+Motivo:
+
+* Un objeto puede tener más de una categoría.
+* Una categoría puede clasificar múltiples objetos.
+* Se evita `@ManyToMany` directo para mantener control del modelo y permitir atributos futuros.
+
+---
+
+## 🤝 Relación: ObjetoMuseo ↔ Depositante
+
+Tipo: N:N
+
+Implementación:
+
+* Tabla intermedia: `objeto_depositante`
+* Entidad intermedia: `ObjetoDepositante`
+
+Motivo:
+
+* Un objeto puede tener más de un depositante.
+* Un depositante puede estar asociado a múltiples objetos.
+* La relación puede requerir fecha, tipo de depósito, observaciones o documentación en el futuro.
 
 ---
 
@@ -272,7 +332,6 @@ Se centraliza en:
 El sistema está diseñado para:
 
 * Escalar horizontalmente (Docker)
-* Separar servicios en el futuro (microservicios)
 * Integrarse con frontend o apps externas
 
 ---
@@ -324,10 +383,8 @@ El sistema está diseñado para:
 
 Posibles mejoras:
 
-* Microservicios
 * Cache (Redis)
 * Sistema de eventos
-* Integración con IA para clasificación de objetos
 * Panel de administración avanzado
 
 ---
@@ -347,9 +404,9 @@ Un backend:
 Se incorporan nuevas entidades clave para representar:
 
 * Veteranos de guerra
-* Exposiciones del museo
+* Exhibiciones del museo
 * Relación entre objetos y veteranos
-* Control de préstamos/devoluciones en exposiciones
+* Control de préstamos/devoluciones en exhibiciones
 
 ---
 
@@ -391,9 +448,9 @@ Implementación:
 
 ---
 
-## 🖼️ Entidad: Exposicion
+## 🖼️ Entidad: Exhibicion
 
-Representa exposiciones organizadas por el museo.
+Representa exhibiciones organizadas por el museo.
 
 ### Atributos principales:
 
@@ -407,30 +464,30 @@ Representa exposiciones organizadas por el museo.
 
 ---
 
-## 🔗 Relación: Exposicion ↔ ObjetoMuseo
+## 🔗 Relación: Exhibicion ↔ ObjetoMuseo
 
 Tipo: N:N
 
 Implementación:
 
-* Tabla intermedia: `exposicion_objeto`
+* Tabla intermedia: `exhibicion_objeto`
 
 ### Atributos adicionales:
 
 * fechaInclusion
 * fechaRetiro (cuando el objeto vuelve al inventario)
-* estado (ENUM: EN_EXPOSICION, DEVUELTO, PENDIENTE_REVISION)
+* estado (ENUM: EN_EXHIBICION, DEVUELTO, PENDIENTE_REVISION)
 
 ---
 
-## 📦 Lógica de Inventario en Exposiciones
+## 📦 Lógica de Inventario en Exhibiciones
 
-Cuando un objeto entra en una exposición:
+Cuando un objeto entra en una exhibición:
 
 * Se marca como “fuera de inventario disponible”
-* Se registra en `exposicion_objeto`
+* Se registra en `exhibicion_objeto`
 
-Cuando la exposición finaliza:
+Cuando la exhibición finaliza:
 
 * Los objetos deben ser devueltos al inventario
 * Se requiere validación manual
@@ -441,7 +498,7 @@ Cuando la exposición finaliza:
 
 Se define un flujo obligatorio:
 
-1. La exposición pasa a estado FINALIZADA
+1. La exhibición pasa a estado FINALIZADA
 2. Se listan todos los objetos asociados
 3. Un usuario autorizado verifica cada objeto
 4. Se marca como DEVUELTO
@@ -453,16 +510,16 @@ Se define un flujo obligatorio:
 
 * Solo usuarios con rol ADMIN u OPERATOR pueden:
 
-  * Crear exposiciones
+  * Crear exhibiciones
   * Asociar objetos
-  * Finalizar exposiciones
+  * Finalizar exhibiciones
   * Confirmar devoluciones
 
 * No se puede:
 
-  * Eliminar una exposición activa
-  * Marcar como devuelto un objeto que no pertenece a la exposición
-  * Finalizar una exposición con objetos no verificados
+  * Eliminar una exhibición activa
+  * Marcar como devuelto un objeto que no pertenece a la exhibición
+  * Finalizar una exhibición con objetos no verificados
 
 ---
 
@@ -474,9 +531,12 @@ Se define un flujo obligatorio:
 
 Debe incluir:
 
-* relación con Veterano
-* relación con Exposicion
-* estado en inventario (ej: DISPONIBLE, EN_EXPOSICION)
+* relación con Veterano mediante ObjetoVeterano
+* relación con Exhibicion mediante ExhibicionObjeto
+* relación con CategoriaObjeto mediante ObjetoCategoria
+* relación con Depositante mediante ObjetoDepositante
+
+El estado de disponibilidad no se duplica en ObjetoMuseo; debe resolverse desde Inventario y MovimientoInventario.
 
 ---
 
@@ -484,15 +544,15 @@ Debe incluir:
 
 Debe considerar:
 
-* objetos temporalmente fuera por exposición
+* objetos temporalmente fuera por exhibición
 * trazabilidad de movimientos
 
 ---
 
-## 🔄 Flujo de Exposición
+## 🔄 Flujo de Exhibición
 
-```id="expflow1"
-Creación → Asociación de objetos → Activación → Uso en exposición → Finalización → Verificación → Reingreso a inventario
+```id="exhflow1"
+Creación → Asociación de objetos → Activación → Uso en exhibición → Finalización → Verificación → Reingreso a inventario
 ```
 
 ---
@@ -501,8 +561,8 @@ Creación → Asociación de objetos → Activación → Uso en exposición → 
 
 Se deben cubrir casos:
 
-* Objeto en múltiples exposiciones (histórico)
-* Exposición sin fecha de fin (permanente)
+* Objeto en múltiples exhibiciones (histórico)
+* Exhibición sin fecha de fin (permanente)
 * Fallo en devolución de objetos
 * Validación de permisos
 
@@ -510,7 +570,7 @@ Se deben cubrir casos:
 
 ## 📈 Escenarios futuros
 
-* Exposiciones itinerantes
+* Exhibiciones itinerantes
 * Préstamo a otros museos
 * Seguimiento logístico de objetos
 

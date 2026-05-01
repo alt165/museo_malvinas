@@ -54,7 +54,7 @@ Separaciones obligatorias:
 * Controllers: solo manejan requests/responses
 * Services: lógica de negocio
 * Repositories: acceso a datos
-* Entities: representación de base de datos
+* Entities: representación de base de datos, con borrado lógico mediante `activo`, `eliminado` y `fechaEliminacion`
 * DTOs: comunicación externa
 
 ---
@@ -110,6 +110,10 @@ com.proveedores
 * Anotadas con JPA
 * Usan Lombok
 * Representan tablas reales
+* Usan borrado lógico con `activo`, `eliminado` y `fechaEliminacion`
+* No persisten roles locales
+* Usan `Exhibicion` como único nombre para muestras del museo
+* `ObjetoDigital` debe heredar de `ObjetoMuseo` con estrategia `JOINED` y no representar un archivo asociado
 
 ---
 
@@ -137,9 +141,11 @@ El agente DEBE:
 * Usar JWT
 * No implementar autenticación propia
 * Proteger endpoints según roles
+* No persistir roles localmente; Keycloak es la fuente de verdad
 
-Ejemplo de roles:
+Roles esperados en JWT:
 
+* SUDO
 * ADMIN
 * OPERATOR
 * VIEWER
@@ -184,6 +190,7 @@ El agente DEBE generar:
 * Uso de índices cuando sea necesario
 * Soporte para búsqueda de texto completo (tsvector)
 * Relaciones bien definidas (FKs)
+* Entidades intermedias obligatorias para relaciones N:N con control de dominio: `ObjetoCategoria`, `ObjetoDepositante`, `ObjetoVeterano`, `ExhibicionObjeto` y `RelacionObjeto`
 
 ---
 
