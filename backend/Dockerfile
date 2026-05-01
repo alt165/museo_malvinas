@@ -7,6 +7,8 @@ RUN mvn -q -DskipTests package
 
 FROM eclipse-temurin:17-jre
 WORKDIR /app
+RUN addgroup --system spring && adduser --system --ingroup spring spring
 COPY --from=build /app/target/*.jar app.jar
+USER spring:spring
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

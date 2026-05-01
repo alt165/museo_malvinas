@@ -1,27 +1,67 @@
 services:
-  database:
+  postgres:
     image: postgres:16
+    container_name: museo-postgres
     environment:
       POSTGRES_DB: museo
       POSTGRES_USER: museo
       POSTGRES_PASSWORD: museo
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U museo -d museo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - museo_network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    container_name: museo-keycloak
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: http://localhost:8081
+      KC_HOSTNAME_ADMIN: http://localhost:8081
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./backend/docker/keycloak:/opt/keycloak/data/import:ro
+    networks:
+      - museo_network
 
   backend:
+    container_name: museo-backend
     build:
       context: ./backend
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/museo
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/museo
       SPRING_DATASOURCE_USERNAME: museo
       SPRING_DATASOURCE_PASSWORD: museo
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/museo
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_FLYWAY_ENABLED: "true"
+      KEYCLOAK_ISSUER_URI: http://localhost:8081/realms/museo
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/museo/protocol/openid-connect/certs
+      KEYCLOAK_CLIENT_ID: museo-backend
     depends_on:
-      - database
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
     ports:
-      - "8080:8080"
+      - "${BACKEND_PORT:-8080}:8080"
+    networks:
+      - museo_network
 
 volumes:
   postgres_data:
+
+networks:
+  museo_network:
+    driver: bridge

@@ -18,7 +18,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(
-        name = "relaciones_objeto",
+        name = "relaciones_objetos",
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_relacion_objeto_direccional",
                 columnNames = {"objeto_origen_id", "objeto_destino_id", "tipo_relacion"}

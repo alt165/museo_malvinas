@@ -18,7 +18,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(
-        name = "actuaciones_veterano",
+        name = "actuaciones_veteranos",
         indexes = @Index(name = "idx_actuacion_veterano", columnList = "veterano_id")
 )
 public class ActuacionVeterano extends EntidadBase {
