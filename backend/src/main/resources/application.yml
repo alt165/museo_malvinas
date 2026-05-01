@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: museo-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/museo}
+    username: ${SPRING_DATASOURCE_USERNAME:museo}
+    password: ${SPRING_DATASOURCE_PASSWORD:museo}
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8081/realms/museo}
+
+server:
+  port: ${SERVER_PORT:8080}
