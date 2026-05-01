@@ -21,6 +21,12 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8081/realms/museo}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8081/realms/museo/protocol/openid-connect/certs}
+
+app:
+  security:
+    keycloak:
+      client-id: ${KEYCLOAK_CLIENT_ID:museo-backend}
 
 server:
   port: ${SERVER_PORT:8080}
