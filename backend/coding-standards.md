@@ -291,6 +291,7 @@ El agente debe verificar:
 * ¿Se usan DTOs?
 * ¿La lógica está en services?
 * ¿Las relaciones JPA están bien modeladas?
+* ¿Las variables estan nombradas siguiendo los estandares?
 
 ---
 
