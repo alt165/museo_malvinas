@@ -43,7 +43,7 @@ public class GlobalExceptionHandler {
             BusinessException exception,
             HttpServletRequest request
     ) {
-        log.warn("event=exception.business status={} path={} exception={} message=\"{}\"", HttpStatus.BAD_REQUEST.value(), request.getRequestURI(), exception.getClass().getSimpleName(), exception.getMessage());
+        log.warn("event=exception.business status={} path={} exception={}", HttpStatus.BAD_REQUEST.value(), request.getRequestURI(), exception.getClass().getSimpleName());
         return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage(), request);
     }
 

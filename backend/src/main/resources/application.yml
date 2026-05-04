@@ -24,12 +24,19 @@ spring:
           jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8081/realms/museo/protocol/openid-connect/certs}
 
 app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
   security:
     keycloak:
       client-id: ${KEYCLOAK_CLIENT_ID:museo-backend}
 
 server:
   port: ${SERVER_PORT:8080}
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
 
 logging:
   level:
