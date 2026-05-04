@@ -30,3 +30,29 @@ app:
 
 server:
   port: ${SERVER_PORT:8080}
+
+logging:
+  level:
+    root: INFO
+    com.proveedores: ${APP_LOG_LEVEL:INFO}
+  pattern:
+    console: "timestamp=%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} level=%level logger=%logger{36} thread=%thread requestId=%X{requestId:-} user=%X{user:-anonymous} method=%X{httpMethod:-} endpoint=%X{endpoint:-} status=%X{httpStatus:-} message=%replace(%msg){'[^A-Za-z0-9_.=:/,-]+','_'}%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db
+  info:
+    env:
+      enabled: false

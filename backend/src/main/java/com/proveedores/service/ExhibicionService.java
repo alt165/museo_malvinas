@@ -13,11 +13,15 @@ import com.proveedores.repository.ExhibicionObjetoRepository;
 import com.proveedores.repository.ExhibicionRepository;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ExhibicionService {
+
+    private static final Logger log = LoggerFactory.getLogger(ExhibicionService.class);
 
     private final ExhibicionRepository exhibicionRepository;
     private final ExhibicionObjetoRepository exhibicionObjetoRepository;
@@ -29,7 +33,9 @@ public class ExhibicionService {
 
     @Transactional
     public ExhibicionResponseDTO crear(ExhibicionRequestDTO dto) {
-        return ExhibicionMapper.toResponse(exhibicionRepository.save(ExhibicionMapper.toEntity(dto)));
+        Exhibicion saved = exhibicionRepository.save(ExhibicionMapper.toEntity(dto));
+        log.info("event=exhibicion.created exhibicionId={} estado={} tipo={}", saved.getId(), saved.getEstado(), saved.getTipo());
+        return ExhibicionMapper.toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -51,7 +57,9 @@ public class ExhibicionService {
         entity.setFechaInicio(dto.fechaInicio());
         entity.setFechaFin(dto.fechaFin());
         entity.setEstado(dto.estado());
-        return ExhibicionMapper.toResponse(exhibicionRepository.save(entity));
+        Exhibicion saved = exhibicionRepository.save(entity);
+        log.info("event=exhibicion.updated exhibicionId={} estado={}", saved.getId(), saved.getEstado());
+        return ExhibicionMapper.toResponse(saved);
     }
 
     @Transactional
@@ -60,22 +68,27 @@ public class ExhibicionService {
         List<ExhibicionObjeto> objetos = exhibicionObjetoRepository.findByExhibicionIdAndEliminadoFalse(id);
         boolean hayPendientes = objetos.stream().anyMatch(objeto -> !Boolean.TRUE.equals(objeto.getDevolucionVerificada()) || objeto.getEstado() != EstadoExhibicionObjeto.DEVUELTO);
         if (hayPendientes) {
+            log.warn("event=exhibicion.business_error reason=objetos_pendientes_devolucion exhibicionId={} objetosAsociados={}", id, objetos.size());
             throw new BusinessException("No se puede finalizar la exhibicion con objetos pendientes de devolucion");
         }
         entity.setEstado(EstadoExhibicion.FINALIZADA);
-        return ExhibicionMapper.toResponse(exhibicionRepository.save(entity));
+        Exhibicion saved = exhibicionRepository.save(entity);
+        log.info("event=exhibicion.finalized exhibicionId={} objetosAsociados={}", saved.getId(), objetos.size());
+        return ExhibicionMapper.toResponse(saved);
     }
 
     @Transactional
     public void bajaLogica(Long id) {
         Exhibicion entity = buscarActivo(id);
         if (entity.getEstado() == EstadoExhibicion.ACTIVA) {
+            log.warn("event=exhibicion.business_error reason=baja_exhibicion_activa exhibicionId={}", id);
             throw new BusinessException("No se puede dar de baja una exhibicion activa");
         }
         entity.setActivo(false);
         entity.setEliminado(true);
         entity.setFechaEliminacion(LocalDateTime.now());
         exhibicionRepository.save(entity);
+        log.info("event=exhibicion.deleted exhibicionId={}", entity.getId());
     }
 
     private Exhibicion buscarActivo(Long id) {

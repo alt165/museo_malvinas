@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,11 +27,14 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiErrorResponse> handleResourceNotFound(
             ResourceNotFoundException exception,
             HttpServletRequest request
     ) {
+        log.warn("event=exception.resource_not_found status={} path={} exception={}", HttpStatus.NOT_FOUND.value(), request.getRequestURI(), exception.getClass().getSimpleName());
         return buildResponse(HttpStatus.NOT_FOUND, exception.getMessage(), request);
     }
 
@@ -38,6 +43,7 @@ public class GlobalExceptionHandler {
             BusinessException exception,
             HttpServletRequest request
     ) {
+        log.warn("event=exception.business status={} path={} exception={} message=\"{}\"", HttpStatus.BAD_REQUEST.value(), request.getRequestURI(), exception.getClass().getSimpleName(), exception.getMessage());
         return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage(), request);
     }
 
@@ -50,6 +56,7 @@ public class GlobalExceptionHandler {
         for (FieldError fieldError : exception.getBindingResult().getFieldErrors()) {
             validationErrors.put(fieldError.getField(), fieldError.getDefaultMessage());
         }
+        log.warn("event=exception.validation status={} path={} fields={}", HttpStatus.BAD_REQUEST.value(), request.getRequestURI(), validationErrors.keySet());
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "La solicitud contiene errores de validacion",
@@ -71,6 +78,7 @@ public class GlobalExceptionHandler {
                         (first, second) -> first,
                         LinkedHashMap::new
                 ));
+        log.warn("event=exception.constraint_violation status={} path={} fields={}", HttpStatus.BAD_REQUEST.value(), request.getRequestURI(), validationErrors.keySet());
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "La solicitud contiene errores de validacion",
@@ -84,6 +92,7 @@ public class GlobalExceptionHandler {
             DataIntegrityViolationException exception,
             HttpServletRequest request
     ) {
+        log.warn("event=exception.data_integrity status={} path={} exception={}", HttpStatus.CONFLICT.value(), request.getRequestURI(), exception.getClass().getSimpleName());
         return buildResponse(
                 HttpStatus.CONFLICT,
                 "No se pudo completar la operacion porque viola una restriccion de datos",
@@ -96,6 +105,7 @@ public class GlobalExceptionHandler {
             HttpMessageNotReadableException exception,
             HttpServletRequest request
     ) {
+        log.warn("event=exception.message_not_readable status={} path={} exception={}", HttpStatus.BAD_REQUEST.value(), request.getRequestURI(), exception.getClass().getSimpleName());
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "El cuerpo de la solicitud es invalido o no tiene el formato esperado",
@@ -108,6 +118,7 @@ public class GlobalExceptionHandler {
             MethodArgumentTypeMismatchException exception,
             HttpServletRequest request
     ) {
+        log.warn("event=exception.type_mismatch status={} path={} parameter={}", HttpStatus.BAD_REQUEST.value(), request.getRequestURI(), exception.getName());
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "El parametro '" + exception.getName() + "' no tiene un valor valido",
@@ -120,6 +131,7 @@ public class GlobalExceptionHandler {
             MissingServletRequestParameterException exception,
             HttpServletRequest request
     ) {
+        log.warn("event=exception.missing_parameter status={} path={} parameter={}", HttpStatus.BAD_REQUEST.value(), request.getRequestURI(), exception.getParameterName());
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "El parametro '" + exception.getParameterName() + "' es obligatorio",
@@ -132,6 +144,7 @@ public class GlobalExceptionHandler {
             HttpRequestMethodNotSupportedException exception,
             HttpServletRequest request
     ) {
+        log.warn("event=exception.method_not_supported status={} path={} method={}", HttpStatus.METHOD_NOT_ALLOWED.value(), request.getRequestURI(), exception.getMethod());
         return buildResponse(HttpStatus.METHOD_NOT_ALLOWED, "Metodo HTTP no soportado para este recurso", request);
     }
 
@@ -140,6 +153,7 @@ public class GlobalExceptionHandler {
             AccessDeniedException exception,
             HttpServletRequest request
     ) {
+        log.warn("event=exception.access_denied status={} path={}", HttpStatus.FORBIDDEN.value(), request.getRequestURI());
         return buildResponse(HttpStatus.FORBIDDEN, "No tenes permisos para acceder a este recurso", request);
     }
 
@@ -148,11 +162,13 @@ public class GlobalExceptionHandler {
             AuthenticationException exception,
             HttpServletRequest request
     ) {
+        log.warn("event=exception.authentication status={} path={}", HttpStatus.UNAUTHORIZED.value(), request.getRequestURI());
         return buildResponse(HttpStatus.UNAUTHORIZED, "Se requiere autenticacion para acceder a este recurso", request);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleGeneric(Exception exception, HttpServletRequest request) {
+        log.error("event=exception.unhandled status={} path={} exception={}", HttpStatus.INTERNAL_SERVER_ERROR.value(), request.getRequestURI(), exception.getClass().getSimpleName(), exception);
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor", request);
     }
 

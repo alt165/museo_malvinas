@@ -9,11 +9,15 @@ import com.proveedores.mapper.ObjetoMuseoMapper;
 import com.proveedores.repository.ObjetoMuseoRepository;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ObjetoMuseoService {
+
+    private static final Logger log = LoggerFactory.getLogger(ObjetoMuseoService.class);
 
     private final ObjetoMuseoRepository objetoMuseoRepository;
 
@@ -24,7 +28,9 @@ public class ObjetoMuseoService {
     @Transactional
     public ObjetoMuseoResponseDTO crear(ObjetoMuseoRequestDTO dto) {
         validarNumeroInventarioDisponible(dto.numeroInventario(), null);
-        return ObjetoMuseoMapper.toResponse(objetoMuseoRepository.save(ObjetoMuseoMapper.toEntity(dto)));
+        ObjetoMuseo saved = objetoMuseoRepository.save(ObjetoMuseoMapper.toEntity(dto));
+        log.info("event=objeto_museo.created objetoMuseoId={} numeroInventario={}", saved.getId(), saved.getNumeroInventario());
+        return ObjetoMuseoMapper.toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -48,7 +54,9 @@ public class ObjetoMuseoService {
         entity.setNombre(dto.nombre());
         entity.setTipoObjeto(dto.tipoObjeto());
         entity.setDescripcion(dto.descripcion());
-        return ObjetoMuseoMapper.toResponse(objetoMuseoRepository.save(entity));
+        ObjetoMuseo saved = objetoMuseoRepository.save(entity);
+        log.info("event=objeto_museo.updated objetoMuseoId={} numeroInventario={}", saved.getId(), saved.getNumeroInventario());
+        return ObjetoMuseoMapper.toResponse(saved);
     }
 
     @Transactional
@@ -58,6 +66,7 @@ public class ObjetoMuseoService {
         entity.setEliminado(true);
         entity.setFechaEliminacion(LocalDateTime.now());
         objetoMuseoRepository.save(entity);
+        log.info("event=objeto_museo.deleted objetoMuseoId={} numeroInventario={}", entity.getId(), entity.getNumeroInventario());
     }
 
     private ObjetoMuseo buscarActivo(Long id) {
@@ -74,6 +83,7 @@ public class ObjetoMuseoService {
                 .filter(objeto -> !objeto.getEliminado())
                 .filter(objeto -> idActual == null || !objeto.getId().equals(idActual))
                 .ifPresent(objeto -> {
+                    log.warn("event=objeto_museo.business_error reason=numero_inventario_duplicado objetoMuseoId={} numeroInventario={}", objeto.getId(), numeroInventario);
                     throw new BusinessException("Ya existe un objeto con ese numero de inventario");
                 });
     }

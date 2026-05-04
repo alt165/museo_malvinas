@@ -17,11 +17,15 @@ import com.proveedores.repository.ObjetoMuseoRepository;
 import com.proveedores.repository.UsuarioRepository;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ExhibicionObjetoService {
+
+    private static final Logger log = LoggerFactory.getLogger(ExhibicionObjetoService.class);
 
     private final ExhibicionObjetoRepository exhibicionObjetoRepository;
     private final ExhibicionRepository exhibicionRepository;
@@ -44,7 +48,9 @@ public class ExhibicionObjetoService {
         entity.setExhibicion(exhibicion);
         entity.setObjetoMuseo(objeto);
         entity.setVerificadoPor(buscarUsuarioOpcional(dto.verificadoPorUsuarioId()));
-        return ExhibicionObjetoMapper.toResponse(exhibicionObjetoRepository.save(entity));
+        ExhibicionObjeto saved = exhibicionObjetoRepository.save(entity);
+        log.info("event=exhibicion_objeto.created exhibicionObjetoId={} exhibicionId={} objetoMuseoId={} estado={}", saved.getId(), exhibicion.getId(), objeto.getId(), saved.getEstado());
+        return ExhibicionObjetoMapper.toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -72,7 +78,9 @@ public class ExhibicionObjetoService {
         entity.setVerificadoPor(buscarUsuarioOpcional(dto.verificadoPorUsuarioId()));
         entity.setFechaVerificacion(dto.fechaVerificacion());
         entity.setObservacionesDevolucion(dto.observacionesDevolucion());
-        return ExhibicionObjetoMapper.toResponse(exhibicionObjetoRepository.save(entity));
+        ExhibicionObjeto saved = exhibicionObjetoRepository.save(entity);
+        log.info("event=exhibicion_objeto.updated exhibicionObjetoId={} exhibicionId={} objetoMuseoId={} estado={}", saved.getId(), exhibicion.getId(), objeto.getId(), saved.getEstado());
+        return ExhibicionObjetoMapper.toResponse(saved);
     }
 
     @Transactional
@@ -83,7 +91,9 @@ public class ExhibicionObjetoService {
         entity.setVerificadoPor(buscarUsuarioOpcional(usuarioId));
         entity.setFechaVerificacion(LocalDateTime.now());
         entity.setObservacionesDevolucion(observaciones);
-        return ExhibicionObjetoMapper.toResponse(exhibicionObjetoRepository.save(entity));
+        ExhibicionObjeto saved = exhibicionObjetoRepository.save(entity);
+        log.info("event=exhibicion_objeto.return_verified exhibicionObjetoId={} exhibicionId={} objetoMuseoId={}", saved.getId(), saved.getExhibicion().getId(), saved.getObjetoMuseo().getId());
+        return ExhibicionObjetoMapper.toResponse(saved);
     }
 
     @Transactional
@@ -93,6 +103,7 @@ public class ExhibicionObjetoService {
         entity.setEliminado(true);
         entity.setFechaEliminacion(LocalDateTime.now());
         exhibicionObjetoRepository.save(entity);
+        log.info("event=exhibicion_objeto.deleted exhibicionObjetoId={} exhibicionId={} objetoMuseoId={}", entity.getId(), entity.getExhibicion().getId(), entity.getObjetoMuseo().getId());
     }
 
     private void validarObjetoNoEsteEnOtraExhibicionActiva(Long objetoId, Long relacionActualId, Exhibicion exhibicion) {
@@ -103,6 +114,7 @@ public class ExhibicionObjetoService {
                 .filter(relacion -> relacionActualId == null || !relacion.getId().equals(relacionActualId))
                 .anyMatch(relacion -> !relacion.getExhibicion().getEliminado() && relacion.getExhibicion().getEstado() == EstadoExhibicion.ACTIVA);
         if (existeActiva) {
+            log.warn("event=exhibicion_objeto.business_error reason=objeto_en_exhibicion_activa objetoMuseoId={} exhibicionId={}", objetoId, exhibicion.getId());
             throw new BusinessException("El objeto ya esta asociado a una exhibicion activa");
         }
     }

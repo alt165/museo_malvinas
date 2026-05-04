@@ -17,11 +17,15 @@ import com.proveedores.repository.UbicacionRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class InventarioService {
+
+    private static final Logger log = LoggerFactory.getLogger(InventarioService.class);
 
     private final InventarioRepository inventarioRepository;
     private final ObjetoMuseoRepository objetoMuseoRepository;
@@ -50,6 +54,7 @@ public class InventarioService {
         entity.setFechaUltimoMovimiento(LocalDateTime.now());
         Inventario saved = inventarioRepository.save(entity);
         registrarMovimiento(saved, TipoMovimientoInventario.INGRESO, null, ubicacion);
+        log.info("event=inventario.created inventarioId={} objetoMuseoId={} ubicacionId={} estado={}", saved.getId(), objeto.getId(), ubicacion.getId(), saved.getEstado());
         return InventarioMapper.toResponse(saved);
     }
 
@@ -85,6 +90,17 @@ public class InventarioService {
 
         if (cambioUbicacion || cambioEstado) {
             registrarMovimiento(saved, resolverTipoMovimiento(estadoAnterior, dto.estado(), cambioUbicacion), ubicacionAnterior, nuevaUbicacion);
+            log.info(
+                    "event=inventario.state_changed inventarioId={} objetoMuseoId={} estadoAnterior={} estadoNuevo={} ubicacionAnteriorId={} ubicacionNuevaId={}",
+                    saved.getId(),
+                    objeto.getId(),
+                    estadoAnterior,
+                    dto.estado(),
+                    ubicacionAnterior.getId(),
+                    nuevaUbicacion.getId()
+            );
+        } else {
+            log.info("event=inventario.updated inventarioId={} objetoMuseoId={} estado={}", saved.getId(), objeto.getId(), saved.getEstado());
         }
         return InventarioMapper.toResponse(saved);
     }
@@ -96,6 +112,7 @@ public class InventarioService {
         entity.setEliminado(true);
         entity.setFechaEliminacion(LocalDateTime.now());
         inventarioRepository.save(entity);
+        log.info("event=inventario.deleted inventarioId={} objetoMuseoId={}", entity.getId(), entity.getObjetoMuseo().getId());
     }
 
     private void registrarMovimiento(Inventario inventario, TipoMovimientoInventario tipo, Ubicacion origen, Ubicacion destino) {
@@ -107,6 +124,14 @@ public class InventarioService {
         movimiento.setUbicacionDestino(destino);
         movimiento.setObservaciones("Movimiento generado desde inventario");
         movimientoInventarioRepository.save(movimiento);
+        log.info(
+                "event=movimiento_inventario.created movimientoInventarioId={} objetoMuseoId={} tipo={} ubicacionOrigenId={} ubicacionDestinoId={}",
+                movimiento.getId(),
+                inventario.getObjetoMuseo().getId(),
+                tipo,
+                origen != null ? origen.getId() : null,
+                destino != null ? destino.getId() : null
+        );
     }
 
     private TipoMovimientoInventario resolverTipoMovimiento(EstadoInventario anterior, EstadoInventario nuevo, boolean cambioUbicacion) {
