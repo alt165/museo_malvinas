@@ -1,9 +1,14 @@
 package com.proveedores.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proveedores.dto.ApiErrorResponse;
+import java.time.LocalDateTime;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -15,9 +20,11 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     private final KeycloakJwtAuthenticationConverter jwtAuthenticationConverter;
+    private final ObjectMapper objectMapper;
 
-    public SecurityConfig(KeycloakJwtAuthenticationConverter jwtAuthenticationConverter) {
+    public SecurityConfig(KeycloakJwtAuthenticationConverter jwtAuthenticationConverter, ObjectMapper objectMapper) {
         this.jwtAuthenticationConverter = jwtAuthenticationConverter;
+        this.objectMapper = objectMapper;
     }
 
     @Bean
@@ -43,6 +50,38 @@ public class SecurityConfig {
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))
                 )
+                .exceptionHandling(exceptionHandling -> exceptionHandling
+                        .authenticationEntryPoint((request, response, exception) -> writeErrorResponse(
+                                response,
+                                HttpStatus.UNAUTHORIZED,
+                                "Se requiere autenticacion para acceder a este recurso",
+                                request.getRequestURI()
+                        ))
+                        .accessDeniedHandler((request, response, exception) -> writeErrorResponse(
+                                response,
+                                HttpStatus.FORBIDDEN,
+                                "No tenes permisos para acceder a este recurso",
+                                request.getRequestURI()
+                        ))
+                )
                 .build();
+    }
+
+    private void writeErrorResponse(
+            jakarta.servlet.http.HttpServletResponse response,
+            HttpStatus status,
+            String message,
+            String path
+    ) throws java.io.IOException {
+        response.setStatus(status.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        objectMapper.writeValue(response.getWriter(), new ApiErrorResponse(
+                LocalDateTime.now(),
+                status.value(),
+                status.getReasonPhrase(),
+                message,
+                path,
+                null
+        ));
     }
 }

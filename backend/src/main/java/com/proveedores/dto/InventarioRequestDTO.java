@@ -7,12 +7,25 @@ import jakarta.validation.constraints.PastOrPresent;
 import java.time.LocalDate;
 
 public record InventarioRequestDTO(
-        @NotNull Long objetoMuseoId,
-        @NotNull Long ubicacionId,
-        @NotNull EstadoInventario estado,
-        @NotNull EstadoConservacion estadoConservacion,
-        @NotNull @PastOrPresent LocalDate fechaIngreso,
+        @NotNull(message = "El objeto de museo es obligatorio")
+        Long objetoMuseoId,
+
+        @NotNull(message = "La ubicacion es obligatoria")
+        Long ubicacionId,
+
+        @NotNull(message = "El estado de inventario es obligatorio")
+        EstadoInventario estado,
+
+        @NotNull(message = "El estado de conservacion es obligatorio")
+        EstadoConservacion estadoConservacion,
+
+        @NotNull(message = "La fecha de ingreso es obligatoria")
+        @PastOrPresent(message = "La fecha de ingreso no puede ser futura")
+        LocalDate fechaIngreso,
+
+        @PastOrPresent(message = "La fecha de salida no puede ser futura")
         LocalDate fechaSalida,
+
         String observaciones
 ) {
 }

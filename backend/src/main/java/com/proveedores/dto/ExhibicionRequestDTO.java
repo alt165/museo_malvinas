@@ -8,11 +8,21 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
 public record ExhibicionRequestDTO(
-        @NotBlank @Size(max = 160) String nombre,
+        @NotBlank(message = "El nombre es obligatorio")
+        @Size(max = 160, message = "El nombre no puede superar 160 caracteres")
+        String nombre,
+
         String descripcion,
-        @NotNull TipoExhibicion tipo,
-        @NotNull LocalDate fechaInicio,
+
+        @NotNull(message = "El tipo de exhibicion es obligatorio")
+        TipoExhibicion tipo,
+
+        @NotNull(message = "La fecha de inicio es obligatoria")
+        LocalDate fechaInicio,
+
         LocalDate fechaFin,
-        @NotNull EstadoExhibicion estado
+
+        @NotNull(message = "El estado es obligatorio")
+        EstadoExhibicion estado
 ) {
 }

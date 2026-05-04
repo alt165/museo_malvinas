@@ -16,6 +16,7 @@ import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.security.KeycloakJwtAuthenticationConverter;
 import com.proveedores.service.ObjetoMuseoService;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -60,9 +61,13 @@ class ObjetoMuseoControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new ObjetoMuseoRequestDTO("", "", "Equipo", null))))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Error de validacion"))
-                .andExpect(jsonPath("$.errors.numeroInventario").exists())
-                .andExpect(jsonPath("$.errors.nombre").exists());
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("La solicitud contiene errores de validacion"))
+                .andExpect(jsonPath("$.path").value("/api/objetos"))
+                .andExpect(jsonPath("$.validationErrors.numeroInventario").value("El numero de inventario es obligatorio"))
+                .andExpect(jsonPath("$.validationErrors.nombre").value("El nombre es obligatorio"));
     }
 
     @Test
@@ -71,7 +76,10 @@ class ObjetoMuseoControllerTest {
 
         mockMvc.perform(get("/api/objetos/99"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").value("Objeto de museo no encontrado"));
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("Not Found"))
+                .andExpect(jsonPath("$.message").value("Objeto de museo no encontrado"))
+                .andExpect(jsonPath("$.path").value("/api/objetos/99"));
     }
 
     @Test
@@ -82,6 +90,46 @@ class ObjetoMuseoControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new ObjetoMuseoRequestDTO("INV-1", "Casco", "Equipo", null))))
                 .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.message").value("Ya existe un objeto con ese numero de inventario"));
+    }
+
+    @Test
+    void dataIntegrityViolationDevuelve409() throws Exception {
+        when(objetoMuseoService.crear(any(ObjetoMuseoRequestDTO.class)))
+                .thenThrow(new DataIntegrityViolationException("unique constraint"));
+
+        mockMvc.perform(post("/api/objetos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ObjetoMuseoRequestDTO("INV-1", "Casco", "Equipo", null))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.error").value("Conflict"))
+                .andExpect(jsonPath("$.message").value("No se pudo completar la operacion porque viola una restriccion de datos"))
+                .andExpect(jsonPath("$.path").value("/api/objetos"));
+    }
+
+    @Test
+    void jsonInvalidoDevuelve400ConFormatoEstandar() throws Exception {
+        mockMvc.perform(post("/api/objetos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("El cuerpo de la solicitud es invalido o no tiene el formato esperado"))
+                .andExpect(jsonPath("$.path").value("/api/objetos"));
+    }
+
+    @Test
+    void exceptionGenericaDevuelve500() throws Exception {
+        when(objetoMuseoService.obtenerPorId(1L)).thenThrow(new RuntimeException("fallo inesperado"));
+
+        mockMvc.perform(get("/api/objetos/1"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value(500))
+                .andExpect(jsonPath("$.error").value("Internal Server Error"))
+                .andExpect(jsonPath("$.message").value("Error interno del servidor"))
+                .andExpect(jsonPath("$.path").value("/api/objetos/1"));
     }
 }
