@@ -231,3 +231,209 @@ Implementar la autenticacion real del frontend administrativo con `keycloak-js`,
 - Rutas minimas `/login`, `/dashboard` y `/unauthorized`.
 - Layout con usuario, roles y logout.
 - Sin modulos funcionales todavia.
+
+## 4. Layout administrativo y navegacion principal
+
+### Prompt utilizado
+
+```text
+Implementa el layout administrativo completo y la navegacion principal del frontend.
+
+Usar como referencia:
+- frontend/ARCHITECTURE.md
+- sistema de roles ya implementado
+- rutas previstas del sistema
+- backend/API.md
+
+Objetivo:
+dejar lista la estructura visual y de navegacion antes de implementar modulos funcionales.
+
+Requerimientos:
+
+1. Mejorar AppShell con:
+   - sidebar fijo o colapsable
+   - topbar
+   - area principal de contenido
+   - responsive basico
+   - estado visual de ruta activa
+
+2. Mejorar Sidebar con navegacion a:
+   - Dashboard
+   - Objetos del museo
+   - Inventario
+   - Movimientos de inventario
+   - Categorias
+   - Depositantes
+   - Veteranos
+   - Actuaciones de veteranos
+   - Exhibiciones
+   - Perfil
+
+3. Aplicar permisos visuales:
+   - VIEWER puede ver modulos de consulta
+   - ADMIN y OPERATOR pueden ver acciones operativas
+   - no mostrar acciones no permitidas por rol
+
+4. Mejorar Topbar:
+   - nombre de usuario
+   - roles
+   - boton logout
+   - estado de sesion
+
+5. Crear paginas placeholder para todas las rutas principales:
+   - /objetos
+   - /objetos/nuevo
+   - /objetos/[id]
+   - /objetos/[id]/editar
+   - /inventario
+   - /movimientos-inventario
+   - /categorias
+   - /depositantes
+   - /veteranos
+   - /actuaciones-veteranos
+   - /exhibiciones
+   - /exhibiciones/nueva
+   - /exhibiciones/[id]
+   - /exhibiciones/[id]/editar
+   - /perfil
+
+6. Proteger todas las rutas internas con ProtectedRoute.
+
+7. Crear componentes UI reutilizables si hace falta:
+   - PageHeader
+   - EmptyState
+   - LoadingState
+   - ErrorState
+
+8. No consumir todavia endpoints reales.
+9. No implementar CRUDs todavia.
+10. No modificar logica de autenticacion salvo ajuste minimo necesario.
+
+Ejecutar:
+- npm run lint
+- npm run build
+
+Al finalizar:
+- informar rutas creadas
+- informar componentes reutilizables creados
+- explicar como verificar navegacion con usuarios ADMIN, OPERATOR y VIEWER
+```
+
+### Objetivo del prompt
+
+Completar la estructura visual y de navegacion del frontend administrativo antes de construir los modulos funcionales.
+
+### Resultado esperado
+
+- AppShell responsive con sidebar, topbar y contenido.
+- Navegacion principal con estado activo.
+- Acciones operativas visibles solo para `ADMIN` y `OPERATOR`.
+- Placeholders para las rutas principales.
+- Componentes reutilizables de encabezado y estados.
+
+## 5. Modulo funcional de Objetos del Museo
+
+### Prompt utilizado
+
+```text
+Implementa el modulo funcional de Objetos del Museo en el frontend.
+
+Usar como referencia:
+- frontend/ARCHITECTURE.md
+- backend/API.md
+- Swagger/OpenAPI
+- modelos DTO reales del backend
+- sistema de auth y permisos ya implementado
+
+Objetivo:
+permitir listar, ver detalle, crear y editar objetos del museo consumiendo la API real.
+
+Requerimientos:
+
+1. Crear modelos TypeScript para:
+   - ObjetoMuseoRequestDTO
+   - ObjetoMuseoResponseDTO
+   - ApiErrorResponse si no existe o reutilizar el existente
+
+2. Crear funciones API en:
+   frontend/src/features/objetos/api
+
+   Deben incluir:
+   - listarObjetos
+   - obtenerObjetoPorId
+   - crearObjeto
+   - actualizarObjeto
+   - bajaLogicaObjeto si el backend lo permite
+
+3. Usar TanStack Query para:
+   - listado
+   - detalle
+   - creacion
+   - actualizacion
+   - invalidacion de queries
+
+4. Implementar pagina:
+   - /objetos
+
+   Debe mostrar:
+   - tabla con TanStack Table
+   - numero de inventario
+   - nombre
+   - descripcion resumida
+   - acciones ver/editar segun permisos
+   - estado de loading
+   - estado de error
+   - empty state
+   - boton "Nuevo objeto" solo para ADMIN/OPERATOR
+
+5. Implementar pagina:
+   - /objetos/[id]
+
+   Debe mostrar detalle completo del objeto.
+
+6. Implementar formulario reutilizable:
+   - ObjetoMuseoForm
+
+   Usar:
+   - React Hook Form
+   - Zod
+   - validaciones alineadas con backend
+
+7. Implementar:
+   - /objetos/nuevo
+   - /objetos/[id]/editar
+
+8. Manejar errores del backend:
+   - validationErrors
+   - BusinessException
+   - ResourceNotFoundException
+
+9. Respetar permisos:
+   - VIEWER solo lectura
+   - ADMIN/OPERATOR pueden crear/editar/dar de baja
+
+10. No implementar todavia inventario, categorias, depositantes ni exhibiciones salvo datos minimos necesarios para que el formulario compile.
+
+11. Ejecutar:
+   - npm run lint
+   - npm run build
+
+Al finalizar:
+- informar archivos creados/modificados
+- explicar como probar el modulo desde el navegador
+- indicar endpoints consumidos
+```
+
+### Objetivo del prompt
+
+Implementar el primer modulo funcional del frontend administrativo consumiendo la API real de objetos del museo.
+
+### Resultado esperado
+
+- Tipos TypeScript alineados con DTOs reales.
+- API de feature para listar, obtener, crear, actualizar y dar de baja.
+- Hooks TanStack Query con invalidacion.
+- Listado con TanStack Table.
+- Detalle, alta y edicion.
+- Formulario con React Hook Form y Zod.
+- Manejo de errores del backend y permisos por rol.
