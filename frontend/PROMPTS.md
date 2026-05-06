@@ -437,3 +437,273 @@ Implementar el primer modulo funcional del frontend administrativo consumiendo l
 - Detalle, alta y edicion.
 - Formulario con React Hook Form y Zod.
 - Manejo de errores del backend y permisos por rol.
+
+## 6. Modulos funcionales de Inventario y Movimientos de Inventario
+
+### Prompt utilizado
+
+```text
+Implementa los modulos funcionales de Inventario y Movimientos de Inventario en el frontend.
+
+Usar como referencia:
+- frontend/ARCHITECTURE.md
+- backend/API.md
+- Swagger/OpenAPI
+- modulo de objetos ya implementado
+- sistema de auth/permisos
+
+Objetivo:
+permitir consultar inventario, crear/actualizar inventario de un objeto y ver historial de movimientos.
+
+Requerimientos:
+
+1. Crear modelos TypeScript para:
+   - InventarioRequestDTO
+   - InventarioResponseDTO
+   - MovimientoInventarioResponseDTO
+   - enums/valores de estado usados por backend
+
+2. Crear funciones API para:
+   - listarInventarios
+   - obtenerInventarioPorId
+   - crearInventario
+   - actualizarInventario
+   - listarMovimientosInventario
+   - obtenerMovimientoPorId si existe
+   - listarMovimientosPorObjeto si el backend lo expone
+
+3. Usar TanStack Query para:
+   - listado de inventario
+   - detalle
+   - creacion/actualizacion
+   - listado de movimientos
+
+4. Implementar pagina /inventario:
+   - tabla con objeto, numero de inventario, ubicacion, estado, conservacion, fechas
+   - acciones ver/editar segun permisos
+   - estados loading/error/empty
+   - boton para crear inventario solo ADMIN/OPERATOR
+
+5. Implementar formulario InventarioForm:
+   - objetoMuseoId
+   - ubicacionId
+   - estado
+   - estadoConservacion
+   - fechaIngreso
+   - observaciones
+   - validaciones con React Hook Form + Zod
+
+6. Implementar paginas si todavia no existen:
+   - /inventario
+   - /inventario/nuevo
+   - /inventario/[id]
+   - /inventario/[id]/editar
+
+7. Implementar pagina /movimientos-inventario:
+   - tabla de historial
+   - objeto
+   - tipoMovimiento
+   - ubicacion origen/destino si aplica
+   - estado anterior/nuevo si aplica
+   - fecha
+   - observaciones
+
+8. Integrar selectores basicos:
+   - selector de objetos usando GET /api/objetos
+   - selector de ubicaciones usando GET /api/ubicaciones
+
+9. Respetar permisos:
+   - VIEWER solo lectura
+   - ADMIN/OPERATOR pueden crear/editar inventario
+
+10. Manejar errores ApiErrorResponse del backend.
+
+11. No implementar todavia exhibiciones ni veteranos.
+
+12. Ejecutar:
+   - npm run lint
+   - npm run build
+
+Al finalizar:
+- informar archivos creados/modificados
+- explicar como probar el flujo
+- indicar endpoints consumidos
+```
+
+### Objetivo del prompt
+
+Implementar inventario y consulta de movimientos consumiendo endpoints reales del backend.
+
+### Resultado esperado
+
+- Tipos y enums de inventario/movimientos alineados al backend.
+- APIs y hooks con TanStack Query.
+- Tabla y detalle de inventario.
+- Alta y edicion de inventario con selectores de objetos y ubicaciones.
+- Tabla de movimientos de inventario.
+- Permisos de escritura limitados a `ADMIN` y `OPERATOR`.
+
+## 7. Modulo funcional de Exhibiciones
+
+### Prompt utilizado
+
+```text
+Implementa el modulo funcional de Exhibiciones en el frontend.
+
+Usar como referencia:
+- frontend/ARCHITECTURE.md
+- backend/API.md
+- Swagger/OpenAPI
+- modulos ya implementados de objetos e inventario
+- sistema de auth/permisos
+
+Objetivo:
+permitir gestionar exhibiciones, asociar objetos y verificar devoluciones.
+
+Requerimientos:
+
+1. Crear modelos TypeScript para:
+   - ExhibicionRequestDTO
+   - ExhibicionResponseDTO
+   - ExhibicionObjetoRequestDTO
+   - ExhibicionObjetoResponseDTO
+   - enums TipoExhibicion, EstadoExhibicion, EstadoExhibicionObjeto
+
+2. Crear funciones API para:
+   - listarExhibiciones
+   - obtenerExhibicionPorId
+   - crearExhibicion
+   - actualizarExhibicion
+   - bajaLogicaExhibicion si existe
+   - finalizarExhibicion
+   - listarObjetosDeExhibicion
+   - agregarObjetoAExhibicion
+   - verificarDevolucionObjeto
+
+3. Usar TanStack Query para:
+   - listado
+   - detalle
+   - creacion/actualizacion
+   - finalizacion
+   - asociacion de objetos
+   - verificacion de devolucion
+   - invalidacion de queries
+
+4. Implementar pagina /exhibiciones:
+   - tabla con nombre, tipo, estado, fechaInicio, fechaFin
+   - acciones ver/editar/finalizar segun permisos y estado
+   - boton Nueva exhibicion solo ADMIN/OPERATOR
+   - loading/error/empty states
+
+5. Implementar formulario ExhibicionForm:
+   - nombre
+   - descripcion
+   - tipo
+   - estado
+   - fechaInicio
+   - fechaFin
+   - validaciones con React Hook Form + Zod
+   - si tipo es PERMANENTE, fechaFin puede ser opcional
+
+6. Implementar paginas:
+   - /exhibiciones/nueva
+   - /exhibiciones/[id]
+   - /exhibiciones/[id]/editar
+
+7. En detalle /exhibiciones/[id], mostrar:
+   - datos generales de la exhibicion
+   - lista de objetos asociados
+   - boton para agregar objeto solo ADMIN/OPERATOR si la exhibicion no esta FINALIZADA
+   - boton finalizar exhibicion solo ADMIN/OPERATOR cuando corresponda
+   - estado de devolucion de cada objeto
+
+8. Implementar agregar objeto a exhibicion:
+   - selector de objetos desde GET /api/objetos
+   - enviar exhibicionId y objetoMuseoId
+   - manejar error si el objeto ya esta en otra exhibicion activa
+
+9. Implementar verificacion de devolucion:
+   - pagina o accion desde detalle
+   - usar endpoint POST /api/exhibiciones-objetos/{id}/verificar-devolucion
+   - refrescar detalle luego de verificar
+
+10. Respetar permisos:
+   - VIEWER solo lectura
+   - ADMIN/OPERATOR pueden crear, editar, asociar objetos, verificar devolucion y finalizar
+
+11. Manejar errores ApiErrorResponse del backend.
+
+12. No implementar todavia veteranos, depositantes ni categorias.
+
+13. Ejecutar:
+   - npm run lint
+   - npm run build
+
+Al finalizar:
+- informar archivos creados/modificados
+- explicar como probar el flujo completo de exhibicion
+- indicar endpoints consumidos
+```
+
+### Objetivo del prompt
+
+Implementar gestion funcional de exhibiciones, asociacion de objetos y verificacion de devoluciones usando endpoints reales.
+
+### Resultado esperado
+
+- Tipos y enums de exhibiciones alineados al backend.
+- API y hooks TanStack Query para exhibiciones y objetos asociados.
+- Listado, detalle, alta y edicion de exhibiciones.
+- Asociacion de objetos desde detalle.
+- Verificacion de devolucion y finalizacion con invalidacion de queries.
+- Permisos de escritura limitados a `ADMIN` y `OPERATOR`.
+
+## 8. Confirmacion y reversion de devolucion de objetos en exhibicion
+
+### Prompt utilizado
+
+```text
+La devolucion de un objeto debe permitir revertirse en caso de que por error se devuelva algo que no corresponda, al clickear verificar devolucion debe solicitar confirmacion.
+```
+
+### Objetivo del prompt
+
+Ajustar el flujo de objetos asociados a exhibiciones para evitar verificaciones accidentales y permitir revertir una devolucion verificada.
+
+### Resultado esperado
+
+- Confirmacion antes de verificar devolucion.
+- Accion para revertir devolucion verificada.
+- Reversion usando el endpoint de actualizacion de objetos en exhibicion.
+- Refresco de queries luego de verificar o revertir.
+
+## 9. Modulos funcionales de Veteranos, Actuaciones y Objeto-Veterano
+
+### Prompt utilizado
+
+```text
+Implementa los modulos funcionales de Veteranos, Actuaciones de Veteranos y Relacion Objeto-Veterano en el frontend.
+
+Usar como referencia:
+- frontend/ARCHITECTURE.md
+- backend/API.md
+- Swagger/OpenAPI
+- modulos ya implementados
+- sistema de auth/permisos
+
+Objetivo:
+permitir gestionar veteranos, registrar actuaciones historicas y asociar objetos del museo con veteranos.
+```
+
+### Objetivo del prompt
+
+Implementar gestion funcional de veteranos, actuaciones historicas y asociacion de objetos del museo con veteranos.
+
+### Resultado esperado
+
+- Tipos y formularios de veteranos, actuaciones y relaciones objeto-veterano.
+- API y hooks TanStack Query.
+- Listado, detalle, alta y edicion de veteranos.
+- Panel de actuaciones y objetos asociados en detalle.
+- Endpoint backend faltante para relaciones objeto-veterano.
+- Permisos de escritura limitados a `ADMIN` y `OPERATOR`.

@@ -70,6 +70,13 @@ public class ExhibicionObjetoController {
         return ResponseEntity.ok(exhibicionObjetoService.verificarDevolucion(id, usuarioId, observaciones));
     }
 
+    @Operation(summary = "Revertir verificacion de devolucion de objeto")
+    @ApiResponse(responseCode = "200", description = "Devolucion revertida")
+    @PostMapping("/{id}/revertir-devolucion")
+    public ResponseEntity<ExhibicionObjetoResponseDTO> revertirDevolucion(@PathVariable Long id) {
+        return ResponseEntity.ok(exhibicionObjetoService.revertirDevolucion(id));
+    }
+
     @Operation(summary = "Dar de baja recurso")
     @ApiResponse(responseCode = "204", description = "Recurso dado de baja")
     @DeleteMapping("/{id}")

@@ -97,6 +97,19 @@ public class ExhibicionObjetoService {
     }
 
     @Transactional
+    public ExhibicionObjetoResponseDTO revertirDevolucion(Long id) {
+        ExhibicionObjeto entity = buscarActivo(id);
+        entity.setEstado(EstadoExhibicionObjeto.EN_EXHIBICION);
+        entity.setDevolucionVerificada(false);
+        entity.setVerificadoPor(null);
+        entity.setFechaVerificacion(null);
+        entity.setFechaRetiro(null);
+        ExhibicionObjeto saved = exhibicionObjetoRepository.save(entity);
+        log.info("event=exhibicion_objeto.return_reverted exhibicionObjetoId={} exhibicionId={} objetoMuseoId={}", saved.getId(), saved.getExhibicion().getId(), saved.getObjetoMuseo().getId());
+        return ExhibicionObjetoMapper.toResponse(saved);
+    }
+
+    @Transactional
     public void bajaLogica(Long id) {
         ExhibicionObjeto entity = buscarActivo(id);
         entity.setActivo(false);

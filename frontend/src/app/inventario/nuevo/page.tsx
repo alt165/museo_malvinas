@@ -4,35 +4,38 @@ import { useRouter } from "next/navigation";
 import { ErrorState } from "@/components/common/error-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
-import { ExhibicionForm } from "@/features/exhibiciones/components/exhibicion-form";
-import { useCrearExhibicionMutation } from "@/features/exhibiciones/queries";
-import { getApiErrorMessage } from "@/features/exhibiciones/utils";
+import { InventarioForm } from "@/features/inventario/components/inventario-form";
+import { useCrearInventarioMutation } from "@/features/inventario/queries";
+import { getApiErrorMessage } from "@/features/inventario/utils";
 import { ApiClientError } from "@/lib/errors/api-error";
 import { routePermissions } from "@/lib/routes";
 
-export default function NuevaExhibicionPage() {
+export default function NuevoInventarioPage() {
   const router = useRouter();
-  const mutation = useCrearExhibicionMutation();
+  const mutation = useCrearInventarioMutation();
 
   return (
     <AppShell requiredRoles={[...routePermissions.write]}>
       <div className="space-y-6">
-        <PageHeader description="Alta de exhibición." title="Nueva exhibición" />
+        <PageHeader
+          description="Crear registro de inventario para un objeto del museo."
+          title="Nuevo inventario"
+        />
         {mutation.isError ? (
           <ErrorState
             message={getApiErrorMessage(mutation.error)}
             requestId={mutation.error instanceof ApiClientError ? mutation.error.requestId : undefined}
           />
         ) : null}
-        <ExhibicionForm
+        <InventarioForm
           isSubmitting={mutation.isPending}
           onSubmit={(payload) =>
             mutation.mutate(payload, {
-              onSuccess: (exhibicion) => router.push(`/exhibiciones/${exhibicion.id}`)
+              onSuccess: (inventario) => router.push(`/inventario/${inventario.id}`)
             })
           }
           submitError={mutation.error}
-          submitLabel="Crear exhibición"
+          submitLabel="Crear inventario"
         />
       </div>
     </AppShell>
