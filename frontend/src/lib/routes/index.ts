@@ -40,7 +40,9 @@ export const routes = {
   inventarioNuevo: "/inventario/nuevo",
   movimientosInventario: "/movimientos-inventario",
   categorias: "/categorias",
+  categoriaNueva: "/categorias/nueva",
   depositantes: "/depositantes",
+  depositanteNuevo: "/depositantes/nuevo",
   veteranos: "/veteranos",
   veteranoNuevo: "/veteranos/nuevo",
   actuacionesVeteranos: "/actuaciones-veteranos",
@@ -136,6 +138,16 @@ export const operationActions: OperationAction[] = [
   {
     href: routes.objetoNuevo,
     label: "Nuevo objeto",
+    roles: writeRoles
+  },
+  {
+    href: routes.categoriaNueva,
+    label: "Nueva categoria",
+    roles: writeRoles
+  },
+  {
+    href: routes.depositanteNuevo,
+    label: "Nuevo depositante",
     roles: writeRoles
   },
   {

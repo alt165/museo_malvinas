@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useCategoriasQuery } from "@/features/categorias/queries";
 import type { ObjetoMuseoRequestDTO, ObjetoMuseoResponseDTO } from "../types";
 import { objetoMuseoSchema, type ObjetoMuseoFormValues } from "../schemas";
 import { getValidationErrors } from "../utils";
@@ -23,6 +24,12 @@ export function ObjetoMuseoForm({
   submitError,
   submitLabel
 }: ObjetoMuseoFormProps) {
+  const {
+    data: categorias = [],
+    isError: isCategoriasError,
+    isLoading: isCategoriasLoading
+  } = useCategoriasQuery();
+  const categoriasOrdenadas = [...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre));
   const {
     formState: { errors },
     handleSubmit,
@@ -88,13 +95,30 @@ export function ObjetoMuseoForm({
       </div>
       <div className="space-y-2">
         <label className="text-sm font-medium" htmlFor="tipoObjeto">
-          Tipo de objeto
+          Categoria
         </label>
-        <input
+        <select
           className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+          disabled={isSubmitting || isCategoriasLoading || isCategoriasError || categoriasOrdenadas.length === 0}
           id="tipoObjeto"
           {...register("tipoObjeto")}
-        />
+        >
+          <option value="">
+            {isCategoriasLoading
+              ? "Cargando categorias..."
+              : categoriasOrdenadas.length === 0
+                ? "No hay categorias disponibles"
+                : "Seleccionar categoria"}
+          </option>
+          {categoriasOrdenadas.map((categoria) => (
+            <option key={categoria.id} value={categoria.nombre}>
+              {categoria.nombre}
+            </option>
+          ))}
+        </select>
+        {isCategoriasError ? (
+          <p className="text-sm text-destructive">No se pudieron cargar las categorias.</p>
+        ) : null}
         {errors.tipoObjeto ? <p className="text-sm text-destructive">{errors.tipoObjeto.message}</p> : null}
       </div>
       <div className="space-y-2">
