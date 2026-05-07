@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
@@ -53,7 +54,7 @@ export function VeteranoDetailPanels({ canWrite, veteranoId }: { canWrite: boole
         {crearActuacion.isError ? <ErrorState message={getApiErrorMessage(crearActuacion.error)} requestId={crearActuacion.error instanceof ApiClientError ? crearActuacion.error.requestId : undefined} /> : null}
         {actuacionesQuery.isLoading ? <LoadingState /> : null}
         {actuacionesQuery.data?.length === 0 ? <EmptyState title="Sin actuaciones" /> : null}
-        {actuacionesQuery.data && actuacionesQuery.data.length > 0 ? <div className="rounded-lg border">{actuacionesQuery.data.map((a) => <div className="border-b p-4 text-sm last:border-b-0" key={a.id}><p className="font-medium">{a.rango || "Sin rango"} · {a.unidad || "Sin unidad"} · {a.rol || "Sin rol"}</p><p className="text-muted-foreground">{formatDate(a.fechaInicio)} - {formatDate(a.fechaFin)}</p><p className="mt-2">{a.descripcion || "Sin descripción"}</p></div>)}</div> : null}
+        {actuacionesQuery.data && actuacionesQuery.data.length > 0 ? <div className="rounded-lg border">{actuacionesQuery.data.map((a) => <div className="flex items-start justify-between gap-3 border-b p-4 text-sm last:border-b-0" key={a.id}><div><p className="font-medium">{a.rango || "Sin rango"} · {a.unidad || "Sin unidad"} · {a.rol || "Sin rol"}</p><p className="text-muted-foreground">{formatDate(a.fechaInicio)} - {formatDate(a.fechaFin)}</p><p className="mt-2">{a.descripcion || "Sin descripción"}</p></div><div className="flex shrink-0 gap-2"><Link className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted" href={`/actuaciones-veteranos/${a.id}`}>Ver</Link>{canWrite ? <Link className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted" href={`/actuaciones-veteranos/${a.id}/editar`}>Editar</Link> : null}</div></div>)}</div> : null}
       </section>
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Objetos asociados</h2>
@@ -71,6 +72,7 @@ export function VeteranoDetailPanels({ canWrite, veteranoId }: { canWrite: boole
           </form>
         ) : null}
         {asociarObjeto.isError ? <ErrorState message={getApiErrorMessage(asociarObjeto.error)} requestId={asociarObjeto.error instanceof ApiClientError ? asociarObjeto.error.requestId : undefined} /> : null}
+        {eliminarRelacion.isError ? <ErrorState message={getApiErrorMessage(eliminarRelacion.error)} requestId={eliminarRelacion.error instanceof ApiClientError ? eliminarRelacion.error.requestId : undefined} /> : null}
         {objetosQuery.isLoading ? <LoadingState /> : null}
         {objetosQuery.data?.length === 0 ? <EmptyState title="Sin objetos asociados" /> : null}
         {objetosQuery.data && objetosQuery.data.length > 0 ? <div className="rounded-lg border">{objetosQuery.data.map((objeto) => <div className="flex items-start justify-between gap-3 border-b p-4 text-sm last:border-b-0" key={objeto.id}><div><p className="font-medium">{objeto.objetoNombre}</p><p className="text-muted-foreground">{objeto.tipoRelacion}</p><p>{objeto.descripcion || "Sin descripción"}</p></div>{canWrite ? <button className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted" disabled={eliminarRelacion.isPending} onClick={() => { if (window.confirm("Eliminar relación objeto-veterano")) eliminarRelacion.mutate(objeto.id); }} type="button">Eliminar</button> : null}</div>)}</div> : null}

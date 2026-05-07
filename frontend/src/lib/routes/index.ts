@@ -7,6 +7,7 @@ import {
   Home,
   IdCard,
   Landmark,
+  Link2,
   MoveRight,
   UserCog,
   UserRound
@@ -38,6 +39,8 @@ export const routes = {
   dashboardHome: "/dashboard",
   objetos: "/objetos",
   objetoNuevo: "/objetos/nuevo",
+  relacionesObjetos: "/relaciones-objetos",
+  relacionObjetoNueva: "/relaciones-objetos/nueva",
   inventario: "/inventario",
   inventarioNuevo: "/inventario/nuevo",
   movimientosInventario: "/movimientos-inventario",
@@ -48,6 +51,7 @@ export const routes = {
   veteranos: "/veteranos",
   veteranoNuevo: "/veteranos/nuevo",
   actuacionesVeteranos: "/actuaciones-veteranos",
+  actuacionVeteranoNueva: "/actuaciones-veteranos/nueva",
   exhibiciones: "/exhibiciones",
   exhibicionNueva: "/exhibiciones/nueva",
   usuarios: "/usuarios",
@@ -79,6 +83,14 @@ export const navigationItems: NavigationItem[] = [
     icon: Boxes,
     roles: readRoles,
     section: "principal"
+  },
+  {
+    href: routes.relacionesObjetos,
+    label: "Relaciones entre objetos",
+    description: "Vinculos documentales",
+    icon: Link2,
+    roles: readRoles,
+    section: "catalogos"
   },
   {
     href: routes.movimientosInventario,
@@ -153,6 +165,11 @@ export const operationActions: OperationAction[] = [
     roles: writeRoles
   },
   {
+    href: routes.relacionObjetoNueva,
+    label: "Nueva relacion",
+    roles: writeRoles
+  },
+  {
     href: routes.categoriaNueva,
     label: "Nueva categoria",
     roles: writeRoles
@@ -175,6 +192,11 @@ export const operationActions: OperationAction[] = [
   {
     href: routes.veteranoNuevo,
     label: "Nuevo veterano",
+    roles: writeRoles
+  },
+  {
+    href: routes.actuacionVeteranoNueva,
+    label: "Nueva actuacion",
     roles: writeRoles
   }
 ];

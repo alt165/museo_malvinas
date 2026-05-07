@@ -13,6 +13,7 @@ export const veteranoSchema = z.object({
 });
 
 export const actuacionVeteranoSchema = z.object({
+  veteranoId: z.number().int("Selecciona un veterano").positive("Selecciona un veterano").optional(),
   rango: z.string().trim().max(80, "El rango no puede superar 80 caracteres").optional().or(z.literal("")),
   unidad: z.string().trim().max(120, "La unidad no puede superar 120 caracteres").optional().or(z.literal("")),
   rol: z.string().trim().max(120, "El rol no puede superar 120 caracteres").optional().or(z.literal("")),

@@ -2,6 +2,7 @@ export {
   actualizarActuacionVeterano,
   actualizarVeterano,
   asociarObjetoAVeterano,
+  bajaLogicaActuacionVeterano,
   bajaLogicaVeterano,
   crearActuacionVeterano,
   crearVeterano,
@@ -11,5 +12,7 @@ export {
   listarObjetosRelacionadosAVeterano,
   listarRelacionesObjetoVeterano,
   listarVeteranos,
+  obtenerActuacionVeteranoPorId,
+  obtenerRelacionObjetoVeteranoPorId,
   obtenerVeteranoPorId
 } from "./veteranos-api";

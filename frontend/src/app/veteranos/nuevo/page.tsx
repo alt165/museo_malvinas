@@ -13,5 +13,5 @@ import { routePermissions } from "@/lib/routes";
 export default function NuevoVeteranoPage() {
   const router = useRouter();
   const mutation = useCrearVeteranoMutation();
-  return <AppShell requiredRoles={[...routePermissions.write]}><div className="space-y-6"><PageHeader title="Nuevo veterano" description="Alta de veterano." />{mutation.isError ? <ErrorState message={getApiErrorMessage(mutation.error)} requestId={mutation.error instanceof ApiClientError ? mutation.error.requestId : undefined} /> : null}<VeteranoForm isSubmitting={mutation.isPending} submitLabel="Crear veterano" onSubmit={(payload) => mutation.mutate(payload, { onSuccess: (v) => router.push(`/veteranos/${v.id}`) })} /></div></AppShell>;
+  return <AppShell requiredRoles={[...routePermissions.write]}><div className="space-y-6"><PageHeader title="Nuevo veterano" description="Alta de veterano." />{mutation.isError ? <ErrorState message={getApiErrorMessage(mutation.error)} requestId={mutation.error instanceof ApiClientError ? mutation.error.requestId : undefined} /> : null}<VeteranoForm isSubmitting={mutation.isPending} submitError={mutation.error} submitLabel="Crear veterano" onSubmit={(payload) => mutation.mutate(payload, { onSuccess: (v) => router.push(`/veteranos/${v.id}`) })} /></div></AppShell>;
 }

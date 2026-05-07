@@ -1,7 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  actualizarActuacionVeterano,
   actualizarVeterano,
   asociarObjetoAVeterano,
+  bajaLogicaActuacionVeterano,
+  bajaLogicaVeterano,
   crearActuacionVeterano,
   crearVeterano,
   eliminarRelacionObjetoVeterano,
@@ -10,6 +13,7 @@ import {
   listarObjetosRelacionadosAVeterano,
   listarRelacionesObjetoVeterano,
   listarVeteranos,
+  obtenerActuacionVeteranoPorId,
   obtenerVeteranoPorId
 } from "./api";
 import type { ActuacionVeteranoRequestDTO, ObjetoVeteranoRequestDTO, VeteranoRequestDTO } from "./types";
@@ -22,6 +26,17 @@ export const veteranosQueryKeys = {
   objetos: (id: number) => [...veteranosQueryKeys.all, "objetos", id] as const
 };
 
+export const actuacionesVeteranosQueryKeys = {
+  all: ["actuaciones-veteranos"] as const,
+  lists: () => [...actuacionesVeteranosQueryKeys.all, "list"] as const,
+  detail: (id: number) => [...actuacionesVeteranosQueryKeys.all, "detail", id] as const
+};
+
+export const objetosVeteranosQueryKeys = {
+  all: ["objetos-veteranos"] as const,
+  lists: () => [...objetosVeteranosQueryKeys.all, "list"] as const
+};
+
 export function useVeteranosQuery() {
   return useQuery({ queryKey: veteranosQueryKeys.lists(), queryFn: listarVeteranos });
 }
@@ -31,7 +46,15 @@ export function useVeteranoQuery(id: number) {
 }
 
 export function useActuacionesVeteranosQuery() {
-  return useQuery({ queryKey: ["actuaciones-veteranos"], queryFn: listarActuacionesVeteranos });
+  return useQuery({ queryKey: actuacionesVeteranosQueryKeys.lists(), queryFn: listarActuacionesVeteranos });
+}
+
+export function useActuacionVeteranoQuery(id: number) {
+  return useQuery({
+    queryKey: actuacionesVeteranosQueryKeys.detail(id),
+    queryFn: () => obtenerActuacionVeteranoPorId(id),
+    enabled: Number.isFinite(id)
+  });
 }
 
 export function useActuacionesVeteranoQuery(id: number) {
@@ -43,7 +66,7 @@ export function useObjetosVeteranoQuery(id: number) {
 }
 
 export function useRelacionesObjetoVeteranoQuery() {
-  return useQuery({ queryKey: ["objetos-veteranos"], queryFn: listarRelacionesObjetoVeterano });
+  return useQuery({ queryKey: objetosVeteranosQueryKeys.lists(), queryFn: listarRelacionesObjetoVeterano });
 }
 
 export function useCrearVeteranoMutation() {
@@ -62,11 +85,58 @@ export function useActualizarVeteranoMutation(id: number) {
   });
 }
 
+export function useBajaLogicaVeteranoMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: bajaLogicaVeterano,
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.all })
+  });
+}
+
 export function useCrearActuacionVeteranoMutation(veteranoId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: ActuacionVeteranoRequestDTO) => crearActuacionVeterano(payload),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.actuaciones(veteranoId) })
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.actuaciones(veteranoId) });
+      void queryClient.invalidateQueries({ queryKey: actuacionesVeteranosQueryKeys.all });
+    }
+  });
+}
+
+export function useCrearActuacionVeteranoGlobalMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: crearActuacionVeterano,
+    onSuccess: (actuacion) => {
+      void queryClient.invalidateQueries({ queryKey: actuacionesVeteranosQueryKeys.all });
+      void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.actuaciones(actuacion.veteranoId) });
+    }
+  });
+}
+
+export function useActualizarActuacionVeteranoMutation(id: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: ActuacionVeteranoRequestDTO) => actualizarActuacionVeterano(id, payload),
+    onSuccess: (actuacion) => {
+      queryClient.setQueryData(actuacionesVeteranosQueryKeys.detail(id), actuacion);
+      void queryClient.invalidateQueries({ queryKey: actuacionesVeteranosQueryKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.actuaciones(actuacion.veteranoId) });
+    }
+  });
+}
+
+export function useBajaLogicaActuacionVeteranoMutation(veteranoId?: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: bajaLogicaActuacionVeterano,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: actuacionesVeteranosQueryKeys.all });
+      if (veteranoId) {
+        void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.actuaciones(veteranoId) });
+      }
+    }
   });
 }
 
@@ -74,7 +144,10 @@ export function useAsociarObjetoVeteranoMutation(veteranoId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: ObjetoVeteranoRequestDTO) => asociarObjetoAVeterano(payload),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.objetos(veteranoId) })
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.objetos(veteranoId) });
+      void queryClient.invalidateQueries({ queryKey: objetosVeteranosQueryKeys.all });
+    }
   });
 }
 
@@ -82,6 +155,9 @@ export function useEliminarRelacionObjetoVeteranoMutation(veteranoId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: eliminarRelacionObjetoVeterano,
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.objetos(veteranoId) })
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.objetos(veteranoId) });
+      void queryClient.invalidateQueries({ queryKey: objetosVeteranosQueryKeys.all });
+    }
   });
 }

@@ -36,6 +36,10 @@ export function listarActuacionesVeteranos() {
   return apiRequest<ActuacionVeteranoResponseDTO[]>(actuacionesPath);
 }
 
+export function obtenerActuacionVeteranoPorId(id: number) {
+  return apiRequest<ActuacionVeteranoResponseDTO>(`${actuacionesPath}/${id}`);
+}
+
 export async function listarActuacionesPorVeterano(veteranoId: number) {
   const actuaciones = await listarActuacionesVeteranos();
   return actuaciones.filter((actuacion) => actuacion.veteranoId === veteranoId);
@@ -49,12 +53,20 @@ export function actualizarActuacionVeterano(id: number, payload: ActuacionVetera
   return apiRequest<ActuacionVeteranoResponseDTO>(`${actuacionesPath}/${id}`, { method: "PUT", body: JSON.stringify(payload) });
 }
 
+export function bajaLogicaActuacionVeterano(id: number) {
+  return apiRequest<void>(`${actuacionesPath}/${id}`, { method: "DELETE" });
+}
+
 export function listarObjetosRelacionadosAVeterano(veteranoId: number) {
   return apiRequest<ObjetoVeteranoResponseDTO[]>(`${objetosVeteranosPath}?veteranoId=${veteranoId}`);
 }
 
 export function listarRelacionesObjetoVeterano() {
   return apiRequest<ObjetoVeteranoResponseDTO[]>(objetosVeteranosPath);
+}
+
+export function obtenerRelacionObjetoVeteranoPorId(id: number) {
+  return apiRequest<ObjetoVeteranoResponseDTO>(`${objetosVeteranosPath}/${id}`);
 }
 
 export function asociarObjetoAVeterano(payload: ObjetoVeteranoRequestDTO) {
