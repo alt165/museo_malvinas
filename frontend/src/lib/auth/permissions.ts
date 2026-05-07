@@ -2,6 +2,7 @@ import type { UserRole } from "@/models/session";
 
 const writeRoles: UserRole[] = ["ADMIN", "OPERATOR"];
 const readRoles: UserRole[] = ["ADMIN", "OPERATOR", "VIEWER"];
+const adminRoles: UserRole[] = ["ADMIN"];
 
 export function hasRole(roles: UserRole[], role: UserRole) {
   return roles.includes(role);
@@ -20,6 +21,7 @@ export function canWrite(roles: UserRole[]) {
 }
 
 export const permissions = {
+  adminRoles,
   readRoles,
   writeRoles
 } as const;

@@ -56,6 +56,16 @@
         "pkce.code.challenge.method": "S256"
       },
       "protocol": "openid-connect"
+    },
+    {
+      "clientId": "museo-admin",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "museo-admin-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "protocol": "openid-connect"
     }
   ],
   "users": [
@@ -115,6 +125,18 @@
       "lastName": "Local",
       "requiredActions": [],
       "email": "viewer@local.test"
+    },
+    {
+      "username": "service-account-museo-admin",
+      "enabled": true,
+      "serviceAccountClientId": "museo-admin",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users"
+        ]
+      }
     }
   ]
 }

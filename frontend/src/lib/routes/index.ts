@@ -8,6 +8,7 @@ import {
   IdCard,
   Landmark,
   MoveRight,
+  UserCog,
   UserRound
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -30,6 +31,7 @@ export type OperationAction = {
 
 const readRoles: UserRole[] = ["ADMIN", "OPERATOR", "VIEWER"];
 const writeRoles: UserRole[] = ["ADMIN", "OPERATOR"];
+const adminRoles: UserRole[] = ["ADMIN"];
 
 export const routes = {
   dashboard: "/",
@@ -48,6 +50,8 @@ export const routes = {
   actuacionesVeteranos: "/actuaciones-veteranos",
   exhibiciones: "/exhibiciones",
   exhibicionNueva: "/exhibiciones/nueva",
+  usuarios: "/usuarios",
+  usuarioNuevo: "/usuarios/nuevo",
   perfil: "/perfil"
 } as const;
 
@@ -131,6 +135,14 @@ export const navigationItems: NavigationItem[] = [
     icon: UserRound,
     roles: readRoles,
     section: "principal"
+  },
+  {
+    href: routes.usuarios,
+    label: "Usuarios",
+    description: "Administracion Keycloak",
+    icon: UserCog,
+    roles: adminRoles,
+    section: "principal"
   }
 ];
 
@@ -168,6 +180,7 @@ export const operationActions: OperationAction[] = [
 ];
 
 export const routePermissions = {
+  admin: adminRoles,
   read: readRoles,
   write: writeRoles
 } as const;
