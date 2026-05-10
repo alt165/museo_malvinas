@@ -23,9 +23,14 @@ export default function ObjetosPage() {
         <PageHeader
           actions={
             puedeEscribir ? (
-              <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/objetos/nuevo">
-                Nuevo objeto
-              </Link>
+              <div className="flex flex-wrap gap-2">
+                <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/objetos/carga-rapida">
+                  Carga rapida
+                </Link>
+                <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/objetos/nuevo">
+                  Nuevo objeto
+                </Link>
+              </div>
             ) : null
           }
           description="Catalogo de objetos patrimoniales registrados en el museo."

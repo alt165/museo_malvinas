@@ -14,6 +14,7 @@ import com.proveedores.exception.BusinessException;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -71,12 +72,13 @@ class KeycloakAdminServiceTest {
         prepararRealm();
         when(usersResource.create(any(UserRepresentation.class)))
                 .thenReturn(Response.created(URI.create("http://keycloak/admin/realms/museo/users/user-id")).build());
-        prepararUsuarioExistente("user-id", "jperez", "Juan", "Perez", "jperez@local.test", List.of(), List.of(role("VIEWER")));
+        prepararUsuarioExistente("user-id", "jperez", "Juan", "Perez", "jperez@local.test", "12345678", List.of(), List.of(role("VIEWER")));
         prepararRolRealm("VIEWER");
 
         var response = service.crearUsuario(new UsuarioKeycloakRequestDTO(
                 "jperez",
                 "jperez@local.test",
+                "12345678",
                 "Juan",
                 "Perez",
                 true,
@@ -90,8 +92,47 @@ class KeycloakAdminServiceTest {
         assertThat(credencial.getType()).isEqualTo(CredentialRepresentation.PASSWORD);
         assertThat(credencial.getValue()).isEqualTo("Temporal123");
         assertThat(credencial.isTemporary()).isTrue();
+        assertThat(usuarioCaptor.getValue().getAttributes()).containsEntry("dni", List.of("12345678"));
         assertThat(response.id()).isEqualTo("user-id");
+        assertThat(response.dni()).isEqualTo("12345678");
         assertThat(response.roles()).containsExactly("VIEWER");
+    }
+
+    @Test
+    void obtenerUsuarioDevuelveDniDesdeAttributes() {
+        prepararRealm();
+        prepararUsuarioExistente("user-id", "jperez", "Juan", "Perez", "jperez@local.test", "12345678", List.of(role("VIEWER")), List.of(role("VIEWER")));
+
+        var response = service.obtenerUsuario("user-id");
+
+        assertThat(response.dni()).isEqualTo("12345678");
+    }
+
+    @Test
+    void actualizarUsuarioModificaDniYConservaOtrosAtributos() {
+        prepararRealm();
+        prepararUsuarioExistente("user-id", "jperez", "Juan", "Perez", "jperez@local.test", "12345678", List.of(role("VIEWER")), List.of(role("VIEWER")));
+        UserRepresentation usuarioExistente = userResource.toRepresentation();
+        usuarioExistente.setAttributes(Map.of(
+                "dni", List.of("12345678"),
+                "legajo", List.of("A-1")
+        ));
+
+        service.actualizarDatosBasicos("user-id", new UsuarioKeycloakRequestDTO(
+                "jperez",
+                "jperez@local.test",
+                "87654321",
+                "Juan",
+                "Perez",
+                true,
+                null,
+                Set.of("VIEWER")
+        ));
+
+        ArgumentCaptor<UserRepresentation> captor = ArgumentCaptor.forClass(UserRepresentation.class);
+        verify(userResource).update(captor.capture());
+        assertThat(captor.getValue().getAttributes()).containsEntry("dni", List.of("87654321"));
+        assertThat(captor.getValue().getAttributes()).containsEntry("legajo", List.of("A-1"));
     }
 
     @Test
@@ -103,6 +144,7 @@ class KeycloakAdminServiceTest {
                 "Admin",
                 "Local",
                 "admin@local.test",
+                "12345678",
                 List.of(role("ADMIN"), role("VIEWER")),
                 List.of(role("OPERATOR"))
         );
@@ -154,6 +196,7 @@ class KeycloakAdminServiceTest {
             String nombre,
             String apellido,
             String email,
+            String dni,
             List<RoleRepresentation> rolesActuales,
             List<RoleRepresentation> rolesRespuesta
     ) {
@@ -164,6 +207,7 @@ class KeycloakAdminServiceTest {
         usuario.setLastName(apellido);
         usuario.setEmail(email);
         usuario.setEnabled(true);
+        usuario.setAttributes(Map.of("dni", List.of(dni)));
         when(usersResource.get(id)).thenReturn(userResource);
         when(userResource.toRepresentation()).thenReturn(usuario);
         when(userResource.roles()).thenReturn(roleMappingResource);

@@ -13,7 +13,7 @@ class FlywayPostgresIntegrationTest extends IntegrationTestBase {
     private JdbcTemplate jdbcTemplate;
 
     @Test
-    void flywayAplicaMigracionesV1YV2EnPostgreSQL() {
+    void flywayAplicaMigracionesEnPostgreSQL() {
         List<String> versiones = jdbcTemplate.queryForList(
                 "select version from flyway_schema_history where success = true order by installed_rank",
                 String.class
@@ -23,9 +23,15 @@ class FlywayPostgresIntegrationTest extends IntegrationTestBase {
         Integer ubicacionesSembradas = jdbcTemplate.queryForObject("select count(*) from ubicaciones", Integer.class);
         Integer exhibicionesSembradas = jdbcTemplate.queryForObject("select count(*) from exhibiciones", Integer.class);
 
-        assertThat(versiones).containsExactly("1", "2");
+        assertThat(versiones).containsExactly("1", "2", "3", "4");
         assertThat(objetosSembrados).isGreaterThanOrEqualTo(6);
         assertThat(ubicacionesSembradas).isGreaterThanOrEqualTo(5);
         assertThat(exhibicionesSembradas).isGreaterThanOrEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.tables where table_name = 'fotos_objeto_museo'", Integer.class))
+                .isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.tables where table_name = 'recibos_ingreso_objeto'", Integer.class))
+                .isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.columns where table_name = 'objetos_museo' and column_name in ('nombre', 'tipo_objeto')", Integer.class))
+                .isZero();
     }
 }

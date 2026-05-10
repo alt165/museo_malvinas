@@ -58,7 +58,7 @@ class RelacionObjetoServiceTest {
     private ObjetoMuseo objeto(Long id, String nombre) {
         ObjetoMuseo objeto = new ObjetoMuseo();
         objeto.setId(id);
-        objeto.setNombre(nombre);
+        objeto.setDenominacionObjeto(nombre);
         objeto.setNumeroInventario("INV-" + id);
         objeto.setEliminado(false);
         return objeto;

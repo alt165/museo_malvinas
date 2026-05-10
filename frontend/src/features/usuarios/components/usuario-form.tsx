@@ -45,7 +45,7 @@ export function UsuarioForm({
     const validationErrors = getValidationErrors(submitError);
 
     Object.entries(validationErrors).forEach(([field, message]) => {
-      if (field === "username" || field === "email" || field === "nombre" || field === "apellido" || field === "contrasenaInicial") {
+      if (field === "username" || field === "email" || field === "dni" || field === "nombre" || field === "apellido" || field === "contrasenaInicial") {
         setError(field, { message });
       }
     });
@@ -76,6 +76,14 @@ export function UsuarioForm({
           />
         </Field>
       </div>
+      <Field label="DNI" error={errors.dni?.message}>
+        <input
+          className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+          autoComplete="off"
+          inputMode="numeric"
+          {...register("dni")}
+        />
+      </Field>
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Nombre" error={errors.nombre?.message}>
           <input

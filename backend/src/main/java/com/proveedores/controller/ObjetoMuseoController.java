@@ -1,15 +1,26 @@
 package com.proveedores.controller;
 
+import com.proveedores.dto.AgregarCategoriaObjetoRequestDTO;
+import com.proveedores.dto.CargaRapidaObjetoRequestDTO;
+import com.proveedores.dto.CargaRapidaObjetoResponseDTO;
+import com.proveedores.dto.FotoObjetoMuseoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
+import com.proveedores.dto.ReciboIngresoObjetoResponseDTO;
+import com.proveedores.service.FotoObjetoMuseoService;
 import com.proveedores.service.ObjetoMuseoService;
+import com.proveedores.service.ReciboIngresoObjetoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,7 +28,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "Objetos de museo", description = "Gestion de objetos patrimoniales del museo")
 @RestController
@@ -25,9 +38,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class ObjetoMuseoController {
 
     private final ObjetoMuseoService objetoMuseoService;
+    private final FotoObjetoMuseoService fotoObjetoMuseoService;
+    private final ReciboIngresoObjetoService reciboIngresoObjetoService;
 
-    public ObjetoMuseoController(ObjetoMuseoService objetoMuseoService) {
+    public ObjetoMuseoController(
+            ObjetoMuseoService objetoMuseoService,
+            FotoObjetoMuseoService fotoObjetoMuseoService,
+            ReciboIngresoObjetoService reciboIngresoObjetoService
+    ) {
         this.objetoMuseoService = objetoMuseoService;
+        this.fotoObjetoMuseoService = fotoObjetoMuseoService;
+        this.reciboIngresoObjetoService = reciboIngresoObjetoService;
     }
 
     @Operation(summary = "Crear recurso")
@@ -64,5 +85,76 @@ public class ObjetoMuseoController {
     public ResponseEntity<Void> bajaLogica(@PathVariable Long id) {
         objetoMuseoService.bajaLogica(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Agregar categoria al objeto")
+    @PostMapping("/{id}/categorias")
+    public ResponseEntity<ObjetoMuseoResponseDTO> agregarCategoria(
+            @PathVariable Long id,
+            @RequestBody @Valid AgregarCategoriaObjetoRequestDTO dto
+    ) {
+        return ResponseEntity.ok(objetoMuseoService.agregarCategoria(id, dto));
+    }
+
+    @Operation(summary = "Quitar categoria del objeto")
+    @DeleteMapping("/{id}/categorias/{categoriaId}")
+    public ResponseEntity<ObjetoMuseoResponseDTO> quitarCategoria(@PathVariable Long id, @PathVariable Long categoriaId) {
+        return ResponseEntity.ok(objetoMuseoService.quitarCategoria(id, categoriaId));
+    }
+
+    @Operation(summary = "Subir foto del objeto")
+    @PostMapping(path = "/{id}/fotos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<FotoObjetoMuseoResponseDTO> subirFoto(
+            @PathVariable Long id,
+            @RequestParam("archivo") MultipartFile archivo,
+            @RequestParam(value = "descripcion", required = false) String descripcion,
+            Authentication authentication
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(fotoObjetoMuseoService.subir(id, archivo, descripcion, usuario(authentication)));
+    }
+
+    @Operation(summary = "Listar fotos del objeto")
+    @GetMapping("/{id}/fotos")
+    public ResponseEntity<List<FotoObjetoMuseoResponseDTO>> listarFotos(@PathVariable Long id) {
+        return ResponseEntity.ok(fotoObjetoMuseoService.listar(id));
+    }
+
+    @Operation(summary = "Listar recibos emitidos para el objeto")
+    @GetMapping("/{id}/recibos")
+    public ResponseEntity<List<ReciboIngresoObjetoResponseDTO>> listarRecibos(@PathVariable Long id) {
+        objetoMuseoService.obtenerPorId(id);
+        return ResponseEntity.ok(reciboIngresoObjetoService.listarPorObjeto(id));
+    }
+
+    @Operation(summary = "Descargar foto del objeto")
+    @GetMapping("/{id}/fotos/{fotoId}")
+    public ResponseEntity<Resource> descargarFoto(@PathVariable Long id, @PathVariable Long fotoId) {
+        FotoObjetoMuseoService.FotoArchivo foto = fotoObjetoMuseoService.descargar(id, fotoId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(foto.metadata().contentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + foto.metadata().nombreArchivo() + "\"")
+                .body(foto.resource());
+    }
+
+    @Operation(summary = "Eliminar foto del objeto")
+    @DeleteMapping("/{id}/fotos/{fotoId}")
+    public ResponseEntity<Void> eliminarFoto(@PathVariable Long id, @PathVariable Long fotoId) {
+        fotoObjetoMuseoService.eliminar(id, fotoId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Crear objeto por carga rapida y emitir recibo")
+    @PostMapping("/carga-rapida")
+    public ResponseEntity<CargaRapidaObjetoResponseDTO> cargaRapida(
+            @RequestBody @Valid CargaRapidaObjetoRequestDTO dto,
+            Authentication authentication
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(objetoMuseoService.cargaRapida(dto, usuario(authentication)));
+    }
+
+    private String usuario(Authentication authentication) {
+        return authentication == null ? null : authentication.getName();
     }
 }

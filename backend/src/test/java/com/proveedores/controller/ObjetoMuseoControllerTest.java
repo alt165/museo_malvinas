@@ -14,7 +14,9 @@ import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.GlobalExceptionHandler;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.security.KeycloakJwtAuthenticationConverter;
+import com.proveedores.service.FotoObjetoMuseoService;
 import com.proveedores.service.ObjetoMuseoService;
+import com.proveedores.service.ReciboIngresoObjetoService;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,16 +42,22 @@ class ObjetoMuseoControllerTest {
     private ObjetoMuseoService objetoMuseoService;
 
     @MockBean
+    private FotoObjetoMuseoService fotoObjetoMuseoService;
+
+    @MockBean
+    private ReciboIngresoObjetoService reciboIngresoObjetoService;
+
+    @MockBean
     private KeycloakJwtAuthenticationConverter keycloakJwtAuthenticationConverter;
 
     @Test
     void crearObjetoMuseoCorrectamenteDevuelveCreated() throws Exception {
-        ObjetoMuseoResponseDTO response = new ObjetoMuseoResponseDTO(1L, "INV-1", "Casco", "Equipo", null);
+        ObjetoMuseoResponseDTO response = new ObjetoMuseoResponseDTO(1L, "INV-1", "Casco", null, null, null, null, null, java.util.List.of());
         when(objetoMuseoService.crear(any(ObjetoMuseoRequestDTO.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/objetos")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new ObjetoMuseoRequestDTO("INV-1", "Casco", "Equipo", null))))
+                        .content(objectMapper.writeValueAsString(new ObjetoMuseoRequestDTO("INV-1", "Casco", null, null, null, null, null, null))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.numeroInventario").value("INV-1"));
@@ -59,7 +67,7 @@ class ObjetoMuseoControllerTest {
     void requestInvalidoDevuelveBadRequest() throws Exception {
         mockMvc.perform(post("/api/objetos")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new ObjetoMuseoRequestDTO("", "", "Equipo", null))))
+                        .content(objectMapper.writeValueAsString(new ObjetoMuseoRequestDTO("", "", null, null, null, null, null, null))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.timestamp").exists())
                 .andExpect(jsonPath("$.status").value(400))
@@ -67,7 +75,7 @@ class ObjetoMuseoControllerTest {
                 .andExpect(jsonPath("$.message").value("La solicitud contiene errores de validacion"))
                 .andExpect(jsonPath("$.path").value("/api/objetos"))
                 .andExpect(jsonPath("$.validationErrors.numeroInventario").value("El numero de inventario es obligatorio"))
-                .andExpect(jsonPath("$.validationErrors.nombre").value("El nombre es obligatorio"));
+                .andExpect(jsonPath("$.validationErrors.denominacionONombreValida").value("La denominacion o nombre es obligatorio"));
     }
 
     @Test
@@ -88,7 +96,7 @@ class ObjetoMuseoControllerTest {
 
         mockMvc.perform(post("/api/objetos")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new ObjetoMuseoRequestDTO("INV-1", "Casco", "Equipo", null))))
+                        .content(objectMapper.writeValueAsString(new ObjetoMuseoRequestDTO("INV-1", "Casco", null, null, null, null, null, null))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.message").value("Ya existe un objeto con ese numero de inventario"));
@@ -101,7 +109,7 @@ class ObjetoMuseoControllerTest {
 
         mockMvc.perform(post("/api/objetos")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new ObjetoMuseoRequestDTO("INV-1", "Casco", "Equipo", null))))
+                        .content(objectMapper.writeValueAsString(new ObjetoMuseoRequestDTO("INV-1", "Casco", null, null, null, null, null, null))))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.error").value("Conflict"))

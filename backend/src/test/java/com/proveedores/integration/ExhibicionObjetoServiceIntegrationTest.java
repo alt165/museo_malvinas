@@ -37,8 +37,8 @@ class ExhibicionObjetoServiceIntegrationTest extends IntegrationTestBase {
         var objeto = objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
                 "IT-EXO-001",
                 "Cantimplora",
-                "Equipamiento",
-                null
+                null,
+                null, null, null, null, null
         ));
         var exhibicionActiva = crearExhibicion("IT Exhibicion activa A", EstadoExhibicion.ACTIVA);
         var otraExhibicionActiva = crearExhibicion("IT Exhibicion activa B", EstadoExhibicion.ACTIVA);
@@ -56,8 +56,8 @@ class ExhibicionObjetoServiceIntegrationTest extends IntegrationTestBase {
         var objeto = objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
                 "IT-EXO-DEV",
                 "Cuaderno de notas",
-                "Documento",
-                null
+                null,
+                null, null, null, null, null
         ));
         var exhibicion = crearExhibicion("IT Exhibicion devolucion", EstadoExhibicion.ACTIVA);
         var relacion = exhibicionObjetoService.crear(

@@ -2,6 +2,7 @@ package com.proveedores.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.Set;
 
@@ -14,6 +15,11 @@ public record UsuarioKeycloakRequestDTO(
         @Email(message = "El email debe tener un formato valido")
         @Size(max = 160, message = "El email no puede superar 160 caracteres")
         String email,
+
+        @NotBlank(message = "El DNI es obligatorio")
+        @Size(min = 7, max = 20, message = "El DNI debe tener entre 7 y 20 caracteres")
+        @Pattern(regexp = "^[0-9]+$", message = "El DNI solo puede contener digitos")
+        String dni,
 
         @Size(max = 100, message = "El nombre no puede superar 100 caracteres")
         String nombre,

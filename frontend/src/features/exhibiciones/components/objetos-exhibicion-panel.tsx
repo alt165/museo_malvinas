@@ -79,7 +79,7 @@ export function ObjetosExhibicionPanel({ canWrite, estado, exhibicionId }: Objet
               <option value={0}>Seleccionar objeto</option>
               {(objetosQuery.data ?? []).map((objeto) => (
                 <option key={objeto.id} value={objeto.id}>
-                  {objeto.numeroInventario} - {objeto.nombre}
+                  {objeto.numeroInventario} - {objeto.denominacionObjeto}
                 </option>
               ))}
             </select>

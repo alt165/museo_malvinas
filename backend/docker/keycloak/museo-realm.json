@@ -30,11 +30,15 @@
       "standardFlowEnabled": true,
       "redirectUris": [
         "http://localhost:3000/*",
-        "http://localhost:8080/*"
+        "http://localhost:13000/*",
+        "http://localhost:8080/*",
+        "http://localhost:18080/*"
       ],
       "webOrigins": [
         "http://localhost:3000",
-        "http://localhost:8080"
+        "http://localhost:13000",
+        "http://localhost:8080",
+        "http://localhost:18080"
       ],
       "protocol": "openid-connect"
     },
@@ -47,10 +51,12 @@
       "implicitFlowEnabled": false,
       "serviceAccountsEnabled": false,
       "redirectUris": [
-        "http://localhost:3000/*"
+        "http://localhost:3000/*",
+        "http://localhost:13000/*"
       ],
       "webOrigins": [
-        "http://localhost:3000"
+        "http://localhost:3000",
+        "http://localhost:13000"
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256"
@@ -86,7 +92,12 @@
       "firstName": "Admin",
       "lastName": "Local",
       "requiredActions": [],
-      "email": "admin@local.test"
+      "email": "admin@local.test",
+      "attributes": {
+        "dni": [
+          "10000001"
+        ]
+      }
     },
     {
       "username": "operator",
@@ -105,7 +116,12 @@
       "firstName": "Operator",
       "lastName": "Local",
       "requiredActions": [],
-      "email": "operator@local.test"
+      "email": "operator@local.test",
+      "attributes": {
+        "dni": [
+          "10000002"
+        ]
+      }
     },
     {
       "username": "viewer",
@@ -124,7 +140,12 @@
       "firstName": "Viewer",
       "lastName": "Local",
       "requiredActions": [],
-      "email": "viewer@local.test"
+      "email": "viewer@local.test",
+      "attributes": {
+        "dni": [
+          "10000003"
+        ]
+      }
     },
     {
       "username": "service-account-museo-admin",

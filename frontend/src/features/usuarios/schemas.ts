@@ -7,6 +7,7 @@ const optionalPassword = z.string().optional().or(z.literal(""));
 export const usuarioSchema = z.object({
   username: z.string().trim().min(1, "El nombre de usuario es obligatorio").max(100, "El nombre de usuario no puede superar 100 caracteres"),
   email: z.string().trim().min(1, "El email es obligatorio").email("El email debe tener un formato valido").max(160, "El email no puede superar 160 caracteres"),
+  dni: z.string().trim().min(7, "El DNI debe tener al menos 7 caracteres").max(20, "El DNI no puede superar 20 caracteres").regex(/^[0-9]+$/, "El DNI solo puede contener digitos"),
   nombre: optionalText,
   apellido: optionalText,
   habilitado: z.boolean(),

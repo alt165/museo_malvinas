@@ -23,8 +23,8 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
         var response = objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
                 "IT-OBJ-001",
                 "Brujula de campania",
-                "Instrumento",
-                "Alta generada por test de integracion"
+                "Alta generada por test de integracion",
+                null, null, null, null, null
         ));
 
         assertThat(response.id()).isNotNull();
@@ -32,7 +32,7 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
                 .get()
                 .satisfies(objeto -> {
                     assertThat(objeto.getNumeroInventario()).isEqualTo("IT-OBJ-001");
-                    assertThat(objeto.getNombre()).isEqualTo("Brujula de campania");
+                    assertThat(objeto.getDenominacionObjeto()).isEqualTo("Brujula de campania");
                     assertThat(objeto.getEliminado()).isFalse();
                 });
     }
@@ -42,15 +42,15 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
         objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
                 "IT-OBJ-DUP",
                 "Objeto original",
-                "Documento",
-                null
+                null,
+                null, null, null, null, null
         ));
 
         assertThatThrownBy(() -> objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
                 "IT-OBJ-DUP",
                 "Objeto duplicado",
-                "Documento",
-                null
+                null,
+                null, null, null, null, null
         ))).isInstanceOf(BusinessException.class)
                 .hasMessage("Ya existe un objeto con ese numero de inventario");
     }

@@ -45,8 +45,7 @@ public class ObjetoDigitalService {
         ObjetoDigital entity = buscarActivo(id);
         validarNumeroInventarioDisponible(dto.numeroInventario(), id);
         entity.setNumeroInventario(dto.numeroInventario());
-        entity.setNombre(dto.nombre());
-        entity.setTipoObjeto(dto.tipoObjeto());
+        entity.setDenominacionObjeto(dto.denominacionObjeto());
         entity.setDescripcion(dto.descripcion());
         entity.setFormatoDigital(dto.formatoDigital());
         entity.setIdentificadorDigital(dto.identificadorDigital());

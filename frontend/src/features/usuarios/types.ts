@@ -5,6 +5,7 @@ export const rolesUsuario: UserRole[] = ["ADMIN", "OPERATOR", "VIEWER"];
 export type UsuarioKeycloakRequestDTO = {
   username: string;
   email: string;
+  dni: string;
   nombre?: string | null;
   apellido?: string | null;
   habilitado?: boolean;
@@ -16,6 +17,7 @@ export type UsuarioKeycloakResponseDTO = {
   id: string;
   username: string;
   email: string;
+  dni: string;
   nombre?: string | null;
   apellido?: string | null;
   habilitado: boolean;

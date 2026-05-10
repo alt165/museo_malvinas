@@ -39,9 +39,13 @@ export function ObjetoMuseoForm({
     resolver: zodResolver(objetoMuseoSchema),
     defaultValues: {
       numeroInventario: initialValue?.numeroInventario ?? "",
-      nombre: initialValue?.nombre ?? "",
-      tipoObjeto: initialValue?.tipoObjeto ?? "",
-      descripcion: initialValue?.descripcion ?? ""
+      denominacionObjeto: initialValue?.denominacionObjeto ?? "",
+      descripcion: initialValue?.descripcion ?? "",
+      descripcionTecnica: initialValue?.descripcionTecnica ?? "",
+      materiales: initialValue?.materiales ?? "",
+      dimensiones: initialValue?.dimensiones ?? "",
+      estadoConservacion: initialValue?.estadoConservacion ?? "",
+      categoriaIds: initialValue?.categorias?.map((categoria) => categoria.id) ?? []
     }
   });
 
@@ -49,7 +53,16 @@ export function ObjetoMuseoForm({
     const validationErrors = getValidationErrors(submitError);
 
     Object.entries(validationErrors).forEach(([field, message]) => {
-      if (field === "numeroInventario" || field === "nombre" || field === "tipoObjeto" || field === "descripcion") {
+      if (
+        field === "numeroInventario" ||
+        field === "denominacionObjeto" ||
+        field === "descripcion" ||
+        field === "descripcionTecnica" ||
+        field === "materiales" ||
+        field === "dimensiones" ||
+        field === "estadoConservacion" ||
+        field === "categoriaIds"
+      ) {
         setError(field, { message });
       }
     });
@@ -61,9 +74,13 @@ export function ObjetoMuseoForm({
       onSubmit={handleSubmit((values) =>
         onSubmit({
           numeroInventario: values.numeroInventario.trim(),
-          nombre: values.nombre.trim(),
-          tipoObjeto: values.tipoObjeto?.trim() || null,
-          descripcion: values.descripcion?.trim() || null
+          denominacionObjeto: values.denominacionObjeto.trim(),
+          descripcion: values.descripcion?.trim() || null,
+          descripcionTecnica: values.descripcionTecnica?.trim() || null,
+          materiales: values.materiales?.trim() || null,
+          dimensiones: values.dimensiones?.trim() || null,
+          estadoConservacion: values.estadoConservacion || null,
+          categoriaIds: values.categoriaIds ?? []
         })
       )}
     >
@@ -81,37 +98,33 @@ export function ObjetoMuseoForm({
             <p className="text-sm text-destructive">{errors.numeroInventario.message}</p>
           ) : null}
         </div>
-        <div className="space-y-2">
-          <label className="text-sm font-medium" htmlFor="nombre">
-            Nombre
-          </label>
-          <input
-            className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-            id="nombre"
-            {...register("nombre")}
-          />
-          {errors.nombre ? <p className="text-sm text-destructive">{errors.nombre.message}</p> : null}
-        </div>
       </div>
       <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="tipoObjeto">
-          Categoria
+        <label className="text-sm font-medium" htmlFor="denominacionObjeto">
+          Denominacion
+        </label>
+        <input
+          className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+          id="denominacionObjeto"
+          {...register("denominacionObjeto")}
+        />
+        {errors.denominacionObjeto ? <p className="text-sm text-destructive">{errors.denominacionObjeto.message}</p> : null}
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium" htmlFor="categoriaIds">
+          Categorias
         </label>
         <select
-          className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+          className="min-h-28 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
           disabled={isSubmitting || isCategoriasLoading || isCategoriasError || categoriasOrdenadas.length === 0}
-          id="tipoObjeto"
-          {...register("tipoObjeto")}
+          id="categoriaIds"
+          multiple
+          {...register("categoriaIds", {
+            setValueAs: (value) => (Array.isArray(value) ? value.map(Number) : [])
+          })}
         >
-          <option value="">
-            {isCategoriasLoading
-              ? "Cargando categorias..."
-              : categoriasOrdenadas.length === 0
-                ? "No hay categorias disponibles"
-                : "Seleccionar categoria"}
-          </option>
           {categoriasOrdenadas.map((categoria) => (
-            <option key={categoria.id} value={categoria.nombre}>
+            <option key={categoria.id} value={categoria.id}>
               {categoria.nombre}
             </option>
           ))}
@@ -119,11 +132,30 @@ export function ObjetoMuseoForm({
         {isCategoriasError ? (
           <p className="text-sm text-destructive">No se pudieron cargar las categorias.</p>
         ) : null}
-        {errors.tipoObjeto ? <p className="text-sm text-destructive">{errors.tipoObjeto.message}</p> : null}
+      </div>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div className="space-y-2">
+          <label className="text-sm font-medium" htmlFor="estadoConservacion">
+            Estado de conservacion
+          </label>
+          <select
+            className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+            id="estadoConservacion"
+            {...register("estadoConservacion")}
+          >
+            <option value="">Sin especificar</option>
+            <option value="EXCELENTE">Excelente</option>
+            <option value="BUENO">Bueno</option>
+            <option value="REGULAR">Regular</option>
+            <option value="MALO">Malo</option>
+            <option value="CRITICO">Critico</option>
+          </select>
+          {errors.estadoConservacion ? <p className="text-sm text-destructive">{errors.estadoConservacion.message}</p> : null}
+        </div>
       </div>
       <div className="space-y-2">
         <label className="text-sm font-medium" htmlFor="descripcion">
-          Descripcion
+          Descripcion breve
         </label>
         <textarea
           className="min-h-32 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
@@ -131,6 +163,38 @@ export function ObjetoMuseoForm({
           {...register("descripcion")}
         />
         {errors.descripcion ? <p className="text-sm text-destructive">{errors.descripcion.message}</p> : null}
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium" htmlFor="descripcionTecnica">
+          Descripcion tecnica
+        </label>
+        <textarea
+          className="min-h-32 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+          id="descripcionTecnica"
+          {...register("descripcionTecnica")}
+        />
+      </div>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div className="space-y-2">
+          <label className="text-sm font-medium" htmlFor="materiales">
+            Materiales
+          </label>
+          <textarea
+            className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+            id="materiales"
+            {...register("materiales")}
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium" htmlFor="dimensiones">
+            Dimensiones
+          </label>
+          <textarea
+            className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+            id="dimensiones"
+            {...register("dimensiones")}
+          />
+        </div>
       </div>
       <div className="flex items-center gap-3">
         <button

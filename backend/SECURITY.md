@@ -28,6 +28,7 @@ Clientes locales:
 
 - `museo-backend`: cliente bearer-only usado por el backend.
 - `museo-local`: cliente publico con direct access grants habilitado para desarrollo local.
+- `museo-admin`: cliente confidencial de service account usado por el backend para Keycloak Admin API.
 
 Usuarios locales de desarrollo:
 
@@ -72,6 +73,7 @@ Permisos aplicados por `SecurityConfig`:
 
 | Metodo | Path | Roles permitidos |
 | --- | --- | --- |
+| Cualquiera | `/api/admin/**` | `ADMIN` |
 | `GET` | `/api/**` | `ADMIN`, `OPERATOR`, `VIEWER` |
 | `POST` | `/api/**` | `ADMIN`, `OPERATOR` |
 | `PUT` | `/api/**` | `ADMIN`, `OPERATOR` |
@@ -79,6 +81,22 @@ Permisos aplicados por `SecurityConfig`:
 | `DELETE` | `/api/**` | `ADMIN`, `OPERATOR` |
 
 La documentacion base del proyecto menciona `SUDO`, pero el realm local y la configuracion actual del backend no lo habilitan en reglas de acceso.
+
+## Administracion de usuarios y DNI
+
+Los usuarios reales viven en Keycloak. El backend no implementa login propio, no guarda contrasenas y no persiste DNI en PostgreSQL.
+
+El modulo `/api/admin/usuarios` requiere `ADMIN` y usa Keycloak Admin API. El DNI es obligatorio para altas y actualizaciones, se trata como `String` y se almacena en Keycloak como atributo custom:
+
+```json
+{
+  "attributes": {
+    "dni": ["12345678"]
+  }
+}
+```
+
+El DNI no se usa para autenticar y no reemplaza al username.
 
 ## Extraccion de roles
 
@@ -154,7 +172,6 @@ Header expuesto:
 
 ## Logs y datos sensibles
 
-Los logs incluyen `requestId`, usuario, metodo, endpoint y status. No se loguean tokens JWT, passwords ni headers de autorizacion.
+Los logs incluyen `requestId`, usuario, metodo, endpoint y status. No se loguean tokens JWT, passwords, DNI ni headers de autorizacion.
 
 `GlobalExceptionHandler` evita exponer stack traces al cliente y no registra el mensaje completo de `BusinessException` en logs.
-

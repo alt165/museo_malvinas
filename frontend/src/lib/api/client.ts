@@ -41,7 +41,7 @@ export async function apiRequest<TResponse>(
   const { auth = true, token, ...requestOptions } = options;
   headers.set("Accept", "application/json");
 
-  if (requestOptions.body && !headers.has("Content-Type")) {
+  if (requestOptions.body && !(requestOptions.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -69,4 +69,29 @@ export async function apiRequest<TResponse>(
   }
 
   return response.json() as Promise<TResponse>;
+}
+
+export async function apiBlobRequest(path: string, options: RequestOptions = {}): Promise<Blob> {
+  const headers = new Headers(options.headers);
+  const { auth = true, token, ...requestOptions } = options;
+  const accessToken = token ?? (auth ? await getAccessToken() : null);
+
+  if (accessToken) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
+  }
+
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    ...requestOptions,
+    headers
+  });
+
+  if (response.status === 401 && auth) {
+    await redirectToLogin();
+  }
+
+  if (!response.ok) {
+    throw new ApiClientError(await parseErrorResponse(response));
+  }
+
+  return response.blob();
 }

@@ -102,7 +102,7 @@ class InventarioServiceTest {
     private ObjetoMuseo objeto(Long id) {
         ObjetoMuseo objeto = new ObjetoMuseo();
         objeto.setId(id);
-        objeto.setNombre("Objeto");
+        objeto.setDenominacionObjeto("Objeto");
         objeto.setNumeroInventario("INV-" + id);
         objeto.setEliminado(false);
         return objeto;

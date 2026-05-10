@@ -12,7 +12,13 @@ import com.proveedores.dto.ObjetoMuseoResponseDTO;
 import com.proveedores.entity.ObjetoMuseo;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
+import com.proveedores.repository.CategoriaObjetoRepository;
+import com.proveedores.repository.DepositanteRepository;
+import com.proveedores.repository.ObjetoCategoriaRepository;
+import com.proveedores.repository.ObjetoDepositanteRepository;
 import com.proveedores.repository.ObjetoMuseoRepository;
+import com.proveedores.repository.ReciboIngresoObjetoRepository;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,6 +32,21 @@ class ObjetoMuseoServiceTest {
     @Mock
     private ObjetoMuseoRepository objetoMuseoRepository;
 
+    @Mock
+    private CategoriaObjetoRepository categoriaObjetoRepository;
+
+    @Mock
+    private ObjetoCategoriaRepository objetoCategoriaRepository;
+
+    @Mock
+    private DepositanteRepository depositanteRepository;
+
+    @Mock
+    private ObjetoDepositanteRepository objetoDepositanteRepository;
+
+    @Mock
+    private ReciboIngresoObjetoRepository reciboIngresoObjetoRepository;
+
     @InjectMocks
     private ObjetoMuseoService service;
 
@@ -34,7 +55,7 @@ class ObjetoMuseoServiceTest {
         ObjetoMuseo existente = objeto(1L, "INV-1");
         when(objetoMuseoRepository.findByNumeroInventario("INV-1")).thenReturn(Optional.of(existente));
 
-        ObjetoMuseoRequestDTO request = new ObjetoMuseoRequestDTO("INV-1", "Casco", "Equipo", null);
+        ObjetoMuseoRequestDTO request = new ObjetoMuseoRequestDTO("INV-1", "Casco", null, null, null, null, null, null);
 
         assertThatThrownBy(() -> service.crear(request)).isInstanceOf(BusinessException.class);
         verify(objetoMuseoRepository, never()).save(any());
@@ -48,11 +69,13 @@ class ObjetoMuseoServiceTest {
             entity.setId(2L);
             return entity;
         });
+        when(objetoCategoriaRepository.findByObjetoMuseoIdAndEliminadoFalse(2L)).thenReturn(List.of());
 
-        ObjetoMuseoResponseDTO response = service.crear(new ObjetoMuseoRequestDTO("INV-2", "Carta", "Documento", "Descripcion"));
+        ObjetoMuseoResponseDTO response = service.crear(new ObjetoMuseoRequestDTO("INV-2", "Carta", "Descripcion", null, null, null, null, null));
 
         assertThat(response.id()).isEqualTo(2L);
         assertThat(response.numeroInventario()).isEqualTo("INV-2");
+        assertThat(response.denominacionObjeto()).isEqualTo("Carta");
     }
 
     @Test
@@ -66,7 +89,7 @@ class ObjetoMuseoServiceTest {
         ObjetoMuseo objeto = new ObjetoMuseo();
         objeto.setId(id);
         objeto.setNumeroInventario(numeroInventario);
-        objeto.setNombre("Objeto");
+        objeto.setDenominacionObjeto("Objeto");
         objeto.setEliminado(false);
         return objeto;
     }

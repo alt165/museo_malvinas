@@ -21,7 +21,7 @@ public final class MovimientoInventarioMapper {
     }
 
     public static MovimientoInventarioResponseDTO toResponse(MovimientoInventario entity) {
-        return new MovimientoInventarioResponseDTO(entity.getId(), entity.getObjetoMuseo().getId(), entity.getObjetoMuseo().getNombre(), entity.getTipo(), entity.getFecha(), id(entity.getUbicacionOrigen()), nombre(entity.getUbicacionOrigen()), id(entity.getUbicacionDestino()), nombre(entity.getUbicacionDestino()), userId(entity), userName(entity), entity.getObservaciones());
+        return new MovimientoInventarioResponseDTO(entity.getId(), entity.getObjetoMuseo().getId(), entity.getObjetoMuseo().getDenominacionObjeto(), entity.getTipo(), entity.getFecha(), id(entity.getUbicacionOrigen()), nombre(entity.getUbicacionOrigen()), id(entity.getUbicacionDestino()), nombre(entity.getUbicacionDestino()), userId(entity), userName(entity), entity.getObservaciones());
     }
 
     private static Long id(com.proveedores.entity.Ubicacion ubicacion) { return ubicacion == null ? null : ubicacion.getId(); }

@@ -34,8 +34,8 @@ class InventarioServiceIntegrationTest extends IntegrationTestBase {
         var objeto = objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
                 "IT-INV-001",
                 "Linterna de campania",
-                "Equipamiento",
-                null
+                null,
+                null, null, null, null, null
         ));
 
         var response = inventarioService.crear(new InventarioRequestDTO(

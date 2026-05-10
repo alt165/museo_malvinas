@@ -63,6 +63,7 @@ class KeycloakAdminUsuarioControllerTest {
         UsuarioKeycloakRequestDTO request = new UsuarioKeycloakRequestDTO(
                 "admin",
                 "admin@local.test",
+                "12345678",
                 "Admin",
                 "Local",
                 true,
@@ -76,8 +77,29 @@ class KeycloakAdminUsuarioControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value("user-id"))
+                .andExpect(jsonPath("$.dni").value("12345678"))
                 .andExpect(jsonPath("$.roles[0]").value("ADMIN"))
                 .andExpect(jsonPath("$.contrasena").doesNotExist());
+    }
+
+    @Test
+    void crearUsuarioSinDniDevuelveBadRequest() throws Exception {
+        String request = """
+                {
+                  "username": "admin",
+                  "email": "admin@local.test",
+                  "nombre": "Admin",
+                  "apellido": "Local",
+                  "habilitado": true,
+                  "roles": ["ADMIN"]
+                }
+                """;
+
+        mockMvc.perform(post("/api/admin/usuarios")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.validationErrors.dni").value("El DNI es obligatorio"));
     }
 
     @Test
@@ -85,6 +107,7 @@ class KeycloakAdminUsuarioControllerTest {
         UsuarioKeycloakRequestDTO request = new UsuarioKeycloakRequestDTO(
                 "admin",
                 "admin@local.test",
+                "87654321",
                 "Admin",
                 "Local",
                 true,
@@ -95,9 +118,10 @@ class KeycloakAdminUsuarioControllerTest {
 
         mockMvc.perform(put("/api/admin/usuarios/user-id")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("admin"));
+                .andExpect(jsonPath("$.username").value("admin"))
+                .andExpect(jsonPath("$.dni").value("12345678"));
     }
 
     @Test
@@ -139,6 +163,7 @@ class KeycloakAdminUsuarioControllerTest {
                 "user-id",
                 "admin",
                 "admin@local.test",
+                "12345678",
                 "Admin",
                 "Local",
                 true,

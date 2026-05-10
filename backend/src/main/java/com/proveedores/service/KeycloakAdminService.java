@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.keycloak.admin.client.Keycloak;
@@ -31,6 +32,7 @@ import org.springframework.stereotype.Service;
 public class KeycloakAdminService {
 
     private static final Set<String> ROLES_GESTIONABLES = Set.of("ADMIN", "OPERATOR", "VIEWER");
+    private static final String DNI_ATTRIBUTE = "dni";
 
     private final Keycloak keycloak;
     private final KeycloakAdminProperties properties;
@@ -61,6 +63,7 @@ public class KeycloakAdminService {
         usuario.setLastName(dto.apellido());
         usuario.setEnabled(dto.habilitado() == null || dto.habilitado());
         usuario.setEmailVerified(false);
+        setDniAttribute(usuario, dto.dni());
         if (dto.contrasenaInicial() != null && !dto.contrasenaInicial().isBlank()) {
             usuario.setCredentials(List.of(crearCredencialTemporal(dto.contrasenaInicial())));
         }
@@ -87,6 +90,7 @@ public class KeycloakAdminService {
         usuario.setEmail(dto.email());
         usuario.setFirstName(dto.nombre());
         usuario.setLastName(dto.apellido());
+        setDniAttribute(usuario, dto.dni());
         if (dto.habilitado() != null) {
             usuario.setEnabled(dto.habilitado());
         }
@@ -148,6 +152,7 @@ public class KeycloakAdminService {
                 usuario.getId(),
                 usuario.getUsername(),
                 usuario.getEmail(),
+                getDniAttribute(usuario),
                 usuario.getFirstName(),
                 usuario.getLastName(),
                 usuario.isEnabled(),
@@ -167,6 +172,21 @@ public class KeycloakAdminService {
         } catch (WebApplicationException exception) {
             return Set.of();
         }
+    }
+
+    private void setDniAttribute(UserRepresentation usuario, String dni) {
+        Map<String, List<String>> attributes = usuario.getAttributes();
+        attributes = attributes == null ? new java.util.HashMap<>() : new java.util.HashMap<>(attributes);
+        attributes.put(DNI_ATTRIBUTE, List.of(dni));
+        usuario.setAttributes(attributes);
+    }
+
+    private String getDniAttribute(UserRepresentation usuario) {
+        List<String> values = usuario.getAttributes() == null ? null : usuario.getAttributes().get(DNI_ATTRIBUTE);
+        if (values == null || values.isEmpty()) {
+            return null;
+        }
+        return values.get(0);
     }
 
     private Set<String> validarRoles(Set<String> roles) {

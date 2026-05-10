@@ -35,6 +35,12 @@ app:
   security:
     keycloak:
       client-id: ${KEYCLOAK_CLIENT_ID:museo-backend}
+  storage:
+    object-photos-dir: ${APP_STORAGE_OBJECT_PHOTOS_DIR:./storage/object-photos}
+    signed-receipts-dir: ${APP_STORAGE_SIGNED_RECEIPTS_DIR:./storage/signed-receipts}
+  upload:
+    max-photo-size-mb: ${APP_UPLOAD_MAX_PHOTO_SIZE_MB:5}
+    max-signed-receipt-size-mb: ${APP_UPLOAD_MAX_SIGNED_RECEIPT_SIZE_MB:10}
 
 server:
   port: ${SERVER_PORT:8080}

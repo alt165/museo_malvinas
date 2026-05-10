@@ -94,7 +94,7 @@ export function RelacionObjetoForm({
             <option value={0}>Seleccionar objeto</option>
             {objetos.map((objeto) => (
               <option key={objeto.id} value={objeto.id}>
-                {objeto.numeroInventario} - {objeto.nombre}
+                {objeto.numeroInventario} - {objeto.denominacionObjeto}
               </option>
             ))}
           </select>
@@ -107,7 +107,7 @@ export function RelacionObjetoForm({
             <option value={0}>Seleccionar objeto</option>
             {objetos.map((objeto) => (
               <option key={objeto.id} value={objeto.id}>
-                {objeto.numeroInventario} - {objeto.nombre}
+                {objeto.numeroInventario} - {objeto.denominacionObjeto}
               </option>
             ))}
           </select>

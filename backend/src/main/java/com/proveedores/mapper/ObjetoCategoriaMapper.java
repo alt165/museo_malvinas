@@ -17,6 +17,6 @@ public final class ObjetoCategoriaMapper {
     }
 
     public static ObjetoCategoriaResponseDTO toResponse(ObjetoCategoria entity) {
-        return new ObjetoCategoriaResponseDTO(entity.getId(), entity.getObjetoMuseo().getId(), entity.getObjetoMuseo().getNombre(), entity.getCategoriaObjeto().getId(), entity.getCategoriaObjeto().getNombre(), entity.getObservaciones());
+        return new ObjetoCategoriaResponseDTO(entity.getId(), entity.getObjetoMuseo().getId(), entity.getObjetoMuseo().getDenominacionObjeto(), entity.getCategoriaObjeto().getId(), entity.getCategoriaObjeto().getNombre(), entity.getObservaciones());
     }
 }

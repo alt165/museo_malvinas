@@ -1,14 +1,69 @@
+import type { CategoriaObjetoResponseDTO } from "@/features/categorias/types";
+
+export type EstadoConservacion = "EXCELENTE" | "BUENO" | "REGULAR" | "MALO" | "CRITICO";
+
 export type ObjetoMuseoRequestDTO = {
   numeroInventario: string;
-  nombre: string;
-  tipoObjeto?: string | null;
+  denominacionObjeto: string;
   descripcion?: string | null;
+  descripcionTecnica?: string | null;
+  materiales?: string | null;
+  dimensiones?: string | null;
+  estadoConservacion?: EstadoConservacion | null;
+  categoriaIds?: number[];
 };
 
 export type ObjetoMuseoResponseDTO = {
   id: number;
   numeroInventario: string;
-  nombre: string;
-  tipoObjeto?: string | null;
+  denominacionObjeto: string;
   descripcion?: string | null;
+  descripcionTecnica?: string | null;
+  materiales?: string | null;
+  dimensiones?: string | null;
+  estadoConservacion?: EstadoConservacion | null;
+  categorias?: CategoriaObjetoResponseDTO[];
+};
+
+export type FotoObjetoMuseoResponseDTO = {
+  id: number;
+  objetoMuseoId: number;
+  nombreArchivo: string;
+  contentType: string;
+  tamanioBytes: number;
+  descripcion?: string | null;
+  fechaCarga: string;
+  cargadoPor?: string | null;
+};
+
+export type CargaRapidaObjetoRequestDTO = {
+  depositanteId: number;
+  denominacionObjeto: string;
+  numeroInventario: string;
+  descripcionBreve: string;
+};
+
+export type ReciboIngresoObjetoResponseDTO = {
+  id: number;
+  numeroRecibo: string;
+  fechaEmision: string;
+  objetoMuseoId: number;
+  depositanteId: number;
+  numeroInventario: string;
+  denominacionObjeto: string;
+  descripcionBreve: string;
+  depositanteNombre: string;
+  depositanteContacto?: string | null;
+  operador?: string | null;
+  textoConstancia: string;
+  tieneCopiaFirmada: boolean;
+  copiaFirmadaNombreArchivo?: string | null;
+  copiaFirmadaFechaCarga?: string | null;
+  copiaFirmadaCargadoPor?: string | null;
+};
+
+export type CargaRapidaObjetoResponseDTO = {
+  objeto: ObjetoMuseoResponseDTO;
+  recibo: ReciboIngresoObjetoResponseDTO;
+  reciboPdfUrl: string;
 };

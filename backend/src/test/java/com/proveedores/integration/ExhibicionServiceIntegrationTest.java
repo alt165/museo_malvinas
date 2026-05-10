@@ -37,8 +37,8 @@ class ExhibicionServiceIntegrationTest extends IntegrationTestBase {
         var objeto = objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
                 "IT-EXH-PEND",
                 "Mapa de sala",
-                "Documento",
-                null
+                null,
+                null, null, null, null, null
         ));
         var exhibicion = crearExhibicion("IT Exhibicion pendiente");
 
@@ -64,8 +64,8 @@ class ExhibicionServiceIntegrationTest extends IntegrationTestBase {
         var objeto = objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
                 "IT-EXH-FIN",
                 "Panel fotografico",
-                "Fotografia",
-                null
+                null,
+                null, null, null, null, null
         ));
         var exhibicion = crearExhibicion("IT Exhibicion finalizable");
         var relacion = exhibicionObjetoService.crear(new ExhibicionObjetoRequestDTO(

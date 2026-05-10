@@ -61,6 +61,10 @@ export default function DetalleUsuarioPage() {
                   <dd className="font-medium">{data.email}</dd>
                 </div>
                 <div>
+                  <dt className="text-muted-foreground">DNI</dt>
+                  <dd className="font-medium">{data.dni || "Sin DNI"}</dd>
+                </div>
+                <div>
                   <dt className="text-muted-foreground">Nombre</dt>
                   <dd className="font-medium">{nombreCompleto(data)}</dd>
                 </div>

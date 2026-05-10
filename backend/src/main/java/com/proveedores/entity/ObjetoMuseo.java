@@ -2,6 +2,8 @@ package com.proveedores.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -19,7 +21,7 @@ import lombok.Setter;
         name = "objetos_museo",
         indexes = {
             @Index(name = "idx_objeto_museo_numero_inventario", columnList = "numero_inventario"),
-            @Index(name = "idx_objeto_museo_nombre", columnList = "nombre")
+            @Index(name = "idx_objeto_museo_denominacion", columnList = "denominacion_objeto")
         }
 )
 @Inheritance(strategy = InheritanceType.JOINED)
@@ -32,13 +34,23 @@ public class ObjetoMuseo extends EntidadBase {
     @Column(name = "numero_inventario", nullable = false, unique = true, length = 80)
     private String numeroInventario;
 
-    @Column(nullable = false, length = 160)
-    private String nombre;
-
-    @Column(name = "tipo_objeto", length = 100)
-    private String tipoObjeto;
+    @Column(name = "denominacion_objeto", nullable = false, length = 160)
+    private String denominacionObjeto;
 
     @Column(columnDefinition = "TEXT")
     private String descripcion;
+
+    @Column(name = "descripcion_tecnica", columnDefinition = "TEXT")
+    private String descripcionTecnica;
+
+    @Column(columnDefinition = "TEXT")
+    private String materiales;
+
+    @Column(columnDefinition = "TEXT")
+    private String dimensiones;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado_conservacion", length = 40)
+    private EstadoConservacion estadoConservacion;
 
 }

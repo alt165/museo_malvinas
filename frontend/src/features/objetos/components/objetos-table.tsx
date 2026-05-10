@@ -28,8 +28,14 @@ export function ObjetosTable({ canEdit, objetos }: ObjetosTableProps) {
         cell: ({ row }) => <span className="font-medium">{row.original.numeroInventario}</span>
       },
       {
-        accessorKey: "nombre",
-        header: "Nombre"
+        accessorKey: "denominacionObjeto",
+        header: "Denominacion",
+        cell: ({ row }) => row.original.denominacionObjeto
+      },
+      {
+        id: "categorias",
+        header: "Categorias",
+        cell: ({ row }) => row.original.categorias?.map((categoria) => categoria.nombre).join(", ") || "Sin categorias"
       },
       {
         accessorKey: "descripcion",

@@ -26,6 +26,7 @@ Authorization: Bearer <access_token>
 
 Permisos generales actuales:
 
+- `/api/admin/**`: solo `ADMIN`
 - `GET /api/**`: `ADMIN`, `OPERATOR`, `VIEWER`
 - `POST /api/**`: `ADMIN`, `OPERATOR`
 - `PUT /api/**`: `ADMIN`, `OPERATOR`
@@ -60,8 +61,53 @@ DELETE /api/<recurso>/{id}  -> baja logica, responde 204
 | Categorias | `/api/categorias` | Clasificacion de objetos. |
 | Ubicaciones | `/api/ubicaciones` | Lugares fisicos/logicos del museo. |
 | Relaciones entre objetos | `/api/relaciones-objetos` | Vinculos semanticos entre objetos. |
+| Administracion de usuarios | `/api/admin/usuarios` | Usuarios reales en Keycloak. Solo `ADMIN`. |
+| Recibos de ingreso | `/api/recibos` | Recibos emitidos por carga rapida y copia firmada digitalizada. |
 
 ## Endpoints especiales
+
+### Administrar usuarios Keycloak
+
+```http
+GET    /api/admin/usuarios
+GET    /api/admin/usuarios/{id}
+POST   /api/admin/usuarios
+PUT    /api/admin/usuarios/{id}
+PATCH  /api/admin/usuarios/{id}/estado?habilitado=true
+PUT    /api/admin/usuarios/{id}/roles
+POST   /api/admin/usuarios/{id}/reset-password
+```
+
+El campo `dni` es obligatorio y se trata siempre como string. El backend lo guarda en Keycloak como atributo custom:
+
+```json
+{
+  "attributes": {
+    "dni": ["12345678"]
+  }
+}
+```
+
+No se usa como username, no participa del login y no se persiste en PostgreSQL.
+
+### Objetos, fotos y recibos
+
+```http
+POST   /api/objetos/{id}/categorias
+DELETE /api/objetos/{id}/categorias/{categoriaId}
+POST   /api/objetos/{id}/fotos
+GET    /api/objetos/{id}/fotos
+GET    /api/objetos/{id}/fotos/{fotoId}
+DELETE /api/objetos/{id}/fotos/{fotoId}
+POST   /api/objetos/carga-rapida
+GET    /api/objetos/{id}/recibos
+GET    /api/recibos/{id}
+GET    /api/recibos/{id}/pdf
+POST   /api/recibos/{id}/copia-firmada
+GET    /api/recibos/{id}/copia-firmada
+```
+
+Las fotos aceptan `image/jpeg`, `image/png` e `image/webp`. La copia firmada del recibo acepta esos tipos y `application/pdf`. Los binarios se guardan en storage local configurable; PostgreSQL conserva metadata y rutas internas.
 
 ### Finalizar exhibicion
 
@@ -89,9 +135,13 @@ curl -X POST http://localhost:8080/api/objetos \
   -H "Content-Type: application/json" \
   -d '{
     "numeroInventario": "MM-2026-001",
-    "nombre": "Casco de combate",
-    "tipoObjeto": "Equipo",
-    "descripcion": "Objeto historico catalogado para inventario."
+    "denominacionObjeto": "Casco de combate",
+    "descripcion": "Objeto historico catalogado para inventario.",
+    "descripcionTecnica": "Casco metalico con correas interiores.",
+    "materiales": "Metal y cuero",
+    "dimensiones": "30 x 24 x 18 cm",
+    "estadoConservacion": "BUENO",
+    "categoriaIds": [1, 2]
   }'
 ```
 
@@ -101,10 +151,43 @@ Respuesta:
 {
   "id": 1,
   "numeroInventario": "MM-2026-001",
-  "nombre": "Casco de combate",
-  "tipoObjeto": "Equipo",
-  "descripcion": "Objeto historico catalogado para inventario."
+  "denominacionObjeto": "Casco de combate",
+  "descripcion": "Objeto historico catalogado para inventario.",
+  "descripcionTecnica": "Casco metalico con correas interiores.",
+  "materiales": "Metal y cuero",
+  "dimensiones": "30 x 24 x 18 cm",
+  "estadoConservacion": "BUENO",
+  "categorias": []
 }
+```
+
+### Carga rapida de objeto
+
+```bash
+curl -X POST http://localhost:8080/api/objetos/carga-rapida \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "depositanteId": 1,
+    "denominacionObjeto": "Carta familiar",
+    "numeroInventario": "MM-2026-QR-001",
+    "descripcionBreve": "Carta entregada por depositante para registro inicial."
+  }'
+```
+
+La respuesta incluye el objeto creado, el recibo emitido y `reciboPdfUrl`.
+
+### Adjuntar foto y copia firmada
+
+```bash
+curl -X POST http://localhost:8080/api/objetos/1/fotos \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "archivo=@foto.webp;type=image/webp" \
+  -F "descripcion=Vista frontal"
+
+curl -X POST http://localhost:8080/api/recibos/1/copia-firmada \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "archivo=@recibo-firmado.pdf;type=application/pdf"
 ```
 
 ### Crear inventario
@@ -139,6 +222,26 @@ curl -X POST http://localhost:8080/api/exhibiciones \
     "estado": "ACTIVA"
   }'
 ```
+
+### Crear usuario Keycloak
+
+```bash
+curl -X POST http://localhost:8080/api/admin/usuarios \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "jperez",
+    "email": "jperez@local.test",
+    "dni": "12345678",
+    "nombre": "Juan",
+    "apellido": "Perez",
+    "habilitado": true,
+    "contrasenaInicial": "Temporal123",
+    "roles": ["VIEWER"]
+  }'
+```
+
+`contrasenaInicial`, si se informa, se configura como temporal y nunca se devuelve en responses.
 
 ### Asociar objeto a exhibicion
 
@@ -196,4 +299,3 @@ Codigos habituales:
 - `404`: recurso inexistente o eliminado logicamente.
 - `409`: violacion de restriccion de datos.
 - `500`: error interno no controlado.
-

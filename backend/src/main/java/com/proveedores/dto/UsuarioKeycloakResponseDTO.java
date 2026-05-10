@@ -6,6 +6,7 @@ public record UsuarioKeycloakResponseDTO(
         String id,
         String username,
         String email,
+        String dni,
         String nombre,
         String apellido,
         Boolean habilitado,

@@ -19,6 +19,6 @@ public final class ObjetoDepositanteMapper {
     }
 
     public static ObjetoDepositanteResponseDTO toResponse(ObjetoDepositante entity) {
-        return new ObjetoDepositanteResponseDTO(entity.getId(), entity.getObjetoMuseo().getId(), entity.getObjetoMuseo().getNombre(), entity.getDepositante().getId(), entity.getDepositante().getNombre(), entity.getFechaDeposito(), entity.getTipoDeposito(), entity.getObservaciones());
+        return new ObjetoDepositanteResponseDTO(entity.getId(), entity.getObjetoMuseo().getId(), entity.getObjetoMuseo().getDenominacionObjeto(), entity.getDepositante().getId(), entity.getDepositante().getNombre(), entity.getFechaDeposito(), entity.getTipoDeposito(), entity.getObservaciones());
     }
 }

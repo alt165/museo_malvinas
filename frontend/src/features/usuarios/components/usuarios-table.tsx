@@ -33,6 +33,10 @@ export function UsuariosTable({ isUpdating = false, onToggleEnabled, usuarios }:
         header: "Email"
       },
       {
+        accessorKey: "dni",
+        header: "DNI"
+      },
+      {
         id: "roles",
         header: "Rol",
         cell: ({ row }) => row.original.roles.join(", ") || "Sin rol"

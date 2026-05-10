@@ -27,6 +27,7 @@ export function usuarioToFormValues(usuario?: UsuarioKeycloakResponseDTO): Usuar
   return {
     username: usuario?.username ?? "",
     email: usuario?.email ?? "",
+    dni: usuario?.dni ?? "",
     nombre: usuario?.nombre ?? "",
     apellido: usuario?.apellido ?? "",
     habilitado: usuario?.habilitado ?? true,
@@ -41,6 +42,7 @@ export function formValuesToUsuarioRequest(values: UsuarioFormValues): UsuarioKe
   return {
     username: values.username.trim(),
     email: values.email.trim(),
+    dni: values.dni.trim(),
     nombre: normalizeOptional(values.nombre),
     apellido: normalizeOptional(values.apellido),
     habilitado: values.habilitado,

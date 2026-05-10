@@ -8,12 +8,9 @@ public record ObjetoDigitalRequestDTO(
         @Size(max = 80, message = "El numero de inventario no puede superar 80 caracteres")
         String numeroInventario,
 
-        @NotBlank(message = "El nombre es obligatorio")
-        @Size(max = 160, message = "El nombre no puede superar 160 caracteres")
-        String nombre,
-
-        @Size(max = 100, message = "El tipo de objeto no puede superar 100 caracteres")
-        String tipoObjeto,
+        @NotBlank(message = "La denominacion es obligatoria")
+        @Size(max = 160, message = "La denominacion no puede superar 160 caracteres")
+        String denominacionObjeto,
 
         String descripcion,
 
