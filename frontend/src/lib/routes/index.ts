@@ -1,16 +1,13 @@
 import {
   Archive,
-  Boxes,
   FolderTree,
   Handshake,
   History,
-  Home,
   IdCard,
   Landmark,
   Link2,
   MoveRight,
   UserCog,
-  UserRound
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { UserRole } from "@/models/session";
@@ -18,16 +15,18 @@ import type { UserRole } from "@/models/session";
 export type NavigationItem = {
   href: string;
   label: string;
-  description: string;
   icon: LucideIcon;
   roles: UserRole[];
-  section: "principal" | "catalogos" | "personas" | "exhibiciones";
+  disabled?: boolean;
+  badge?: string;
 };
 
-export type OperationAction = {
-  href: string;
+export type NavigationGroup = {
+  key: string;
   label: string;
+  icon: LucideIcon;
   roles: UserRole[];
+  items: NavigationItem[];
 };
 
 const readRoles: UserRole[] = ["ADMIN", "OPERATOR", "VIEWER"];
@@ -38,6 +37,7 @@ export const routes = {
   dashboard: "/",
   dashboardHome: "/dashboard",
   objetos: "/objetos",
+  objetosCargaRapida: "/objetos/carga-rapida",
   objetoNuevo: "/objetos/nuevo",
   relacionesObjetos: "/relaciones-objetos",
   relacionObjetoNueva: "/relaciones-objetos/nueva",
@@ -59,147 +59,77 @@ export const routes = {
   perfil: "/perfil"
 } as const;
 
-export const navigationItems: NavigationItem[] = [
+export const navigationGroups: NavigationGroup[] = [
   {
-    href: routes.dashboardHome,
-    label: "Dashboard",
-    description: "Vista general operativa",
-    icon: Home,
-    roles: readRoles,
-    section: "principal"
-  },
-  {
-    href: routes.objetos,
-    label: "Objetos del museo",
-    description: "Catalogo patrimonial",
+    key: "objetos",
+    label: "Objetos",
     icon: Archive,
     roles: readRoles,
-    section: "principal"
+    items: [
+      { href: routes.objetos, label: "Consulta", icon: Archive, roles: readRoles },
+      { href: routes.objetosCargaRapida, label: "Alta rapida", icon: Archive, roles: writeRoles },
+      { href: routes.objetoNuevo, label: "Alta completa", icon: Archive, roles: writeRoles },
+      { href: routes.movimientosInventario, label: "Movimientos de inventario", icon: MoveRight, roles: writeRoles },
+      { href: routes.relacionesObjetos, label: "Relaciones entre objetos", icon: Link2, roles: writeRoles }
+    ]
   },
   {
-    href: routes.inventario,
-    label: "Inventario",
-    description: "Ubicaciones y conservacion",
-    icon: Boxes,
-    roles: readRoles,
-    section: "principal"
-  },
-  {
-    href: routes.relacionesObjetos,
-    label: "Relaciones entre objetos",
-    description: "Vinculos documentales",
-    icon: Link2,
-    roles: readRoles,
-    section: "catalogos"
-  },
-  {
-    href: routes.movimientosInventario,
-    label: "Movimientos de inventario",
-    description: "Registro de movimientos",
-    icon: MoveRight,
-    roles: readRoles,
-    section: "principal"
-  },
-  {
-    href: routes.categorias,
-    label: "Categorias",
-    description: "Clasificacion de objetos",
-    icon: FolderTree,
-    roles: readRoles,
-    section: "catalogos"
-  },
-  {
-    href: routes.depositantes,
-    label: "Depositantes",
-    description: "Personas e instituciones",
-    icon: Handshake,
-    roles: readRoles,
-    section: "personas"
-  },
-  {
-    href: routes.veteranos,
+    key: "veteranos",
     label: "Veteranos",
-    description: "Registro de veteranos",
     icon: IdCard,
     roles: readRoles,
-    section: "personas"
+    items: [
+      { href: routes.veteranos, label: "Consulta", icon: IdCard, roles: readRoles },
+      { href: routes.veteranoNuevo, label: "Alta de veterano", icon: IdCard, roles: writeRoles },
+      { href: routes.actuacionesVeteranos, label: "Actuaciones de veteranos", icon: History, roles: writeRoles }
+    ]
   },
   {
-    href: routes.actuacionesVeteranos,
-    label: "Actuaciones de veteranos",
-    description: "Participaciones y unidades",
-    icon: History,
+    key: "depositantes",
+    label: "Depositantes",
+    icon: Handshake,
     roles: readRoles,
-    section: "personas"
+    items: [
+      { href: routes.depositantes, label: "Consulta", icon: Handshake, roles: readRoles },
+      { href: routes.depositanteNuevo, label: "Alta", icon: Handshake, roles: writeRoles }
+    ]
   },
   {
-    href: routes.exhibiciones,
+    key: "exhibiciones",
     label: "Exhibiciones",
-    description: "Muestras y devoluciones",
     icon: Landmark,
     roles: readRoles,
-    section: "exhibiciones"
+    items: [
+      { href: routes.exhibiciones, label: "Consulta", icon: Landmark, roles: readRoles },
+      { href: routes.exhibicionNueva, label: "Alta", icon: Landmark, roles: writeRoles },
+      { href: "#", label: "Repetir", icon: Landmark, roles: writeRoles, disabled: true, badge: "Proximamente" }
+    ]
   },
   {
-    href: routes.perfil,
-    label: "Perfil",
-    description: "Sesion actual",
-    icon: UserRound,
+    key: "categorias",
+    label: "Categorias",
+    icon: FolderTree,
     roles: readRoles,
-    section: "principal"
+    items: [
+      { href: routes.categorias, label: "Consulta", icon: FolderTree, roles: readRoles },
+      { href: routes.categoriaNueva, label: "Alta", icon: FolderTree, roles: writeRoles }
+    ]
   },
   {
-    href: routes.usuarios,
+    key: "usuarios",
     label: "Usuarios",
-    description: "Administracion Keycloak",
     icon: UserCog,
     roles: adminRoles,
-    section: "principal"
+    items: [
+      { href: routes.usuarios, label: "Consulta", icon: UserCog, roles: adminRoles },
+      { href: routes.usuarioNuevo, label: "Alta", icon: UserCog, roles: adminRoles }
+    ]
   }
 ];
 
-export const operationActions: OperationAction[] = [
-  {
-    href: routes.objetoNuevo,
-    label: "Nuevo objeto",
-    roles: writeRoles
-  },
-  {
-    href: routes.relacionObjetoNueva,
-    label: "Nueva relacion",
-    roles: writeRoles
-  },
-  {
-    href: routes.categoriaNueva,
-    label: "Nueva categoria",
-    roles: writeRoles
-  },
-  {
-    href: routes.depositanteNuevo,
-    label: "Nuevo depositante",
-    roles: writeRoles
-  },
-  {
-    href: routes.exhibicionNueva,
-    label: "Nueva exhibicion",
-    roles: writeRoles
-  },
-  {
-    href: routes.inventarioNuevo,
-    label: "Nuevo inventario",
-    roles: writeRoles
-  },
-  {
-    href: routes.veteranoNuevo,
-    label: "Nuevo veterano",
-    roles: writeRoles
-  },
-  {
-    href: routes.actuacionVeteranoNueva,
-    label: "Nueva actuacion",
-    roles: writeRoles
-  }
-];
+export const navigationItems: NavigationItem[] = navigationGroups.flatMap((group) => group.items);
+
+export const operationActions: NavigationItem[] = navigationItems.filter((item) => item.roles === writeRoles);
 
 export const routePermissions = {
   admin: adminRoles,
