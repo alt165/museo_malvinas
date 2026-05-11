@@ -62,17 +62,17 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       />
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r bg-card transition-transform md:z-30 md:w-64 md:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-primary/15 bg-primary text-primary-foreground shadow-xl transition-transform md:z-30 md:w-64 md:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex h-14 items-center justify-between border-b px-5">
+        <div className="flex h-14 items-center justify-between border-b border-white/15 px-5">
           <div>
-            <p className="text-sm font-semibold">Museo Malvinas</p>
-            <p className="text-xs text-muted-foreground">Administracion</p>
+            <p className="text-sm font-semibold text-white">Museo Malvinas</p>
+            <p className="text-xs text-secondary">Administracion</p>
           </div>
           <button
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border md:hidden"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/20 text-white hover:bg-white/10 md:hidden"
             onClick={onClose}
             type="button"
           >
@@ -90,8 +90,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 <div className="space-y-1" key={group.key}>
                   <button
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted hover:text-foreground",
-                      groupActive ? "bg-muted/70 text-foreground" : "text-muted-foreground"
+                      "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/10",
+                      groupActive ? "bg-white/14 text-white" : "text-white/75"
                     )}
                     onClick={() => toggleGroup(group.key)}
                     type="button"
@@ -101,7 +101,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                     <ChevronDown className={cn("h-4 w-4 transition-transform", expanded ? "rotate-180" : "rotate-0")} />
                   </button>
                   {expanded ? (
-                    <div className="ml-5 space-y-1 border-l pl-3">
+                    <div className="ml-5 space-y-1 border-l border-secondary/35 pl-3">
                       {group.items.map((item) => {
                         const active = currentActiveHref === item.href;
                         const ItemIcon = item.icon;
@@ -109,13 +109,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                         if (item.disabled) {
                           return (
                             <div
-                              className="flex cursor-not-allowed items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground/70"
+                              className="flex cursor-not-allowed items-center gap-2 rounded-md px-3 py-2 text-sm text-white/45"
                               key={`${group.key}-${item.label}`}
                             >
                               <ItemIcon className="h-3.5 w-3.5 shrink-0" />
                               <span className="flex-1">{item.label}</span>
                               {item.badge ? (
-                                <span className="rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-wide">
+                                <span className="rounded border border-accent/60 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-accent">
                                   {item.badge}
                                 </span>
                               ) : null}
@@ -126,8 +126,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                         return (
                           <Link
                             className={cn(
-                              "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted hover:text-foreground",
-                              active ? "bg-primary/10 font-medium text-foreground" : "text-muted-foreground"
+                              "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-white/10",
+                              active ? "bg-secondary/20 font-medium text-white ring-1 ring-secondary/35" : "text-white/70"
                             )}
                             href={item.href}
                             key={item.href}

@@ -1,6 +1,7 @@
 {
   "realm": "museo",
   "enabled": true,
+  "loginTheme": "museo-login",
   "roles": {
     "realm": [
       {

@@ -16,7 +16,7 @@ export function AppShell({ children, requiredRoles }: AppShellProps) {
 
   return (
     <ProtectedRoute requiredRoles={requiredRoles}>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background font-primary text-foreground">
         <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="min-h-screen md:pl-64">
           <Topbar onOpenSidebar={() => setSidebarOpen(true)} />

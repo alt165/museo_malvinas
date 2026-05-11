@@ -18,7 +18,7 @@ export function PermissionLink({ href, label, roles }: PermissionLinkProps) {
   }
 
   return (
-    <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href={href}>
+    <Link className="rounded-md border border-primary/20 bg-surface px-4 py-2 text-sm font-medium text-primary hover:bg-secondary/20" href={href}>
       {label}
     </Link>
   );

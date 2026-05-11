@@ -4,7 +4,10 @@ import { AppProviders } from "./providers";
 
 export const metadata: Metadata = {
   title: "Museo Malvinas",
-  description: "Administracion del inventario del museo"
+  description: "Administracion del inventario del museo",
+  icons: {
+    icon: "/favicon.png"
+  }
 };
 
 export default function RootLayout({
