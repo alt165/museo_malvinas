@@ -3,8 +3,10 @@ import type {
   CargaRapidaObjetoRequestDTO,
   CargaRapidaObjetoResponseDTO,
   FotoObjetoMuseoResponseDTO,
+  BuscarObjetosParams,
   ObjetoMuseoRequestDTO,
   ObjetoMuseoResponseDTO,
+  PageResponse,
   ReciboIngresoObjetoResponseDTO
 } from "../types";
 
@@ -12,6 +14,31 @@ const basePath = "/api/objetos";
 
 export function listarObjetos() {
   return apiRequest<ObjetoMuseoResponseDTO[]>(basePath);
+}
+
+export function buscarObjetos(params: BuscarObjetosParams) {
+  const searchParams = new URLSearchParams();
+
+  if (params.nombre?.trim()) {
+    searchParams.set("nombre", params.nombre.trim());
+  }
+
+  if (params.numeroInventario?.trim()) {
+    searchParams.set("numeroInventario", params.numeroInventario.trim());
+  }
+
+  params.categoriaIds?.forEach((categoriaId) => {
+    searchParams.append("categoriaIds", String(categoriaId));
+  });
+
+  searchParams.set("page", String(params.page ?? 0));
+  searchParams.set("size", String(params.size ?? 20));
+
+  if (params.sort) {
+    searchParams.set("sort", params.sort);
+  }
+
+  return apiRequest<PageResponse<ObjetoMuseoResponseDTO>>(`${basePath}/buscar?${searchParams.toString()}`);
 }
 
 export function obtenerObjetoPorId(id: number) {

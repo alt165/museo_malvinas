@@ -25,6 +25,26 @@ export type ObjetoMuseoResponseDTO = {
   categorias?: CategoriaObjetoResponseDTO[];
 };
 
+export type PageResponse<T> = {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+};
+
+export type BuscarObjetosParams = {
+  nombre?: string;
+  numeroInventario?: string;
+  categoriaIds?: number[];
+  page?: number;
+  size?: number;
+  sort?: string;
+};
+
 export type FotoObjetoMuseoResponseDTO = {
   id: number;
   objetoMuseoId: number;

@@ -1,6 +1,7 @@
 package com.proveedores.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -23,6 +24,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -61,6 +64,24 @@ class ObjetoMuseoControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.numeroInventario").value("INV-1"));
+    }
+
+    @Test
+    void buscarObjetosPaginadosDevuelvePage() throws Exception {
+        ObjetoMuseoResponseDTO response = new ObjetoMuseoResponseDTO(1L, "INV-1", "Casco", null, null, null, null, null, java.util.List.of());
+        when(objetoMuseoService.buscar(eq("Casco"), eq("INV"), eq(java.util.List.of(2L)), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(java.util.List.of(response)));
+
+        mockMvc.perform(get("/api/objetos/buscar")
+                        .param("nombre", "Casco")
+                        .param("numeroInventario", "INV")
+                        .param("categoriaIds", "2")
+                        .param("page", "0")
+                        .param("size", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(1L))
+                .andExpect(jsonPath("$.content[0].numeroInventario").value("INV-1"))
+                .andExpect(jsonPath("$.totalElements").value(1));
     }
 
     @Test

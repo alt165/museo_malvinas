@@ -10,16 +10,18 @@ import {
 } from "@tanstack/react-table";
 import Link from "next/link";
 import { useMemo } from "react";
-import { Pencil, Search } from "lucide-react";
+import { Pencil, Search, Trash2 } from "lucide-react";
 import type { ObjetoMuseoResponseDTO } from "../types";
 import { resumenDescripcion } from "../utils";
 
 type ObjetosTableProps = {
   objetos: ObjetoMuseoResponseDTO[];
   canEdit: boolean;
+  deletingId?: number | null;
+  onDelete?: (objeto: ObjetoMuseoResponseDTO) => void;
 };
 
-export function ObjetosTable({ canEdit, objetos }: ObjetosTableProps) {
+export function ObjetosTable({ canEdit, deletingId, objetos, onDelete }: ObjetosTableProps) {
   const columns = useMemo<ColumnDef<ObjetoMuseoResponseDTO>[]>(
     () => [
       {
@@ -55,19 +57,32 @@ export function ObjetosTable({ canEdit, objetos }: ObjetosTableProps) {
               Ver
             </Link>
             {canEdit ? (
-              <Link
-                className="inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs hover:bg-muted"
-                href={`/objetos/${row.original.id}/editar`}
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                Editar
-              </Link>
+              <>
+                <Link
+                  className="inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs hover:bg-muted"
+                  href={`/objetos/${row.original.id}/editar`}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Editar
+                </Link>
+                {onDelete ? (
+                  <button
+                    className="inline-flex h-8 items-center gap-1 rounded-md border border-red-200 px-2 text-xs text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={deletingId === row.original.id}
+                    onClick={() => onDelete(row.original)}
+                    type="button"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Baja
+                  </button>
+                ) : null}
+              </>
             ) : null}
           </div>
         )
       }
     ],
-    [canEdit]
+    [canEdit, deletingId, onDelete]
   );
 
   const table = useReactTable({

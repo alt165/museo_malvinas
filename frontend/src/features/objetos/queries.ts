@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   actualizarObjeto,
   bajaLogicaObjeto,
+  buscarObjetos,
   cargaRapidaObjeto,
   crearObjeto,
   eliminarFotoObjeto,
@@ -10,11 +11,12 @@ import {
   listarRecibosObjeto,
   obtenerObjetoPorId
 } from "./api";
-import type { CargaRapidaObjetoRequestDTO, ObjetoMuseoRequestDTO } from "./types";
+import type { BuscarObjetosParams, CargaRapidaObjetoRequestDTO, ObjetoMuseoRequestDTO } from "./types";
 
 export const objetosQueryKeys = {
   all: ["objetos"] as const,
   lists: () => [...objetosQueryKeys.all, "list"] as const,
+  search: (params: BuscarObjetosParams) => [...objetosQueryKeys.all, "search", params] as const,
   detail: (id: number) => [...objetosQueryKeys.all, "detail", id] as const,
   fotos: (id: number) => [...objetosQueryKeys.all, "detail", id, "fotos"] as const,
   recibos: (id: number) => [...objetosQueryKeys.all, "detail", id, "recibos"] as const
@@ -24,6 +26,13 @@ export function useObjetosQuery() {
   return useQuery({
     queryKey: objetosQueryKeys.lists(),
     queryFn: listarObjetos
+  });
+}
+
+export function useBuscarObjetosQuery(params: BuscarObjetosParams) {
+  return useQuery({
+    queryKey: objetosQueryKeys.search(params),
+    queryFn: () => buscarObjetos(params)
   });
 }
 

@@ -1,6 +1,7 @@
 export {
   actualizarObjeto,
   bajaLogicaObjeto,
+  buscarObjetos,
   cargaRapidaObjeto,
   crearObjeto,
   descargarCopiaFirmadaRecibo,

@@ -22,12 +22,20 @@ import com.proveedores.repository.ObjetoCategoriaRepository;
 import com.proveedores.repository.ObjetoDepositanteRepository;
 import com.proveedores.repository.ObjetoMuseoRepository;
 import com.proveedores.repository.ReciboIngresoObjetoRepository;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -81,6 +89,18 @@ public class ObjetoMuseoService {
                 .filter(objeto -> !objeto.getEliminado())
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ObjetoMuseoResponseDTO> buscar(String nombre, String numeroInventario, List<Long> categoriaIds, Pageable pageable) {
+        List<Long> categorias = categoriaIds == null
+                ? List.of()
+                : categoriaIds.stream().filter(java.util.Objects::nonNull).distinct().toList();
+        return objetoMuseoRepository.findAll(busquedaSpecification(
+                        normalizarFiltro(nombre),
+                        normalizarFiltro(numeroInventario),
+                        categorias
+                ), pageable).map(this::toResponse);
     }
 
     @Transactional
@@ -181,6 +201,50 @@ public class ObjetoMuseoService {
                     log.warn("event=objeto_museo.business_error reason=numero_inventario_duplicado objetoMuseoId={} numeroInventario={}", objeto.getId(), numeroInventario);
                     throw new BusinessException("Ya existe un objeto con ese numero de inventario");
                 });
+    }
+
+    private String normalizarFiltro(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return null;
+        }
+        return valor.trim();
+    }
+
+    private Specification<ObjetoMuseo> busquedaSpecification(String nombre, String numeroInventario, List<Long> categoriaIds) {
+        return (root, query, criteriaBuilder) -> {
+            query.distinct(true);
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(criteriaBuilder.isFalse(root.get("eliminado")));
+
+            if (nombre != null) {
+                predicates.add(criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("denominacionObjeto")),
+                        "%" + nombre.toLowerCase(Locale.ROOT) + "%"
+                ));
+            }
+
+            if (numeroInventario != null) {
+                predicates.add(criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("numeroInventario")),
+                        "%" + numeroInventario.toLowerCase(Locale.ROOT) + "%"
+                ));
+            }
+
+            if (!categoriaIds.isEmpty()) {
+                Subquery<Long> subquery = query.subquery(Long.class);
+                Root<ObjetoCategoria> objetoCategoria = subquery.from(ObjetoCategoria.class);
+                subquery.select(criteriaBuilder.literal(1L));
+                subquery.where(
+                        criteriaBuilder.equal(objetoCategoria.get("objetoMuseo"), root),
+                        criteriaBuilder.isFalse(objetoCategoria.get("eliminado")),
+                        criteriaBuilder.isFalse(objetoCategoria.get("categoriaObjeto").get("eliminado")),
+                        objetoCategoria.get("categoriaObjeto").get("id").in(categoriaIds)
+                );
+                predicates.add(criteriaBuilder.exists(subquery));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
+        };
     }
 
     private void sincronizarCategorias(ObjetoMuseo objeto, Set<Long> categoriaIds) {

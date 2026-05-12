@@ -15,7 +15,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -70,6 +74,18 @@ public class ObjetoMuseoController {
     @GetMapping
     public ResponseEntity<List<ObjetoMuseoResponseDTO>> listar() {
         return ResponseEntity.ok(objetoMuseoService.listar());
+    }
+
+    @Operation(summary = "Buscar objetos de museo con paginacion")
+    @ApiResponse(responseCode = "200", description = "Busqueda obtenida")
+    @GetMapping("/buscar")
+    public ResponseEntity<Page<ObjetoMuseoResponseDTO>> buscar(
+            @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) String numeroInventario,
+            @RequestParam(required = false) List<Long> categoriaIds,
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable
+    ) {
+        return ResponseEntity.ok(objetoMuseoService.buscar(nombre, numeroInventario, categoriaIds, pageable));
     }
 
     @Operation(summary = "Actualizar recurso")
