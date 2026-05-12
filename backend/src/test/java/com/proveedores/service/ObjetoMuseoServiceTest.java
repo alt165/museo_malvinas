@@ -14,6 +14,8 @@ import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.CategoriaObjetoRepository;
 import com.proveedores.repository.DepositanteRepository;
+import com.proveedores.repository.InventarioRepository;
+import com.proveedores.repository.MovimientoInventarioRepository;
 import com.proveedores.repository.ObjetoCategoriaRepository;
 import com.proveedores.repository.ObjetoDepositanteRepository;
 import com.proveedores.repository.ObjetoMuseoRepository;
@@ -47,6 +49,12 @@ class ObjetoMuseoServiceTest {
     @Mock
     private ReciboIngresoObjetoRepository reciboIngresoObjetoRepository;
 
+    @Mock
+    private InventarioRepository inventarioRepository;
+
+    @Mock
+    private MovimientoInventarioRepository movimientoInventarioRepository;
+
     @InjectMocks
     private ObjetoMuseoService service;
 
@@ -70,6 +78,7 @@ class ObjetoMuseoServiceTest {
             return entity;
         });
         when(objetoCategoriaRepository.findByObjetoMuseoIdAndEliminadoFalse(2L)).thenReturn(List.of());
+        when(inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(2L)).thenReturn(Optional.empty());
 
         ObjetoMuseoResponseDTO response = service.crear(new ObjetoMuseoRequestDTO("INV-2", "Carta", "Descripcion", null, null, null, null, null));
 

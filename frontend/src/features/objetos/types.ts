@@ -22,6 +22,7 @@ export type ObjetoMuseoResponseDTO = {
   materiales?: string | null;
   dimensiones?: string | null;
   estadoConservacion?: EstadoConservacion | null;
+  fechaIngreso?: string | null;
   categorias?: CategoriaObjetoResponseDTO[];
 };
 
@@ -54,6 +55,15 @@ export type BuscarObjetosParams = {
   page?: number;
   size?: number;
   sort?: string;
+};
+
+export type ObjetoSortField = "numeroInventario" | "denominacionObjeto" | "descripcion" | "fechaIngreso" | "estadoConservacion";
+
+export type SortDirection = "asc" | "desc";
+
+export type ObjetosSort = {
+  field: ObjetoSortField;
+  direction: SortDirection;
 };
 
 export type FotoObjetoMuseoResponseDTO = {

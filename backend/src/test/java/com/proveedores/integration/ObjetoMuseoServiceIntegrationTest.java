@@ -5,10 +5,18 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.proveedores.dto.CategoriaObjetoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
+import com.proveedores.entity.EstadoConservacion;
+import com.proveedores.entity.EstadoInventario;
+import com.proveedores.entity.Inventario;
+import com.proveedores.entity.Ubicacion;
 import com.proveedores.exception.BusinessException;
+import com.proveedores.repository.InventarioRepository;
 import com.proveedores.repository.ObjetoMuseoRepository;
+import com.proveedores.repository.UbicacionRepository;
 import com.proveedores.service.CategoriaObjetoService;
 import com.proveedores.service.ObjetoMuseoService;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +33,12 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private ObjetoMuseoRepository objetoMuseoRepository;
+
+    @Autowired
+    private InventarioRepository inventarioRepository;
+
+    @Autowired
+    private UbicacionRepository ubicacionRepository;
 
     @Test
     void creaObjetoRealEnBasePostgreSQL() {
@@ -157,6 +171,85 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void listadoDevuelveFechaIngresoDesdeInventario() {
+        var objeto = objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
+                "IT-FEC-ING-001",
+                "Objeto con fecha de ingreso",
+                null,
+                null, null, null, EstadoConservacion.BUENO, null
+        ));
+        crearInventario(objeto.id(), LocalDate.of(2024, 4, 15));
+
+        var resultado = objetoMuseoService.buscar("Objeto con fecha de ingreso", null, null, PageRequest.of(0, 20));
+
+        assertThat(resultado.getContent())
+                .filteredOn(item -> item.id().equals(objeto.id()))
+                .singleElement()
+                .satisfies(item -> assertThat(item.fechaIngreso()).isEqualTo(LocalDate.of(2024, 4, 15)));
+    }
+
+    @Test
+    void ordenaPorNumeroInventarioYDenominacion() {
+        objetoMuseoService.crear(new ObjetoMuseoRequestDTO("IT-SORT-NUM-002", "B objeto sort", null, null, null, null, null, null));
+        objetoMuseoService.crear(new ObjetoMuseoRequestDTO("IT-SORT-NUM-001", "A objeto sort", null, null, null, null, null, null));
+
+        var porNumero = objetoMuseoService.buscar(
+                "objeto sort",
+                null,
+                null,
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.ASC, "numeroInventario"))
+        );
+        var porDenominacion = objetoMuseoService.buscar(
+                "objeto sort",
+                null,
+                null,
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "denominacionObjeto"))
+        );
+
+        assertThat(porNumero.getContent()).extracting("numeroInventario")
+                .containsSubsequence("IT-SORT-NUM-001", "IT-SORT-NUM-002");
+        assertThat(porDenominacion.getContent()).extracting("denominacionObjeto")
+                .containsSubsequence("B objeto sort", "A objeto sort");
+    }
+
+    @Test
+    void ordenaPorFechaIngresoConJoinInventario() {
+        var objetoReciente = objetoMuseoService.crear(new ObjetoMuseoRequestDTO("IT-SORT-FEC-002", "Objeto fecha sort", null, null, null, null, null, null));
+        var objetoAntiguo = objetoMuseoService.crear(new ObjetoMuseoRequestDTO("IT-SORT-FEC-001", "Objeto fecha sort", null, null, null, null, null, null));
+        crearInventario(objetoReciente.id(), LocalDate.of(2024, 6, 1));
+        crearInventario(objetoAntiguo.id(), LocalDate.of(2024, 1, 1));
+
+        var resultado = objetoMuseoService.buscar(
+                "Objeto fecha sort",
+                null,
+                null,
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.ASC, "fechaIngreso"))
+        );
+
+        assertThat(resultado.getContent()).extracting("id")
+                .containsSubsequence(objetoAntiguo.id(), objetoReciente.id());
+        assertThat(resultado.getContent().get(0).fechaIngreso()).isEqualTo(LocalDate.of(2024, 1, 1));
+    }
+
+    @Test
+    void busquedaPaginacionYSortFuncionanJuntos() {
+        objetoMuseoService.crear(new ObjetoMuseoRequestDTO("IT-COMBO-SORT-003", "Objeto combo sort", "ccc", null, null, null, null, null));
+        objetoMuseoService.crear(new ObjetoMuseoRequestDTO("IT-COMBO-SORT-001", "Objeto combo sort", "aaa", null, null, null, null, null));
+        objetoMuseoService.crear(new ObjetoMuseoRequestDTO("IT-COMBO-SORT-002", "Objeto combo sort", "bbb", null, null, null, null, null));
+
+        var resultado = objetoMuseoService.buscar(
+                "Objeto combo sort",
+                "COMBO",
+                null,
+                PageRequest.of(0, 2, Sort.by(Sort.Direction.ASC, "descripcion"))
+        );
+
+        assertThat(resultado.getTotalElements()).isEqualTo(3);
+        assertThat(resultado.getContent()).hasSize(2);
+        assertThat(resultado.getContent()).extracting("descripcion").containsExactly("aaa", "bbb");
+    }
+
+    @Test
     void objetoEliminadoNoApareceEnConsultaNormalYSeListaConAuditoria() {
         var objeto = objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
                 "IT-DEL-001",
@@ -201,5 +294,21 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
             assertThat(entity.getFechaEliminacion()).isNull();
             assertThat(entity.getEliminadoPor()).isNull();
         });
+    }
+
+    private void crearInventario(Long objetoId, LocalDate fechaIngreso) {
+        Ubicacion ubicacion = new Ubicacion();
+        ubicacion.setNombre("IT Ubicacion " + objetoId + " " + fechaIngreso);
+        ubicacion.setTipo("TEST");
+        Ubicacion savedUbicacion = ubicacionRepository.save(ubicacion);
+
+        Inventario inventario = new Inventario();
+        inventario.setObjetoMuseo(objetoMuseoRepository.findById(objetoId).orElseThrow());
+        inventario.setUbicacion(savedUbicacion);
+        inventario.setEstado(EstadoInventario.DISPONIBLE);
+        inventario.setEstadoConservacion(EstadoConservacion.BUENO);
+        inventario.setFechaIngreso(fechaIngreso);
+        inventario.setFechaUltimoMovimiento(LocalDateTime.now());
+        inventarioRepository.save(inventario);
     }
 }

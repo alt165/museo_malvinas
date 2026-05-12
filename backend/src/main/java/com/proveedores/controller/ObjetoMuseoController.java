@@ -78,7 +78,10 @@ public class ObjetoMuseoController {
         return ResponseEntity.ok(objetoMuseoService.listar());
     }
 
-    @Operation(summary = "Buscar objetos de museo con paginacion")
+    @Operation(
+            summary = "Buscar objetos de museo con paginacion",
+            description = "Permite ordenar por numeroInventario, denominacionObjeto, descripcion, descripcionTecnica, estadoConservacion y fechaIngreso. El ordenamiento por categorias no se aplica por tratarse de una relacion multiple."
+    )
     @ApiResponse(responseCode = "200", description = "Busqueda obtenida")
     @GetMapping("/buscar")
     public ResponseEntity<Page<ObjetoMuseoResponseDTO>> buscar(

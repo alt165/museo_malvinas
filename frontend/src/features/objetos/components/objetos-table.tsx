@@ -10,8 +10,8 @@ import {
 } from "@tanstack/react-table";
 import Link from "next/link";
 import { useMemo } from "react";
-import { Pencil, Search, Trash2 } from "lucide-react";
-import type { ObjetoMuseoResponseDTO } from "../types";
+import { ArrowDown, ArrowUp, ChevronsUpDown, Pencil, Search, Trash2 } from "lucide-react";
+import type { ObjetoMuseoResponseDTO, ObjetoSortField, ObjetosSort } from "../types";
 import { resumenDescripcion } from "../utils";
 
 type ObjetosTableProps = {
@@ -19,19 +19,21 @@ type ObjetosTableProps = {
   canEdit: boolean;
   deletingId?: number | null;
   onDelete?: (objeto: ObjetoMuseoResponseDTO) => void;
+  sort: ObjetosSort;
+  onSortChange: (field: ObjetoSortField) => void;
 };
 
-export function ObjetosTable({ canEdit, deletingId, objetos, onDelete }: ObjetosTableProps) {
+export function ObjetosTable({ canEdit, deletingId, objetos, onDelete, onSortChange, sort }: ObjetosTableProps) {
   const columns = useMemo<ColumnDef<ObjetoMuseoResponseDTO>[]>(
     () => [
       {
         accessorKey: "numeroInventario",
-        header: "Numero de inventario",
+        header: () => <SortHeader field="numeroInventario" label="Numero de inventario" onSortChange={onSortChange} sort={sort} />,
         cell: ({ row }) => <span className="font-medium">{row.original.numeroInventario}</span>
       },
       {
         accessorKey: "denominacionObjeto",
-        header: "Denominacion",
+        header: () => <SortHeader field="denominacionObjeto" label="Denominacion" onSortChange={onSortChange} sort={sort} />,
         cell: ({ row }) => row.original.denominacionObjeto
       },
       {
@@ -41,8 +43,18 @@ export function ObjetosTable({ canEdit, deletingId, objetos, onDelete }: Objetos
       },
       {
         accessorKey: "descripcion",
-        header: "Descripcion",
+        header: () => <SortHeader field="descripcion" label="Descripcion" onSortChange={onSortChange} sort={sort} />,
         cell: ({ row }) => <span className="text-muted-foreground">{resumenDescripcion(row.original.descripcion)}</span>
+      },
+      {
+        accessorKey: "fechaIngreso",
+        header: () => <SortHeader field="fechaIngreso" label="Fecha de ingreso" onSortChange={onSortChange} sort={sort} />,
+        cell: ({ row }) => formatearFecha(row.original.fechaIngreso)
+      },
+      {
+        accessorKey: "estadoConservacion",
+        header: () => <SortHeader field="estadoConservacion" label="Estado" onSortChange={onSortChange} sort={sort} />,
+        cell: ({ row }) => row.original.estadoConservacion ?? "Sin dato"
       },
       {
         id: "acciones",
@@ -82,7 +94,7 @@ export function ObjetosTable({ canEdit, deletingId, objetos, onDelete }: Objetos
         )
       }
     ],
-    [canEdit, deletingId, onDelete]
+    [canEdit, deletingId, onDelete, onSortChange, sort]
   );
 
   const table = useReactTable({
@@ -119,4 +131,43 @@ export function ObjetosTable({ canEdit, deletingId, objetos, onDelete }: Objetos
       </table>
     </div>
   );
+}
+
+function SortHeader({
+  field,
+  label,
+  onSortChange,
+  sort
+}: {
+  field: ObjetoSortField;
+  label: string;
+  onSortChange: (field: ObjetoSortField) => void;
+  sort: ObjetosSort;
+}) {
+  const activo = sort.field === field;
+  const Icon = activo ? (sort.direction === "asc" ? ArrowUp : ArrowDown) : ChevronsUpDown;
+
+  return (
+    <button
+      className="inline-flex items-center gap-1 text-left font-semibold text-white hover:text-secondary"
+      onClick={() => onSortChange(field)}
+      type="button"
+    >
+      <span>{label}</span>
+      <Icon className="h-3.5 w-3.5" />
+    </button>
+  );
+}
+
+function formatearFecha(fecha?: string | null) {
+  if (!fecha) {
+    return "Sin dato";
+  }
+
+  const [year, month, day] = fecha.split("-");
+  if (!year || !month || !day) {
+    return fecha;
+  }
+
+  return `${day}/${month}/${year}`;
 }

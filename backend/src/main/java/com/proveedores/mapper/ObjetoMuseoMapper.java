@@ -4,6 +4,7 @@ import com.proveedores.dto.CategoriaObjetoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
 import com.proveedores.entity.ObjetoMuseo;
+import java.time.LocalDate;
 import java.util.List;
 
 public final class ObjetoMuseoMapper {
@@ -21,6 +22,10 @@ public final class ObjetoMuseoMapper {
     }
 
     public static ObjetoMuseoResponseDTO toResponse(ObjetoMuseo entity, List<CategoriaObjetoResponseDTO> categorias) {
+        return toResponse(entity, null, categorias);
+    }
+
+    public static ObjetoMuseoResponseDTO toResponse(ObjetoMuseo entity, LocalDate fechaIngreso, List<CategoriaObjetoResponseDTO> categorias) {
         return new ObjetoMuseoResponseDTO(
                 entity.getId(),
                 entity.getNumeroInventario(),
@@ -30,6 +35,7 @@ public final class ObjetoMuseoMapper {
                 entity.getMateriales(),
                 entity.getDimensiones(),
                 entity.getEstadoConservacion(),
+                fechaIngreso,
                 categorias
         );
     }

@@ -13,7 +13,7 @@ import { ObjetosTable } from "@/features/objetos/components/objetos-table";
 import { getApiErrorMessage } from "@/features/objetos/utils";
 import { ApiClientError } from "@/lib/errors/api-error";
 import { useCategoriasQuery } from "@/features/categorias/queries";
-import type { ObjetoMuseoResponseDTO } from "@/features/objetos/types";
+import type { ObjetoMuseoResponseDTO, ObjetoSortField, ObjetosSort } from "@/features/objetos/types";
 
 type FiltrosObjetos = {
   nombre: string;
@@ -35,6 +35,7 @@ export default function ObjetosPage() {
   const [categoriaBusqueda, setCategoriaBusqueda] = useState("");
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(20);
+  const [sort, setSort] = useState<ObjetosSort>({ field: "numeroInventario", direction: "asc" });
   const categoriasQuery = useCategoriasQuery();
   const categorias = useMemo(() => categoriasQuery.data ?? [], [categoriasQuery.data]);
   const categoriasFiltradas = useMemo(() => {
@@ -53,9 +54,9 @@ export default function ObjetosPage() {
       ...filtrosAplicados,
       page,
       size,
-      sort: "numeroInventario,asc"
+      sort: `${sort.field},${sort.direction}`
     }),
-    [filtrosAplicados, page, size]
+    [filtrosAplicados, page, size, sort]
   );
   const { data, error, isError, isLoading, isFetching } = useBuscarObjetosQuery(buscarParams);
   const bajaLogica = useBajaLogicaObjetoMutation();
@@ -97,6 +98,14 @@ export default function ObjetosPage() {
           : [...current.categoriaIds, categoriaId]
       };
     });
+  }
+
+  function handleSortChange(field: ObjetoSortField) {
+    setPage(0);
+    setSort((current) => ({
+      field,
+      direction: current.field === field && current.direction === "asc" ? "desc" : "asc"
+    }));
   }
 
   return (
@@ -237,6 +246,8 @@ export default function ObjetosPage() {
               deletingId={bajaLogica.variables ?? null}
               objetos={objetos}
               onDelete={puedeEscribir ? handleBajaLogica : undefined}
+              onSortChange={handleSortChange}
+              sort={sort}
             />
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-surface px-4 py-3 text-sm">
               <div className="text-muted-foreground">

@@ -10,6 +10,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -55,5 +57,8 @@ public class ObjetoMuseo extends EntidadBase {
 
     @Column(name = "eliminado_por", length = 120)
     private String eliminadoPor;
+
+    @OneToOne(mappedBy = "objetoMuseo", fetch = FetchType.LAZY)
+    private Inventario inventario;
 
 }

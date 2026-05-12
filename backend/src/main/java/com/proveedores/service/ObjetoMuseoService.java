@@ -41,7 +41,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,7 +115,7 @@ public class ObjetoMuseoService {
                         normalizarFiltro(nombre),
                         normalizarFiltro(numeroInventario),
                         categorias
-                ), pageable).map(this::toResponse);
+                ), normalizarPageableBusqueda(pageable)).map(this::toResponse);
     }
 
     @Transactional
@@ -269,7 +271,6 @@ public class ObjetoMuseoService {
 
     private Specification<ObjetoMuseo> busquedaSpecification(String nombre, String numeroInventario, List<Long> categoriaIds) {
         return (root, query, criteriaBuilder) -> {
-            query.distinct(true);
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(criteriaBuilder.isFalse(root.get("eliminado")));
 
@@ -301,6 +302,35 @@ public class ObjetoMuseoService {
             }
 
             return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
+        };
+    }
+
+    private Pageable normalizarPageableBusqueda(Pageable pageable) {
+        if (pageable.getSort().isUnsorted()) {
+            return pageable;
+        }
+
+        List<Sort.Order> ordenes = new ArrayList<>();
+        for (Sort.Order order : pageable.getSort()) {
+            String property = sortPropertyPermitida(order.getProperty());
+            if (property != null) {
+                ordenes.add(new Sort.Order(order.getDirection(), property, order.getNullHandling()));
+            } else {
+                log.info("event=objeto_museo.search_sort_ignored property={}", order.getProperty());
+            }
+        }
+
+        Sort sort = ordenes.isEmpty() ? Sort.unsorted() : Sort.by(ordenes);
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
+    }
+
+    private String sortPropertyPermitida(String property) {
+        return switch (property) {
+            case "numeroInventario", "denominacionObjeto", "descripcion", "descripcionTecnica", "estadoConservacion" -> property;
+            case "nombre", "denominacion" -> "denominacionObjeto";
+            case "fechaIngreso" -> "inventario.fechaIngreso";
+            case "categorias", "categoria" -> null;
+            default -> null;
         };
     }
 
@@ -360,7 +390,10 @@ public class ObjetoMuseoService {
                 .map(ObjetoCategoria::getCategoriaObjeto)
                 .map(categoria -> new CategoriaObjetoResponseDTO(categoria.getId(), categoria.getNombre(), categoria.getDescripcion()))
                 .toList();
-        return ObjetoMuseoMapper.toResponse(objeto, categorias);
+        LocalDate fechaIngreso = inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(objeto.getId())
+                .map(Inventario::getFechaIngreso)
+                .orElse(null);
+        return ObjetoMuseoMapper.toResponse(objeto, fechaIngreso, categorias);
     }
 
     private ObjetoMuseoEliminadoResponseDTO toEliminadoResponse(ObjetoMuseo objeto) {
