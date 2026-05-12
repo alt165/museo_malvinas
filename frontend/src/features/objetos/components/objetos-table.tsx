@@ -94,11 +94,11 @@ export function ObjetosTable({ canEdit, deletingId, objetos, onDelete }: Objetos
   return (
     <div className="overflow-hidden rounded-lg border">
       <table className="w-full border-collapse text-sm">
-        <thead className="bg-muted/60">
+        <thead className="bg-primary text-primary-foreground">
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
-                <th className="px-4 py-3 text-left font-medium" key={header.id}>
+                <th className="px-4 py-3 text-left font-semibold text-white" key={header.id}>
                   {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                 </th>
               ))}

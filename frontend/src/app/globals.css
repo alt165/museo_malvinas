@@ -85,6 +85,11 @@ th {
   color: hsl(var(--primary));
 }
 
+thead.bg-primary,
+thead.bg-primary th {
+  color: hsl(var(--primary-foreground));
+}
+
 tbody tr {
   background: hsl(var(--surface));
 }

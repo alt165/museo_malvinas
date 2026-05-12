@@ -4,6 +4,7 @@ import type {
   CargaRapidaObjetoResponseDTO,
   FotoObjetoMuseoResponseDTO,
   BuscarObjetosParams,
+  ObjetoMuseoEliminadoResponseDTO,
   ObjetoMuseoRequestDTO,
   ObjetoMuseoResponseDTO,
   PageResponse,
@@ -62,6 +63,22 @@ export function actualizarObjeto(id: number, payload: ObjetoMuseoRequestDTO) {
 export function bajaLogicaObjeto(id: number) {
   return apiRequest<void>(`${basePath}/${id}`, {
     method: "DELETE"
+  });
+}
+
+export function listarObjetosEliminados(params: { page?: number; size?: number; sort?: string }) {
+  const searchParams = new URLSearchParams();
+  searchParams.set("page", String(params.page ?? 0));
+  searchParams.set("size", String(params.size ?? 20));
+  if (params.sort) {
+    searchParams.set("sort", params.sort);
+  }
+  return apiRequest<PageResponse<ObjetoMuseoEliminadoResponseDTO>>(`/api/admin/objetos/eliminados?${searchParams.toString()}`);
+}
+
+export function restaurarObjeto(id: number) {
+  return apiRequest<ObjetoMuseoResponseDTO>(`/api/admin/objetos/${id}/restaurar`, {
+    method: "POST"
   });
 }
 

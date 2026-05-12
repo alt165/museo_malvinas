@@ -32,9 +32,22 @@ export default function ObjetosPage() {
   const puedeEscribir = canWrite(roles);
   const [filtrosFormulario, setFiltrosFormulario] = useState<FiltrosObjetos>(filtrosIniciales);
   const [filtrosAplicados, setFiltrosAplicados] = useState<FiltrosObjetos>(filtrosIniciales);
+  const [categoriaBusqueda, setCategoriaBusqueda] = useState("");
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(20);
   const categoriasQuery = useCategoriasQuery();
+  const categorias = useMemo(() => categoriasQuery.data ?? [], [categoriasQuery.data]);
+  const categoriasFiltradas = useMemo(() => {
+    const busqueda = categoriaBusqueda.trim().toLowerCase();
+    if (!busqueda) {
+      return categorias;
+    }
+    return categorias.filter((categoria) => categoria.nombre.toLowerCase().includes(busqueda));
+  }, [categoriaBusqueda, categorias]);
+  const categoriasSeleccionadas = useMemo(
+    () => categorias.filter((categoria) => filtrosFormulario.categoriaIds.includes(categoria.id)),
+    [categorias, filtrosFormulario.categoriaIds]
+  );
   const buscarParams = useMemo(
     () => ({
       ...filtrosAplicados,
@@ -65,12 +78,25 @@ export default function ObjetosPage() {
     setPage(0);
     setFiltrosFormulario(filtrosIniciales);
     setFiltrosAplicados(filtrosIniciales);
+    setCategoriaBusqueda("");
   }
 
   function handleBajaLogica(objeto: ObjetoMuseoResponseDTO) {
     if (window.confirm(`Dar de baja el objeto ${objeto.numeroInventario}?`)) {
       bajaLogica.mutate(objeto.id);
     }
+  }
+
+  function toggleCategoria(categoriaId: number) {
+    setFiltrosFormulario((current) => {
+      const seleccionada = current.categoriaIds.includes(categoriaId);
+      return {
+        ...current,
+        categoriaIds: seleccionada
+          ? current.categoriaIds.filter((id) => id !== categoriaId)
+          : [...current.categoriaIds, categoriaId]
+      };
+    });
   }
 
   return (
@@ -93,7 +119,7 @@ export default function ObjetosPage() {
           title="Objetos del museo"
         />
         <form className="rounded-lg border bg-surface p-4 shadow-sm" onSubmit={handleSubmit}>
-          <div className="grid gap-4 md:grid-cols-[1fr_1fr_1.2fr_auto] md:items-end">
+          <div className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
             <label className="space-y-1 text-sm font-medium text-primary">
               <span>Nombre del objeto</span>
               <input
@@ -114,28 +140,7 @@ export default function ObjetosPage() {
                 value={filtrosFormulario.numeroInventario}
               />
             </label>
-            <label className="space-y-1 text-sm font-medium text-primary">
-              <span>Categorías</span>
-              <select
-                className="min-h-10 w-full rounded-md border bg-white px-3 py-2 text-sm outline-none focus:border-primary"
-                disabled={categoriasQuery.isLoading}
-                multiple
-                onChange={(event) =>
-                  setFiltrosFormulario((current) => ({
-                    ...current,
-                    categoriaIds: Array.from(event.target.selectedOptions).map((option) => Number(option.value))
-                  }))
-                }
-                value={filtrosFormulario.categoriaIds.map(String)}
-              >
-                {(categoriasQuery.data ?? []).map((categoria) => (
-                  <option key={categoria.id} value={categoria.id}>
-                    {categoria.nombre}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 lg:justify-end">
               <button className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-white hover:opacity-90" type="submit">
                 Buscar
               </button>
@@ -147,6 +152,62 @@ export default function ObjetosPage() {
                 Limpiar filtros
               </button>
             </div>
+            <section className="space-y-3 lg:col-span-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="text-sm font-medium text-primary" htmlFor="categoria-busqueda">
+                  Categorías
+                </label>
+                <span className="text-xs text-muted-foreground">
+                  {filtrosFormulario.categoriaIds.length} seleccionada(s)
+                </span>
+              </div>
+              <input
+                className="h-10 w-full rounded-md border bg-white px-3 text-sm outline-none focus:border-primary"
+                id="categoria-busqueda"
+                onChange={(event) => setCategoriaBusqueda(event.target.value)}
+                placeholder="Buscar categoría"
+                type="text"
+                value={categoriaBusqueda}
+              />
+              <div className="max-h-44 overflow-y-auto rounded-md border bg-white p-2">
+                {categoriasQuery.isLoading ? (
+                  <p className="px-2 py-2 text-sm text-muted-foreground">Cargando categorías...</p>
+                ) : null}
+                {!categoriasQuery.isLoading && categoriasFiltradas.length === 0 ? (
+                  <p className="px-2 py-2 text-sm text-muted-foreground">Sin categorías disponibles.</p>
+                ) : null}
+                <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
+                  {categoriasFiltradas.map((categoria) => (
+                    <label
+                      className="flex min-h-9 items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+                      key={categoria.id}
+                    >
+                      <input
+                        checked={filtrosFormulario.categoriaIds.includes(categoria.id)}
+                        className="h-4 w-4 accent-primary"
+                        onChange={() => toggleCategoria(categoria.id)}
+                        type="checkbox"
+                      />
+                      <span className="min-w-0 flex-1 truncate">{categoria.nombre}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              {categoriasSeleccionadas.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {categoriasSeleccionadas.map((categoria) => (
+                    <button
+                      className="rounded-full border border-primary/20 bg-secondary/20 px-3 py-1 text-xs font-medium text-primary hover:bg-secondary/30"
+                      key={categoria.id}
+                      onClick={() => toggleCategoria(categoria.id)}
+                      type="button"
+                    >
+                      {categoria.nombre} ×
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </section>
           </div>
         </form>
         {isLoading ? <LoadingState label="Cargando objetos..." /> : null}

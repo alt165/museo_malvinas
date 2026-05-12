@@ -25,6 +25,17 @@ export type ObjetoMuseoResponseDTO = {
   categorias?: CategoriaObjetoResponseDTO[];
 };
 
+export type ObjetoMuseoEliminadoResponseDTO = {
+  id: number;
+  numeroInventario: string;
+  denominacionObjeto: string;
+  descripcion?: string | null;
+  fechaEliminacion?: string | null;
+  eliminadoPor?: string | null;
+  estadoConservacion?: EstadoConservacion | null;
+  categorias?: CategoriaObjetoResponseDTO[];
+};
+
 export type PageResponse<T> = {
   content: T[];
   totalElements: number;

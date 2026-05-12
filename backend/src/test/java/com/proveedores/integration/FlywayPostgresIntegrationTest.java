@@ -23,7 +23,7 @@ class FlywayPostgresIntegrationTest extends IntegrationTestBase {
         Integer ubicacionesSembradas = jdbcTemplate.queryForObject("select count(*) from ubicaciones", Integer.class);
         Integer exhibicionesSembradas = jdbcTemplate.queryForObject("select count(*) from exhibiciones", Integer.class);
 
-        assertThat(versiones).containsExactly("1", "2", "3", "4");
+        assertThat(versiones).containsExactly("1", "2", "3", "4", "5");
         assertThat(objetosSembrados).isGreaterThanOrEqualTo(6);
         assertThat(ubicacionesSembradas).isGreaterThanOrEqualTo(5);
         assertThat(exhibicionesSembradas).isGreaterThanOrEqualTo(1);
@@ -33,5 +33,9 @@ class FlywayPostgresIntegrationTest extends IntegrationTestBase {
                 .isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.columns where table_name = 'objetos_museo' and column_name in ('nombre', 'tipo_objeto')", Integer.class))
                 .isZero();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.columns where table_name = 'objetos_museo' and column_name = 'eliminado_por'", Integer.class))
+                .isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from pg_indexes where tablename = 'objetos_museo' and indexname in ('idx_objetos_museo_eliminado', 'idx_objetos_museo_fecha_eliminacion')", Integer.class))
+                .isEqualTo(2);
     }
 }

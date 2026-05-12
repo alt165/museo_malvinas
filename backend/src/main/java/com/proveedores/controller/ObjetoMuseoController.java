@@ -25,6 +25,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -98,8 +100,8 @@ public class ObjetoMuseoController {
     @Operation(summary = "Dar de baja recurso")
     @ApiResponse(responseCode = "204", description = "Recurso dado de baja")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> bajaLogica(@PathVariable Long id) {
-        objetoMuseoService.bajaLogica(id);
+    public ResponseEntity<Void> bajaLogica(@PathVariable Long id, Authentication authentication) {
+        objetoMuseoService.bajaLogica(id, usuario(authentication));
         return ResponseEntity.noContent().build();
     }
 
@@ -171,6 +173,15 @@ public class ObjetoMuseoController {
     }
 
     private String usuario(Authentication authentication) {
-        return authentication == null ? null : authentication.getName();
+        if (authentication == null) {
+            return null;
+        }
+        if (authentication instanceof JwtAuthenticationToken jwtAuthentication) {
+            String username = jwtAuthentication.getToken().getClaimAsString("preferred_username");
+            if (StringUtils.hasText(username)) {
+                return username;
+            }
+        }
+        return authentication.getName();
     }
 }

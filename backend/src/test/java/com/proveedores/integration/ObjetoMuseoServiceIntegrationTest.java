@@ -155,4 +155,51 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
         assertThat(resultado.getContent()).hasSize(2);
         assertThat(resultado.getTotalPages()).isEqualTo(2);
     }
+
+    @Test
+    void objetoEliminadoNoApareceEnConsultaNormalYSeListaConAuditoria() {
+        var objeto = objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
+                "IT-DEL-001",
+                "Objeto eliminado auditable",
+                "Descripcion eliminada",
+                null, null, null, null, null
+        ));
+
+        objetoMuseoService.bajaLogica(objeto.id(), "admin-test");
+
+        var consultaNormal = objetoMuseoService.buscar("Objeto eliminado auditable", null, null, PageRequest.of(0, 20));
+        var eliminados = objetoMuseoService.listarEliminados(PageRequest.of(0, 20));
+
+        assertThat(consultaNormal.getContent()).extracting("id").doesNotContain(objeto.id());
+        assertThat(eliminados.getContent())
+                .filteredOn(item -> item.id().equals(objeto.id()))
+                .singleElement()
+                .satisfies(item -> {
+                    assertThat(item.eliminadoPor()).isEqualTo("admin-test");
+                    assertThat(item.fechaEliminacion()).isNotNull();
+                });
+    }
+
+    @Test
+    void restauraObjetoEliminadoYVuelveAConsultaNormal() {
+        var objeto = objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
+                "IT-DEL-REST",
+                "Objeto restaurable",
+                null,
+                null, null, null, null, null
+        ));
+
+        objetoMuseoService.bajaLogica(objeto.id(), "admin-test");
+        var restaurado = objetoMuseoService.restaurar(objeto.id(), "admin-test");
+        var consultaNormal = objetoMuseoService.buscar("Objeto restaurable", null, null, PageRequest.of(0, 20));
+
+        assertThat(restaurado.id()).isEqualTo(objeto.id());
+        assertThat(consultaNormal.getContent()).extracting("id").contains(objeto.id());
+        assertThat(objetoMuseoRepository.findById(objeto.id())).get().satisfies(entity -> {
+            assertThat(entity.getEliminado()).isFalse();
+            assertThat(entity.getActivo()).isTrue();
+            assertThat(entity.getFechaEliminacion()).isNull();
+            assertThat(entity.getEliminadoPor()).isNull();
+        });
+    }
 }

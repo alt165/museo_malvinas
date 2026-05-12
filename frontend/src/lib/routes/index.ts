@@ -37,6 +37,7 @@ export const routes = {
   dashboard: "/",
   dashboardHome: "/dashboard",
   objetos: "/objetos",
+  objetosEliminados: "/objetos/eliminados",
   objetosCargaRapida: "/objetos/carga-rapida",
   objetoNuevo: "/objetos/nuevo",
   relacionesObjetos: "/relaciones-objetos",
@@ -67,6 +68,7 @@ export const navigationGroups: NavigationGroup[] = [
     roles: readRoles,
     items: [
       { href: routes.objetos, label: "Consulta", icon: Archive, roles: readRoles },
+      { href: routes.objetosEliminados, label: "Eliminados", icon: Archive, roles: adminRoles },
       { href: routes.objetosCargaRapida, label: "Alta rapida", icon: Archive, roles: writeRoles },
       { href: routes.objetoNuevo, label: "Alta completa", icon: Archive, roles: writeRoles },
       { href: routes.movimientosInventario, label: "Movimientos de inventario", icon: MoveRight, roles: writeRoles },

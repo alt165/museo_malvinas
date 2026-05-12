@@ -53,4 +53,7 @@ public class ObjetoMuseo extends EntidadBase {
     @Column(name = "estado_conservacion", length = 40)
     private EstadoConservacion estadoConservacion;
 
+    @Column(name = "eliminado_por", length = 120)
+    private String eliminadoPor;
+
 }

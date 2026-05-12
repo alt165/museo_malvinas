@@ -8,8 +8,10 @@ import {
   eliminarFotoObjeto,
   listarFotosObjeto,
   listarObjetos,
+  listarObjetosEliminados,
   listarRecibosObjeto,
-  obtenerObjetoPorId
+  obtenerObjetoPorId,
+  restaurarObjeto
 } from "./api";
 import type { BuscarObjetosParams, CargaRapidaObjetoRequestDTO, ObjetoMuseoRequestDTO } from "./types";
 
@@ -17,6 +19,7 @@ export const objetosQueryKeys = {
   all: ["objetos"] as const,
   lists: () => [...objetosQueryKeys.all, "list"] as const,
   search: (params: BuscarObjetosParams) => [...objetosQueryKeys.all, "search", params] as const,
+  deleted: (params: { page?: number; size?: number; sort?: string }) => [...objetosQueryKeys.all, "deleted", params] as const,
   detail: (id: number) => [...objetosQueryKeys.all, "detail", id] as const,
   fotos: (id: number) => [...objetosQueryKeys.all, "detail", id, "fotos"] as const,
   recibos: (id: number) => [...objetosQueryKeys.all, "detail", id, "recibos"] as const
@@ -33,6 +36,13 @@ export function useBuscarObjetosQuery(params: BuscarObjetosParams) {
   return useQuery({
     queryKey: objetosQueryKeys.search(params),
     queryFn: () => buscarObjetos(params)
+  });
+}
+
+export function useObjetosEliminadosQuery(params: { page?: number; size?: number; sort?: string }) {
+  return useQuery({
+    queryKey: objetosQueryKeys.deleted(params),
+    queryFn: () => listarObjetosEliminados(params)
   });
 }
 
@@ -72,6 +82,17 @@ export function useBajaLogicaObjetoMutation() {
 
   return useMutation({
     mutationFn: bajaLogicaObjeto,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.all });
+    }
+  });
+}
+
+export function useRestaurarObjetoMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: restaurarObjeto,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.all });
     }

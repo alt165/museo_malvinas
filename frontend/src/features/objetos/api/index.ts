@@ -10,8 +10,10 @@ export {
   eliminarFotoObjeto,
   listarFotosObjeto,
   listarObjetos,
+  listarObjetosEliminados,
   listarRecibosObjeto,
   obtenerObjetoPorId,
+  restaurarObjeto,
   subirCopiaFirmadaRecibo,
   subirFotoObjeto
 } from "./objetos-api";

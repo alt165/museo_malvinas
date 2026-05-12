@@ -4,20 +4,27 @@ import com.proveedores.dto.AgregarCategoriaObjetoRequestDTO;
 import com.proveedores.dto.CargaRapidaObjetoRequestDTO;
 import com.proveedores.dto.CargaRapidaObjetoResponseDTO;
 import com.proveedores.dto.CategoriaObjetoResponseDTO;
+import com.proveedores.dto.ObjetoMuseoEliminadoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
 import com.proveedores.dto.ReciboIngresoObjetoResponseDTO;
 import com.proveedores.entity.CategoriaObjeto;
 import com.proveedores.entity.Depositante;
+import com.proveedores.entity.EstadoInventario;
+import com.proveedores.entity.Inventario;
+import com.proveedores.entity.MovimientoInventario;
 import com.proveedores.entity.ObjetoMuseo;
 import com.proveedores.entity.ObjetoCategoria;
 import com.proveedores.entity.ObjetoDepositante;
 import com.proveedores.entity.ReciboIngresoObjeto;
+import com.proveedores.entity.TipoMovimientoInventario;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.mapper.ObjetoMuseoMapper;
 import com.proveedores.repository.CategoriaObjetoRepository;
 import com.proveedores.repository.DepositanteRepository;
+import com.proveedores.repository.InventarioRepository;
+import com.proveedores.repository.MovimientoInventarioRepository;
 import com.proveedores.repository.ObjetoCategoriaRepository;
 import com.proveedores.repository.ObjetoDepositanteRepository;
 import com.proveedores.repository.ObjetoMuseoRepository;
@@ -52,6 +59,8 @@ public class ObjetoMuseoService {
     private final DepositanteRepository depositanteRepository;
     private final ObjetoDepositanteRepository objetoDepositanteRepository;
     private final ReciboIngresoObjetoRepository reciboIngresoObjetoRepository;
+    private final InventarioRepository inventarioRepository;
+    private final MovimientoInventarioRepository movimientoInventarioRepository;
 
     public ObjetoMuseoService(
             ObjetoMuseoRepository objetoMuseoRepository,
@@ -59,7 +68,9 @@ public class ObjetoMuseoService {
             ObjetoCategoriaRepository objetoCategoriaRepository,
             DepositanteRepository depositanteRepository,
             ObjetoDepositanteRepository objetoDepositanteRepository,
-            ReciboIngresoObjetoRepository reciboIngresoObjetoRepository
+            ReciboIngresoObjetoRepository reciboIngresoObjetoRepository,
+            InventarioRepository inventarioRepository,
+            MovimientoInventarioRepository movimientoInventarioRepository
     ) {
         this.objetoMuseoRepository = objetoMuseoRepository;
         this.categoriaObjetoRepository = categoriaObjetoRepository;
@@ -67,6 +78,8 @@ public class ObjetoMuseoService {
         this.depositanteRepository = depositanteRepository;
         this.objetoDepositanteRepository = objetoDepositanteRepository;
         this.reciboIngresoObjetoRepository = reciboIngresoObjetoRepository;
+        this.inventarioRepository = inventarioRepository;
+        this.movimientoInventarioRepository = movimientoInventarioRepository;
     }
 
     @Transactional
@@ -171,13 +184,43 @@ public class ObjetoMuseoService {
     }
 
     @Transactional
-    public void bajaLogica(Long id) {
+    public void bajaLogica(Long id, String eliminadoPor) {
         ObjetoMuseo entity = buscarActivo(id);
         entity.setActivo(false);
         entity.setEliminado(true);
         entity.setFechaEliminacion(LocalDateTime.now());
+        entity.setEliminadoPor(eliminadoPor);
         objetoMuseoRepository.save(entity);
-        log.info("event=objeto_museo.deleted objetoMuseoId={} numeroInventario={}", entity.getId(), entity.getNumeroInventario());
+        log.info("event=objeto_museo.deleted objetoMuseoId={} numeroInventario={} eliminadoPor={}", entity.getId(), entity.getNumeroInventario(), eliminadoPor);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ObjetoMuseoEliminadoResponseDTO> listarEliminados(Pageable pageable) {
+        return objetoMuseoRepository.findAll((root, query, criteriaBuilder) ->
+                criteriaBuilder.isTrue(root.get("eliminado")), pageable
+        ).map(this::toEliminadoResponse);
+    }
+
+    @Transactional
+    public ObjetoMuseoResponseDTO restaurar(Long id, String restauradoPor) {
+        ObjetoMuseo entity = objetoMuseoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Objeto de museo no encontrado"));
+        if (!entity.getEliminado()) {
+            return toResponse(entity);
+        }
+
+        entity.setActivo(true);
+        entity.setEliminado(false);
+        entity.setFechaEliminacion(null);
+        entity.setEliminadoPor(null);
+        ObjetoMuseo saved = objetoMuseoRepository.save(entity);
+
+        inventarioRepository.findByObjetoMuseoId(id)
+                .filter(inventario -> !inventario.getEliminado())
+                .ifPresent(this::restaurarInventarioActivo);
+
+        log.info("event=objeto_museo.restored objetoMuseoId={} numeroInventario={} restauradoPor={}", saved.getId(), saved.getNumeroInventario(), restauradoPor);
+        return toResponse(saved);
     }
 
     private ObjetoMuseo buscarActivo(Long id) {
@@ -187,6 +230,20 @@ public class ObjetoMuseoService {
             throw new ResourceNotFoundException("Objeto de museo no encontrado");
         }
         return entity;
+    }
+
+    private void restaurarInventarioActivo(Inventario inventario) {
+        inventario.setEstado(EstadoInventario.DISPONIBLE);
+        inventario.setFechaUltimoMovimiento(LocalDateTime.now());
+        inventarioRepository.save(inventario);
+
+        MovimientoInventario movimiento = new MovimientoInventario();
+        movimiento.setObjetoMuseo(inventario.getObjetoMuseo());
+        movimiento.setTipo(TipoMovimientoInventario.RESTAURACION);
+        movimiento.setFecha(LocalDateTime.now());
+        movimiento.setUbicacionDestino(inventario.getUbicacion());
+        movimiento.setObservaciones("Restauracion de objeto eliminado logicamente");
+        movimientoInventarioRepository.save(movimiento);
     }
 
     ObjetoMuseo buscarObjetoActivo(Long id) {
@@ -304,6 +361,23 @@ public class ObjetoMuseoService {
                 .map(categoria -> new CategoriaObjetoResponseDTO(categoria.getId(), categoria.getNombre(), categoria.getDescripcion()))
                 .toList();
         return ObjetoMuseoMapper.toResponse(objeto, categorias);
+    }
+
+    private ObjetoMuseoEliminadoResponseDTO toEliminadoResponse(ObjetoMuseo objeto) {
+        List<CategoriaObjetoResponseDTO> categorias = objetoCategoriaRepository.findByObjetoMuseoIdAndEliminadoFalse(objeto.getId()).stream()
+                .map(ObjetoCategoria::getCategoriaObjeto)
+                .map(categoria -> new CategoriaObjetoResponseDTO(categoria.getId(), categoria.getNombre(), categoria.getDescripcion()))
+                .toList();
+        return new ObjetoMuseoEliminadoResponseDTO(
+                objeto.getId(),
+                objeto.getNumeroInventario(),
+                objeto.getDenominacionObjeto(),
+                objeto.getDescripcion(),
+                objeto.getFechaEliminacion(),
+                objeto.getEliminadoPor(),
+                objeto.getEstadoConservacion(),
+                categorias
+        );
     }
 
     private ReciboIngresoObjeto crearRecibo(ObjetoMuseo objeto, Depositante depositante, String descripcionBreve, String operador) {
