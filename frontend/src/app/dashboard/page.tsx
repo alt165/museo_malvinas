@@ -1,20 +1,24 @@
+import Image from "next/image";
 import { AppShell } from "@/components/layout/app-shell";
-import { EmptyState } from "@/components/common/empty-state";
-import { PageHeader } from "@/components/common/page-header";
 
 export default function DashboardPage() {
   return (
     <AppShell>
-      <div className="space-y-6">
-        <PageHeader
-          description="Vista inicial del sistema administrativo del museo."
-          title="Dashboard"
-        />
-        <EmptyState
-          description="La navegacion principal y el control de sesion ya estan disponibles. Los indicadores se agregaran cuando se implementen los modulos funcionales."
-          title="Panel preparado"
-        />
-      </div>
+      <section className="flex min-h-[calc(100vh-8rem)] items-center justify-center bg-white px-4 py-10 text-center">
+        <div className="mx-auto flex max-w-3xl flex-col items-center">
+          <Image
+            alt="Sol institucional"
+            className="h-auto w-full max-w-sm object-contain"
+            height={420}
+            priority
+            src="/images/sol-02.png"
+            width={420}
+          />
+          <h1 className="mt-8 max-w-2xl text-3xl font-semibold leading-tight text-primary md:text-4xl">
+            Archivo Histórico del Museo Malvinas, Antártida y Atlántico Sur
+          </h1>
+        </div>
+      </section>
     </AppShell>
   );
 }

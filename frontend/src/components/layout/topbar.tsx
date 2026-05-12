@@ -12,7 +12,7 @@ export function Topbar({ onOpenSidebar }: TopbarProps) {
   const displayName = user?.name ?? user?.username ?? "Usuario";
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b bg-surface/95 px-4 shadow-sm backdrop-blur md:px-6">
+    <header className="flex h-14 items-center justify-between border-b border-primary/10 bg-surface/95 px-4 shadow-sm backdrop-blur md:px-6">
       <div className="flex items-center gap-3">
         <button
           className="inline-flex h-9 w-9 items-center justify-center rounded-md border bg-surface text-primary hover:bg-secondary/20 md:hidden"

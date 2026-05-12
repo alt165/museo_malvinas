@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, X } from "lucide-react";
@@ -66,13 +67,17 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex h-14 items-center justify-between border-b border-white/15 px-5">
-          <div>
-            <p className="text-sm font-semibold text-white">Museo Malvinas</p>
-            <p className="text-xs text-secondary">Administracion</p>
-          </div>
+        <div className="relative flex min-h-32 items-center justify-center border-b border-white/15 px-5 py-6">
+          <Image
+            alt="Museo Malvinas"
+            className="h-auto max-h-24 w-44 object-contain"
+            height={120}
+            priority
+            src="/images/logo-sidebar.png"
+            width={220}
+          />
           <button
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/20 text-white hover:bg-white/10 md:hidden"
+            className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/20 text-white hover:bg-white/10 md:hidden"
             onClick={onClose}
             type="button"
           >
@@ -90,8 +95,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 <div className="space-y-1" key={group.key}>
                   <button
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/10",
-                      groupActive ? "bg-white/14 text-white" : "text-white/75"
+                      "flex w-full items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/10",
+                      groupActive ? "border-accent bg-white/10 text-white" : "text-white/75"
                     )}
                     onClick={() => toggleGroup(group.key)}
                     type="button"
@@ -127,7 +132,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                           <Link
                             className={cn(
                               "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-white/10",
-                              active ? "bg-secondary/20 font-medium text-white ring-1 ring-secondary/35" : "text-white/70"
+                              active ? "bg-accent/20 font-medium text-white ring-1 ring-accent/45" : "text-white/70"
                             )}
                             href={item.href}
                             key={item.href}
