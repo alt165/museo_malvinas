@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   actualizarDepositante,
   bajaLogicaDepositante,
+  buscarDepositantePorIdentificacion,
   crearDepositante,
   listarDepositantes,
   obtenerDepositantePorId
@@ -11,6 +12,7 @@ import type { DepositanteRequestDTO } from "./types";
 export const depositantesQueryKeys = {
   all: ["depositantes"] as const,
   lists: () => [...depositantesQueryKeys.all, "list"] as const,
+  identificacion: (valor: string) => [...depositantesQueryKeys.all, "identificacion", valor] as const,
   detail: (id: number) => [...depositantesQueryKeys.all, "detail", id] as const
 };
 
@@ -26,6 +28,12 @@ export function useDepositanteQuery(id: number) {
     queryKey: depositantesQueryKeys.detail(id),
     queryFn: () => obtenerDepositantePorId(id),
     enabled: Number.isFinite(id)
+  });
+}
+
+export function useBuscarDepositantePorIdentificacionMutation() {
+  return useMutation({
+    mutationFn: buscarDepositantePorIdentificacion
   });
 }
 

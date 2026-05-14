@@ -1,6 +1,7 @@
 package com.proveedores.repository;
 
 import com.proveedores.entity.ObjetoMuseo;
+import com.proveedores.entity.OrigenCargaObjeto;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,6 +14,11 @@ public interface ObjetoMuseoRepository extends JpaRepository<ObjetoMuseo, Long>,
     Optional<ObjetoMuseo> findByNumeroInventario(String numeroInventario);
 
     boolean existsByNumeroInventario(String numeroInventario);
+
+    org.springframework.data.domain.Page<ObjetoMuseo> findByOrigenCargaAndDatosCompletosFalseAndEliminadoFalse(
+            OrigenCargaObjeto origenCarga,
+            org.springframework.data.domain.Pageable pageable
+    );
 
     @Query("""
             select oc.objetoMuseo

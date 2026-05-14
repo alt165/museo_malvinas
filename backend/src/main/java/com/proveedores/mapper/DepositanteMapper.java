@@ -13,11 +13,21 @@ public final class DepositanteMapper {
         entity.setNombre(dto.nombre());
         entity.setTipo(dto.tipo());
         entity.setContacto(dto.contacto());
+        entity.setDni(dto.dni());
+        entity.setCuit(dto.cuit());
         entity.setObservaciones(dto.observaciones());
         return entity;
     }
 
     public static DepositanteResponseDTO toResponse(Depositante entity) {
-        return new DepositanteResponseDTO(entity.getId(), entity.getNombre(), entity.getTipo(), entity.getContacto(), entity.getObservaciones());
+        return new DepositanteResponseDTO(
+                entity.getId(),
+                entity.getNombre(),
+                entity.getTipo(),
+                entity.getContacto(),
+                entity.getDni(),
+                entity.getCuit(),
+                entity.getObservaciones()
+        );
     }
 }

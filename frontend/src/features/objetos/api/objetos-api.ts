@@ -4,6 +4,7 @@ import type {
   CargaRapidaObjetoResponseDTO,
   FotoObjetoMuseoResponseDTO,
   BuscarObjetosParams,
+  ObjetoPendienteCompletarResponseDTO,
   ObjetoMuseoEliminadoResponseDTO,
   ObjetoMuseoRequestDTO,
   ObjetoMuseoResponseDTO,
@@ -44,6 +45,16 @@ export function buscarObjetos(params: BuscarObjetosParams) {
 
 export function obtenerObjetoPorId(id: number) {
   return apiRequest<ObjetoMuseoResponseDTO>(`${basePath}/${id}`);
+}
+
+export function listarObjetosPendientesCompletar(params: { page?: number; size?: number; sort?: string }) {
+  const searchParams = new URLSearchParams();
+  searchParams.set("page", String(params.page ?? 0));
+  searchParams.set("size", String(params.size ?? 20));
+  if (params.sort) {
+    searchParams.set("sort", params.sort);
+  }
+  return apiRequest<PageResponse<ObjetoPendienteCompletarResponseDTO>>(`${basePath}/pendientes-completar?${searchParams.toString()}`);
 }
 
 export function crearObjeto(payload: ObjetoMuseoRequestDTO) {

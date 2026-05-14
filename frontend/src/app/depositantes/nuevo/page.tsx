@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { ErrorState } from "@/components/common/error-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
@@ -11,8 +12,18 @@ import { ApiClientError } from "@/lib/errors/api-error";
 import { routePermissions } from "@/lib/routes";
 
 export default function NuevoDepositantePage() {
+  return (
+    <Suspense>
+      <NuevoDepositanteContent />
+    </Suspense>
+  );
+}
+
+function NuevoDepositanteContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const mutation = useCrearDepositanteMutation();
+  const identificacion = searchParams.get("identificacion") ?? undefined;
 
   return (
     <AppShell requiredRoles={[...routePermissions.write]}>
@@ -25,6 +36,7 @@ export default function NuevoDepositantePage() {
           />
         ) : null}
         <DepositanteForm
+          initialIdentification={identificacion}
           isSubmitting={mutation.isPending}
           onSubmit={(payload) => mutation.mutate(payload, { onSuccess: (depositante) => router.push(`/depositantes/${depositante.id}`) })}
           submitError={mutation.error}

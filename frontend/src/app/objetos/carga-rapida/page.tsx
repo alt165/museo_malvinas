@@ -4,10 +4,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { ErrorState } from "@/components/common/error-state";
-import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
-import { useDepositantesQuery } from "@/features/depositantes/queries";
+import { useBuscarDepositantePorIdentificacionMutation } from "@/features/depositantes/queries";
+import type { DepositanteResponseDTO } from "@/features/depositantes/types";
+import { identificacionVisible, telefonoVisible } from "@/features/depositantes/utils";
 import { descargarReciboPdf } from "@/features/objetos/api";
 import { cargaRapidaObjetoSchema, type CargaRapidaObjetoFormValues } from "@/features/objetos/schemas";
 import type { CargaRapidaObjetoResponseDTO } from "@/features/objetos/types";
@@ -28,13 +29,16 @@ function abrirBlob(blob: Blob, nombre: string) {
 
 export default function CargaRapidaObjetoPage() {
   const [resultado, setResultado] = useState<CargaRapidaObjetoResponseDTO | null>(null);
-  const { data: depositantes = [], isLoading: isLoadingDepositantes } = useDepositantesQuery();
+  const [identificacion, setIdentificacion] = useState("");
+  const [depositanteSeleccionado, setDepositanteSeleccionado] = useState<DepositanteResponseDTO | null>(null);
+  const buscarDepositanteMutation = useBuscarDepositantePorIdentificacionMutation();
   const mutation = useCargaRapidaObjetoMutation();
   const {
     formState: { errors },
     handleSubmit,
     register,
-    setError
+    setError,
+    setValue
   } = useForm<CargaRapidaObjetoFormValues>({
     resolver: zodResolver(cargaRapidaObjetoSchema),
     defaultValues: {
@@ -66,7 +70,6 @@ export default function CargaRapidaObjetoPage() {
           description="Ingreso minimo de un objeto y emision de recibo para el depositante."
           title="Carga rapida de objeto"
         />
-        {isLoadingDepositantes ? <LoadingState label="Cargando depositantes..." /> : null}
         {mutation.isError ? (
           <ErrorState
             message={getApiErrorMessage(mutation.error)}
@@ -105,16 +108,80 @@ export default function CargaRapidaObjetoPage() {
             )
           )}
         >
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="depositanteId">Depositante</label>
-            <select className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id="depositanteId" {...register("depositanteId", { valueAsNumber: true })}>
-              <option value={0}>Seleccionar depositante</option>
-              {depositantes.map((depositante) => (
-                <option key={depositante.id} value={depositante.id}>{depositante.nombre}</option>
-              ))}
-            </select>
+          <input type="hidden" {...register("depositanteId", { valueAsNumber: true })} />
+          <section className="space-y-3">
+            <div>
+              <h2 className="text-base font-semibold">Buscar depositante</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Selecciona un depositante existente por DNI o CUIT.</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+              <label className="space-y-2 text-sm font-medium">
+                <span>DNI o CUIT del depositante</span>
+                <input
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  onChange={(event) => {
+                    setIdentificacion(event.target.value);
+                    setDepositanteSeleccionado(null);
+                    setValue("depositanteId", 0, { shouldDirty: true, shouldValidate: true });
+                    buscarDepositanteMutation.reset();
+                  }}
+                  value={identificacion}
+                />
+              </label>
+              <button
+                className="mt-7 inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm font-medium hover:bg-muted disabled:opacity-60"
+                disabled={buscarDepositanteMutation.isPending || !identificacion.trim()}
+                onClick={() => {
+                  buscarDepositanteMutation.mutate(identificacion.trim(), {
+                    onSuccess: (depositante) => {
+                      setDepositanteSeleccionado(depositante);
+                      setValue("depositanteId", depositante.id, { shouldDirty: true, shouldValidate: true });
+                    },
+                    onError: () => {
+                      setDepositanteSeleccionado(null);
+                      setValue("depositanteId", 0, { shouldDirty: true, shouldValidate: true });
+                    }
+                  });
+                }}
+                type="button"
+              >
+                {buscarDepositanteMutation.isPending ? "Buscando..." : "Buscar"}
+              </button>
+            </div>
+            {depositanteSeleccionado ? (
+              <div className="rounded-md border bg-muted/30 p-4 text-sm">
+                <p className="font-medium">{depositanteSeleccionado.nombre}</p>
+                <p className="mt-1 text-muted-foreground">{identificacionVisible(depositanteSeleccionado)}</p>
+                {[depositanteSeleccionado.contacto, telefonoVisible(depositanteSeleccionado)]
+                  .filter((item) => item && item !== "Sin telefono")
+                  .length > 0 ? (
+                  <p className="mt-1 text-muted-foreground">
+                    {[depositanteSeleccionado.contacto, telefonoVisible(depositanteSeleccionado)]
+                      .filter((item) => item && item !== "Sin telefono")
+                      .join(" / ")}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            {buscarDepositanteMutation.error instanceof ApiClientError && buscarDepositanteMutation.error.status === 404 ? (
+              <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm">
+                <p className="text-destructive">No se encontro un depositante con ese DNI/CUIT.</p>
+                <Link
+                  className="mt-3 inline-flex h-10 items-center justify-center rounded-md border bg-background px-4 text-sm font-medium hover:bg-muted"
+                  href={`/depositantes/nuevo?identificacion=${encodeURIComponent(identificacion.trim())}`}
+                >
+                  Dar de alta depositante
+                </Link>
+              </div>
+            ) : null}
+            {buscarDepositanteMutation.isError && !(buscarDepositanteMutation.error instanceof ApiClientError && buscarDepositanteMutation.error.status === 404) ? (
+              <ErrorState
+                message={getApiErrorMessage(buscarDepositanteMutation.error)}
+                requestId={buscarDepositanteMutation.error instanceof ApiClientError ? buscarDepositanteMutation.error.requestId : undefined}
+              />
+            ) : null}
             {errors.depositanteId ? <p className="text-sm text-destructive">{errors.depositanteId.message}</p> : null}
-          </div>
+          </section>
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="denominacionObjeto">Denominacion</label>

@@ -84,6 +84,14 @@ export function ObjetoMuseoForm({
         })
       )}
     >
+      {initialValue?.origenCarga === "RAPIDA" && initialValue.datosCompletos === false ? (
+        <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+          <p className="font-medium">Ficha pendiente de completar</p>
+          <p className="mt-1">
+            Para cerrar la carga se requiere descripcion tecnica, materiales, dimensiones, estado de conservacion y al menos una categoria.
+          </p>
+        </div>
+      ) : null}
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="numeroInventario">

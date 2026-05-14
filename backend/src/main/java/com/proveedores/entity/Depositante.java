@@ -31,6 +31,12 @@ public class Depositante extends EntidadBase {
     @Column(length = 160)
     private String contacto;
 
+    @Column(length = 30)
+    private String dni;
+
+    @Column(length = 30)
+    private String cuit;
+
     @Column(columnDefinition = "TEXT")
     private String observaciones;
 }

@@ -7,6 +7,7 @@ import com.proveedores.dto.CategoriaObjetoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoEliminadoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
+import com.proveedores.dto.ObjetoPendienteCompletarResponseDTO;
 import com.proveedores.dto.ReciboIngresoObjetoResponseDTO;
 import com.proveedores.entity.CategoriaObjeto;
 import com.proveedores.entity.Depositante;
@@ -16,6 +17,7 @@ import com.proveedores.entity.MovimientoInventario;
 import com.proveedores.entity.ObjetoMuseo;
 import com.proveedores.entity.ObjetoCategoria;
 import com.proveedores.entity.ObjetoDepositante;
+import com.proveedores.entity.OrigenCargaObjeto;
 import com.proveedores.entity.ReciboIngresoObjeto;
 import com.proveedores.entity.TipoMovimientoInventario;
 import com.proveedores.exception.BusinessException;
@@ -87,7 +89,10 @@ public class ObjetoMuseoService {
     @Transactional
     public ObjetoMuseoResponseDTO crear(ObjetoMuseoRequestDTO dto) {
         validarNumeroInventarioDisponible(dto.numeroInventario(), null);
-        ObjetoMuseo saved = objetoMuseoRepository.save(ObjetoMuseoMapper.toEntity(dto));
+        ObjetoMuseo entity = ObjetoMuseoMapper.toEntity(dto);
+        entity.setOrigenCarga(OrigenCargaObjeto.COMPLETA);
+        entity.setDatosCompletos(tieneDatosCompletos(dto));
+        ObjetoMuseo saved = objetoMuseoRepository.save(entity);
         sincronizarCategorias(saved, dto.categoriaIds());
         log.info("event=objeto_museo.created objetoMuseoId={} numeroInventario={}", saved.getId(), saved.getNumeroInventario());
         return toResponse(saved);
@@ -122,7 +127,14 @@ public class ObjetoMuseoService {
     public ObjetoMuseoResponseDTO actualizar(Long id, ObjetoMuseoRequestDTO dto) {
         ObjetoMuseo entity = buscarActivo(id);
         validarNumeroInventarioDisponible(dto.numeroInventario(), id);
+        boolean pendienteRapida = entity.getOrigenCarga() == OrigenCargaObjeto.RAPIDA && Boolean.FALSE.equals(entity.getDatosCompletos());
+        if (pendienteRapida) {
+            validarFichaCompleta(dto);
+        }
         ObjetoMuseoMapper.updateEntity(entity, dto);
+        if (pendienteRapida || tieneDatosCompletos(dto)) {
+            entity.setDatosCompletos(true);
+        }
         ObjetoMuseo saved = objetoMuseoRepository.save(entity);
         sincronizarCategorias(saved, dto.categoriaIds());
         log.info("event=objeto_museo.updated objetoMuseoId={} numeroInventario={}", saved.getId(), saved.getNumeroInventario());
@@ -163,11 +175,16 @@ public class ObjetoMuseoService {
     public CargaRapidaObjetoResponseDTO cargaRapida(CargaRapidaObjetoRequestDTO dto, String operador) {
         validarNumeroInventarioDisponible(dto.numeroInventario(), null);
         Depositante depositante = buscarDepositanteActivo(dto.depositanteId());
+        LocalDateTime fechaCargaRapida = LocalDateTime.now();
 
         ObjetoMuseo objeto = new ObjetoMuseo();
         objeto.setNumeroInventario(dto.numeroInventario());
         objeto.setDenominacionObjeto(dto.denominacionObjeto());
         objeto.setDescripcion(dto.descripcionBreve());
+        objeto.setOrigenCarga(OrigenCargaObjeto.RAPIDA);
+        objeto.setDatosCompletos(false);
+        objeto.setFechaCargaRapida(fechaCargaRapida);
+        objeto.setCargaRapidaPor(operador);
         ObjetoMuseo saved = objetoMuseoRepository.save(objeto);
 
         ObjetoDepositante relacion = new ObjetoDepositante();
@@ -183,6 +200,14 @@ public class ObjetoMuseoService {
 
         log.info("event=objeto_museo.quick_created objetoMuseoId={} reciboId={}", saved.getId(), reciboSaved.getId());
         return new CargaRapidaObjetoResponseDTO(toResponse(saved), toReciboResponse(reciboSaved), "/api/recibos/" + reciboSaved.getId() + "/pdf");
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ObjetoPendienteCompletarResponseDTO> listarPendientesCompletar(Pageable pageable) {
+        return objetoMuseoRepository.findByOrigenCargaAndDatosCompletosFalseAndEliminadoFalse(
+                OrigenCargaObjeto.RAPIDA,
+                normalizarPageablePendientes(pageable)
+        ).map(this::toPendienteResponse);
     }
 
     @Transactional
@@ -334,6 +359,49 @@ public class ObjetoMuseoService {
         };
     }
 
+    private Pageable normalizarPageablePendientes(Pageable pageable) {
+        if (pageable.getSort().isUnsorted()) {
+            return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(Sort.Direction.ASC, "fechaCargaRapida"));
+        }
+
+        List<Sort.Order> ordenes = new ArrayList<>();
+        for (Sort.Order order : pageable.getSort()) {
+            String property = switch (order.getProperty()) {
+                case "fechaCargaRapida", "numeroInventario", "denominacionObjeto" -> order.getProperty();
+                case "nombre", "denominacion" -> "denominacionObjeto";
+                default -> null;
+            };
+            if (property != null) {
+                ordenes.add(new Sort.Order(order.getDirection(), property, order.getNullHandling()));
+            } else {
+                log.info("event=objeto_museo.pending_sort_ignored property={}", order.getProperty());
+            }
+        }
+
+        Sort sort = ordenes.isEmpty() ? Sort.by(Sort.Direction.ASC, "fechaCargaRapida") : Sort.by(ordenes);
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
+    }
+
+    private void validarFichaCompleta(ObjetoMuseoRequestDTO dto) {
+        if (!tieneDatosCompletos(dto)) {
+            throw new BusinessException("Para completar la ficha se requieren denominacion, descripcion tecnica, materiales, dimensiones, estado de conservacion y al menos una categoria");
+        }
+    }
+
+    private boolean tieneDatosCompletos(ObjetoMuseoRequestDTO dto) {
+        return tieneTexto(dto.denominacionObjeto())
+                && tieneTexto(dto.descripcionTecnica())
+                && tieneTexto(dto.materiales())
+                && tieneTexto(dto.dimensiones())
+                && dto.estadoConservacion() != null
+                && dto.categoriaIds() != null
+                && !dto.categoriaIds().isEmpty();
+    }
+
+    private boolean tieneTexto(String value) {
+        return value != null && !value.isBlank();
+    }
+
     private void sincronizarCategorias(ObjetoMuseo objeto, Set<Long> categoriaIds) {
         if (categoriaIds == null) {
             return;
@@ -410,6 +478,27 @@ public class ObjetoMuseoService {
                 objeto.getEliminadoPor(),
                 objeto.getEstadoConservacion(),
                 categorias
+        );
+    }
+
+    private ObjetoPendienteCompletarResponseDTO toPendienteResponse(ObjetoMuseo objeto) {
+        ObjetoDepositante objetoDepositante = objetoDepositanteRepository.findFirstByObjetoMuseoIdAndEliminadoFalseOrderByIdAsc(objeto.getId())
+                .orElse(null);
+        ReciboIngresoObjeto recibo = reciboIngresoObjetoRepository.findFirstByObjetoMuseoIdAndEliminadoFalseOrderByFechaEmisionAsc(objeto.getId())
+                .orElse(null);
+        Long reciboId = recibo == null ? null : recibo.getId();
+
+        return new ObjetoPendienteCompletarResponseDTO(
+                objeto.getId(),
+                objeto.getNumeroInventario(),
+                objeto.getDenominacionObjeto(),
+                objeto.getDescripcion(),
+                objetoDepositante == null ? null : objetoDepositante.getDepositante().getId(),
+                objetoDepositante == null ? null : objetoDepositante.getDepositante().getNombre(),
+                objeto.getFechaCargaRapida(),
+                objeto.getCargaRapidaPor(),
+                reciboId,
+                reciboId == null ? null : "/api/recibos/" + reciboId + "/pdf"
         );
     }
 

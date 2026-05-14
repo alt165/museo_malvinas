@@ -4,12 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.proveedores.dto.CategoriaObjetoRequestDTO;
+import com.proveedores.dto.CargaRapidaObjetoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
+import com.proveedores.entity.Depositante;
 import com.proveedores.entity.EstadoConservacion;
 import com.proveedores.entity.EstadoInventario;
 import com.proveedores.entity.Inventario;
+import com.proveedores.entity.OrigenCargaObjeto;
+import com.proveedores.entity.TipoDepositante;
 import com.proveedores.entity.Ubicacion;
 import com.proveedores.exception.BusinessException;
+import com.proveedores.repository.DepositanteRepository;
 import com.proveedores.repository.InventarioRepository;
 import com.proveedores.repository.ObjetoMuseoRepository;
 import com.proveedores.repository.UbicacionRepository;
@@ -33,6 +38,9 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private ObjetoMuseoRepository objetoMuseoRepository;
+
+    @Autowired
+    private DepositanteRepository depositanteRepository;
 
     @Autowired
     private InventarioRepository inventarioRepository;
@@ -296,6 +304,82 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
         });
     }
 
+    @Test
+    void altaRapidaCreaObjetoPendiente() {
+        Depositante depositante = crearDepositante("IT Depositante pendiente");
+
+        var response = objetoMuseoService.cargaRapida(new CargaRapidaObjetoRequestDTO(
+                depositante.getId(),
+                "Objeto pendiente",
+                "IT-PEND-001",
+                "Descripcion breve pendiente"
+        ), "operador-test");
+
+        assertThat(objetoMuseoRepository.findById(response.objeto().id())).get().satisfies(objeto -> {
+            assertThat(objeto.getOrigenCarga()).isEqualTo(OrigenCargaObjeto.RAPIDA);
+            assertThat(objeto.getDatosCompletos()).isFalse();
+            assertThat(objeto.getFechaCargaRapida()).isNotNull();
+            assertThat(objeto.getCargaRapidaPor()).isEqualTo("operador-test");
+        });
+    }
+
+    @Test
+    void fichaCompletaMarcaObjetoRapidoComoDatosCompletos() {
+        Depositante depositante = crearDepositante("IT Depositante completo");
+        var categoria = categoriaObjetoService.crear(new CategoriaObjetoRequestDTO("IT Categoria completa", null));
+        var response = objetoMuseoService.cargaRapida(new CargaRapidaObjetoRequestDTO(
+                depositante.getId(),
+                "Objeto a completar",
+                "IT-PEND-002",
+                "Descripcion breve completar"
+        ), "operador-test");
+
+        objetoMuseoService.actualizar(response.objeto().id(), new ObjetoMuseoRequestDTO(
+                "IT-PEND-002",
+                "Objeto a completar",
+                "Descripcion breve completar",
+                "Descripcion tecnica completa",
+                "Metal y tela",
+                "10 x 20 cm",
+                EstadoConservacion.BUENO,
+                Set.of(categoria.id())
+        ));
+
+        assertThat(objetoMuseoRepository.findById(response.objeto().id())).get()
+                .satisfies(objeto -> assertThat(objeto.getDatosCompletos()).isTrue());
+    }
+
+    @Test
+    void endpointListaSoloPendientesYNoEliminados() {
+        Depositante depositante = crearDepositante("IT Depositante listado");
+        var pendiente = objetoMuseoService.cargaRapida(new CargaRapidaObjetoRequestDTO(
+                depositante.getId(),
+                "Objeto pendiente visible",
+                "IT-PEND-003",
+                "Descripcion breve visible"
+        ), "operador-test");
+        var eliminado = objetoMuseoService.cargaRapida(new CargaRapidaObjetoRequestDTO(
+                depositante.getId(),
+                "Objeto pendiente eliminado",
+                "IT-PEND-004",
+                "Descripcion breve eliminado"
+        ), "operador-test");
+        objetoMuseoService.bajaLogica(eliminado.objeto().id(), "admin-test");
+
+        var resultado = objetoMuseoService.listarPendientesCompletar(PageRequest.of(0, 20));
+
+        assertThat(resultado.getContent()).extracting("id").contains(pendiente.objeto().id());
+        assertThat(resultado.getContent()).extracting("id").doesNotContain(eliminado.objeto().id());
+        assertThat(resultado.getContent())
+                .filteredOn(item -> item.id().equals(pendiente.objeto().id()))
+                .singleElement()
+                .satisfies(item -> {
+                    assertThat(item.depositanteNombre()).isEqualTo(depositante.getNombre());
+                    assertThat(item.reciboId()).isNotNull();
+                    assertThat(item.reciboPdfUrl()).contains("/api/recibos/");
+                });
+    }
+
     private void crearInventario(Long objetoId, LocalDate fechaIngreso) {
         Ubicacion ubicacion = new Ubicacion();
         ubicacion.setNombre("IT Ubicacion " + objetoId + " " + fechaIngreso);
@@ -310,5 +394,12 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
         inventario.setFechaIngreso(fechaIngreso);
         inventario.setFechaUltimoMovimiento(LocalDateTime.now());
         inventarioRepository.save(inventario);
+    }
+
+    private Depositante crearDepositante(String nombre) {
+        Depositante depositante = new Depositante();
+        depositante.setNombre(nombre);
+        depositante.setTipo(TipoDepositante.PERSONA);
+        return depositanteRepository.save(depositante);
     }
 }

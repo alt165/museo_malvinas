@@ -4,6 +4,8 @@ export type DepositanteRequestDTO = {
   nombre: string;
   tipo: TipoDepositante;
   contacto?: string | null;
+  dni?: string | null;
+  cuit?: string | null;
   observaciones?: string | null;
 };
 

@@ -11,6 +11,7 @@ export {
   listarFotosObjeto,
   listarObjetos,
   listarObjetosEliminados,
+  listarObjetosPendientesCompletar,
   listarRecibosObjeto,
   obtenerObjetoPorId,
   restaurarObjeto,

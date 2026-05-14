@@ -3,6 +3,7 @@ package com.proveedores.service;
 import com.proveedores.dto.DepositanteRequestDTO;
 import com.proveedores.dto.DepositanteResponseDTO;
 import com.proveedores.entity.Depositante;
+import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.mapper.DepositanteMapper;
 import com.proveedores.repository.DepositanteRepository;
@@ -41,8 +42,18 @@ public class DepositanteService {
         entity.setNombre(dto.nombre());
         entity.setTipo(dto.tipo());
         entity.setContacto(dto.contacto());
+        entity.setDni(dto.dni());
+        entity.setCuit(dto.cuit());
         entity.setObservaciones(dto.observaciones());
         return DepositanteMapper.toResponse(depositanteRepository.save(entity));
+    }
+
+    @Transactional(readOnly = true)
+    public DepositanteResponseDTO buscarPorIdentificacion(String valor) {
+        String identificacion = normalizarIdentificacion(valor);
+        return depositanteRepository.findActivoByIdentificacionNormalizada(identificacion)
+                .map(DepositanteMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("Depositante no encontrado"));
     }
 
     @Transactional
@@ -60,5 +71,16 @@ public class DepositanteService {
             throw new ResourceNotFoundException("Depositante no encontrado");
         }
         return entity;
+    }
+
+    private String normalizarIdentificacion(String valor) {
+        if (valor == null) {
+            throw new BusinessException("La identificacion es obligatoria");
+        }
+        String normalizado = valor.replace(".", "").replace("-", "").replace(" ", "").trim();
+        if (normalizado.isBlank()) {
+            throw new BusinessException("La identificacion es obligatoria");
+        }
+        return normalizado;
     }
 }

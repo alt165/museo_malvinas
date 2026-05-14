@@ -6,6 +6,7 @@ import com.proveedores.dto.CargaRapidaObjetoResponseDTO;
 import com.proveedores.dto.FotoObjetoMuseoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
+import com.proveedores.dto.ObjetoPendienteCompletarResponseDTO;
 import com.proveedores.dto.ReciboIngresoObjetoResponseDTO;
 import com.proveedores.service.FotoObjetoMuseoService;
 import com.proveedores.service.ObjetoMuseoService;
@@ -91,6 +92,15 @@ public class ObjetoMuseoController {
             @ParameterObject @PageableDefault(size = 20) Pageable pageable
     ) {
         return ResponseEntity.ok(objetoMuseoService.buscar(nombre, numeroInventario, categoriaIds, pageable));
+    }
+
+    @Operation(summary = "Listar objetos creados por carga rapida pendientes de completar")
+    @ApiResponse(responseCode = "200", description = "Pendientes obtenidos")
+    @GetMapping("/pendientes-completar")
+    public ResponseEntity<Page<ObjetoPendienteCompletarResponseDTO>> pendientesCompletar(
+            @ParameterObject @PageableDefault(size = 20, sort = "fechaCargaRapida") Pageable pageable
+    ) {
+        return ResponseEntity.ok(objetoMuseoService.listarPendientesCompletar(pageable));
     }
 
     @Operation(summary = "Actualizar recurso")

@@ -11,6 +11,7 @@ import { depositanteToFormValues, formValuesToDepositanteRequest, getValidationE
 
 type DepositanteFormProps = {
   initialValue?: DepositanteResponseDTO;
+  initialIdentification?: string;
   isSubmitting?: boolean;
   submitError?: unknown;
   submitLabel: string;
@@ -18,6 +19,7 @@ type DepositanteFormProps = {
 };
 
 export function DepositanteForm({
+  initialIdentification,
   initialValue,
   isSubmitting = false,
   onSubmit,
@@ -32,7 +34,7 @@ export function DepositanteForm({
     setError
   } = useForm<DepositanteFormValues>({
     resolver: zodResolver(depositanteSchema),
-    defaultValues: depositanteToFormValues(initialValue)
+    defaultValues: depositanteToFormValues(initialValue, initialIdentification)
   });
   const tipo = useWatch({ control, name: "tipo" });
 
@@ -40,7 +42,7 @@ export function DepositanteForm({
     const validationErrors = getValidationErrors(submitError);
 
     Object.entries(validationErrors).forEach(([field, message]) => {
-      if (field === "tipo" || field === "nombre" || field === "contacto" || field === "observaciones") {
+      if (field === "tipo" || field === "nombre" || field === "contacto" || field === "dni" || field === "cuit" || field === "observaciones") {
         const formField = field === "contacto" ? "email" : field;
         setError(formField, { message });
       }
@@ -74,7 +76,7 @@ export function DepositanteForm({
         </Field>
       </div>
       {tipo === "PERSONA" ? (
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-3">
           <Field label="Nombre" error={errors.nombre?.message}>
             <input
               className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
@@ -87,14 +89,28 @@ export function DepositanteForm({
               {...register("apellido")}
             />
           </Field>
+          <Field label="DNI" error={errors.dni?.message}>
+            <input
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+              {...register("dni")}
+            />
+          </Field>
         </div>
       ) : (
-        <Field label="Organizacion" error={errors.organizacion?.message}>
-          <input
-            className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-            {...register("organizacion")}
-          />
-        </Field>
+        <div className="grid gap-5 sm:grid-cols-[1fr_220px]">
+          <Field label="Organizacion" error={errors.organizacion?.message}>
+            <input
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+              {...register("organizacion")}
+            />
+          </Field>
+          <Field label="CUIT" error={errors.cuit?.message}>
+            <input
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+              {...register("cuit")}
+            />
+          </Field>
+        </div>
       )}
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Telefono" error={errors.telefono?.message}>

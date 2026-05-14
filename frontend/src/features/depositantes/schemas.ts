@@ -14,6 +14,8 @@ export const depositanteSchema = z
       .email("El email debe tener un formato valido")
       .optional()
       .or(z.literal("")),
+    dni: z.string().trim().max(30, "El DNI no puede superar 30 caracteres").optional().or(z.literal("")),
+    cuit: z.string().trim().max(30, "El CUIT no puede superar 30 caracteres").optional().or(z.literal("")),
     telefono: z.string().trim().max(80, "El telefono no puede superar 80 caracteres").optional().or(z.literal("")),
     direccion: z.string().trim().max(255, "La direccion no puede superar 255 caracteres").optional().or(z.literal("")),
     observaciones: z.string().trim().optional().or(z.literal(""))

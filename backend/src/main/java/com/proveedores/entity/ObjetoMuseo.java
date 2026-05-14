@@ -13,6 +13,7 @@ import jakarta.persistence.InheritanceType;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -54,6 +55,19 @@ public class ObjetoMuseo extends EntidadBase {
     @Enumerated(EnumType.STRING)
     @Column(name = "estado_conservacion", length = 40)
     private EstadoConservacion estadoConservacion;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "origen_carga", nullable = false, length = 20)
+    private OrigenCargaObjeto origenCarga = OrigenCargaObjeto.COMPLETA;
+
+    @Column(name = "datos_completos", nullable = false)
+    private Boolean datosCompletos = true;
+
+    @Column(name = "fecha_carga_rapida")
+    private LocalDateTime fechaCargaRapida;
+
+    @Column(name = "carga_rapida_por", length = 160)
+    private String cargaRapidaPor;
 
     @Column(name = "eliminado_por", length = 120)
     private String eliminadoPor;

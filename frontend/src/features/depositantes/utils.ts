@@ -34,6 +34,12 @@ export function telefonoVisible(depositante: DepositanteResponseDTO) {
   return parseObservaciones(depositante.observaciones).telefono || "Sin telefono";
 }
 
+export function identificacionVisible(depositante: DepositanteResponseDTO) {
+  return depositante.tipo === "PERSONA"
+    ? depositante.dni || "Sin DNI"
+    : depositante.cuit || "Sin CUIT";
+}
+
 export function resumenObservaciones(value?: string | null) {
   if (!value) {
     return "Sin observaciones";
@@ -42,20 +48,28 @@ export function resumenObservaciones(value?: string | null) {
   return value.length > 160 ? `${value.slice(0, 157)}...` : value;
 }
 
-export function depositanteToFormValues(depositante?: DepositanteResponseDTO): DepositanteFormValues {
+export function depositanteToFormValues(depositante?: DepositanteResponseDTO, initialIdentification?: string): DepositanteFormValues {
   const nombrePartes = depositante?.tipo === "PERSONA" ? splitNombrePersona(depositante.nombre) : { nombre: "", apellido: "" };
   const datosObservaciones = parseObservaciones(depositante?.observaciones);
+  const identificacionInicial = initialIdentification?.trim() ?? "";
+  const tipoInicial = depositante?.tipo ?? (soloDigitos(identificacionInicial).length === 11 ? "INSTITUCION" : "PERSONA");
 
   return {
-    tipo: depositante?.tipo ?? "PERSONA",
+    tipo: tipoInicial,
     nombre: nombrePartes.nombre,
     apellido: nombrePartes.apellido,
     organizacion: depositante?.tipo === "INSTITUCION" ? depositante.nombre : "",
     email: depositante?.contacto ?? "",
+    dni: depositante?.dni ?? (tipoInicial === "PERSONA" ? identificacionInicial : ""),
+    cuit: depositante?.cuit ?? (tipoInicial === "INSTITUCION" ? identificacionInicial : ""),
     telefono: datosObservaciones.telefono,
     direccion: datosObservaciones.direccion,
     observaciones: datosObservaciones.observaciones
   };
+}
+
+function soloDigitos(value: string) {
+  return value.replace(/\D/g, "");
 }
 
 export function formValuesToDepositanteRequest(values: DepositanteFormValues): DepositanteRequestDTO {
@@ -68,6 +82,8 @@ export function formValuesToDepositanteRequest(values: DepositanteFormValues): D
     tipo: values.tipo,
     nombre,
     contacto: values.email?.trim() || null,
+    dni: values.tipo === "PERSONA" ? values.dni?.trim() || null : null,
+    cuit: values.tipo === "INSTITUCION" ? values.cuit?.trim() || null : null,
     observaciones: buildObservaciones(values)
   };
 }

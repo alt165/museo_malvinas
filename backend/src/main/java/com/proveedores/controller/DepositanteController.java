@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Depositantes", description = "Personas o instituciones depositantes de objetos")
@@ -49,6 +50,14 @@ public class DepositanteController {
     @GetMapping
     public ResponseEntity<List<DepositanteResponseDTO>> listar() {
         return ResponseEntity.ok(depositanteService.listar());
+    }
+
+    @Operation(summary = "Buscar depositante por DNI o CUIT")
+    @ApiResponse(responseCode = "200", description = "Depositante encontrado")
+    @ApiResponse(responseCode = "404", description = "Depositante no encontrado")
+    @GetMapping("/buscar-identificacion")
+    public ResponseEntity<DepositanteResponseDTO> buscarPorIdentificacion(@RequestParam String valor) {
+        return ResponseEntity.ok(depositanteService.buscarPorIdentificacion(valor));
     }
 
     @Operation(summary = "Actualizar recurso")

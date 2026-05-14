@@ -1,6 +1,7 @@
 import type { CategoriaObjetoResponseDTO } from "@/features/categorias/types";
 
 export type EstadoConservacion = "EXCELENTE" | "BUENO" | "REGULAR" | "MALO" | "CRITICO";
+export type OrigenCargaObjeto = "RAPIDA" | "COMPLETA";
 
 export type ObjetoMuseoRequestDTO = {
   numeroInventario: string;
@@ -23,6 +24,10 @@ export type ObjetoMuseoResponseDTO = {
   dimensiones?: string | null;
   estadoConservacion?: EstadoConservacion | null;
   fechaIngreso?: string | null;
+  origenCarga?: OrigenCargaObjeto | null;
+  datosCompletos?: boolean | null;
+  fechaCargaRapida?: string | null;
+  cargaRapidaPor?: string | null;
   categorias?: CategoriaObjetoResponseDTO[];
 };
 
@@ -58,12 +63,31 @@ export type BuscarObjetosParams = {
 };
 
 export type ObjetoSortField = "numeroInventario" | "denominacionObjeto" | "descripcion" | "fechaIngreso" | "estadoConservacion";
+export type ObjetoPendienteSortField = "fechaCargaRapida" | "numeroInventario" | "denominacionObjeto";
 
 export type SortDirection = "asc" | "desc";
 
 export type ObjetosSort = {
   field: ObjetoSortField;
   direction: SortDirection;
+};
+
+export type ObjetosPendientesSort = {
+  field: ObjetoPendienteSortField;
+  direction: SortDirection;
+};
+
+export type ObjetoPendienteCompletarResponseDTO = {
+  id: number;
+  numeroInventario: string;
+  denominacionObjeto: string;
+  descripcion?: string | null;
+  depositanteId?: number | null;
+  depositanteNombre?: string | null;
+  fechaCargaRapida?: string | null;
+  cargaRapidaPor?: string | null;
+  reciboId?: number | null;
+  reciboPdfUrl?: string | null;
 };
 
 export type FotoObjetoMuseoResponseDTO = {

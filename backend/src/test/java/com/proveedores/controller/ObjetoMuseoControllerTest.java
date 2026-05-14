@@ -55,7 +55,7 @@ class ObjetoMuseoControllerTest {
 
     @Test
     void crearObjetoMuseoCorrectamenteDevuelveCreated() throws Exception {
-        ObjetoMuseoResponseDTO response = new ObjetoMuseoResponseDTO(1L, "INV-1", "Casco", null, null, null, null, null, null, java.util.List.of());
+        ObjetoMuseoResponseDTO response = new ObjetoMuseoResponseDTO(1L, "INV-1", "Casco", null, null, null, null, null, null, null, null, null, null, java.util.List.of());
         when(objetoMuseoService.crear(any(ObjetoMuseoRequestDTO.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/objetos")
@@ -68,7 +68,7 @@ class ObjetoMuseoControllerTest {
 
     @Test
     void buscarObjetosPaginadosDevuelvePage() throws Exception {
-        ObjetoMuseoResponseDTO response = new ObjetoMuseoResponseDTO(1L, "INV-1", "Casco", null, null, null, null, null, null, java.util.List.of());
+        ObjetoMuseoResponseDTO response = new ObjetoMuseoResponseDTO(1L, "INV-1", "Casco", null, null, null, null, null, null, null, null, null, null, java.util.List.of());
         when(objetoMuseoService.buscar(eq("Casco"), eq("INV"), eq(java.util.List.of(2L)), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(java.util.List.of(response)));
 

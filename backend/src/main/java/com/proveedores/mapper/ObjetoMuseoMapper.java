@@ -36,6 +36,10 @@ public final class ObjetoMuseoMapper {
                 entity.getDimensiones(),
                 entity.getEstadoConservacion(),
                 fechaIngreso,
+                entity.getOrigenCarga(),
+                entity.getDatosCompletos(),
+                entity.getFechaCargaRapida(),
+                entity.getCargaRapidaPor(),
                 categorias
         );
     }

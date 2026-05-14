@@ -9,6 +9,7 @@ import {
   listarFotosObjeto,
   listarObjetos,
   listarObjetosEliminados,
+  listarObjetosPendientesCompletar,
   listarRecibosObjeto,
   obtenerObjetoPorId,
   restaurarObjeto
@@ -20,6 +21,7 @@ export const objetosQueryKeys = {
   lists: () => [...objetosQueryKeys.all, "list"] as const,
   search: (params: BuscarObjetosParams) => [...objetosQueryKeys.all, "search", params] as const,
   deleted: (params: { page?: number; size?: number; sort?: string }) => [...objetosQueryKeys.all, "deleted", params] as const,
+  pending: (params: { page?: number; size?: number; sort?: string }) => [...objetosQueryKeys.all, "pending", params] as const,
   detail: (id: number) => [...objetosQueryKeys.all, "detail", id] as const,
   fotos: (id: number) => [...objetosQueryKeys.all, "detail", id, "fotos"] as const,
   recibos: (id: number) => [...objetosQueryKeys.all, "detail", id, "recibos"] as const
@@ -43,6 +45,13 @@ export function useObjetosEliminadosQuery(params: { page?: number; size?: number
   return useQuery({
     queryKey: objetosQueryKeys.deleted(params),
     queryFn: () => listarObjetosEliminados(params)
+  });
+}
+
+export function useObjetosPendientesCompletarQuery(params: { page?: number; size?: number; sort?: string }) {
+  return useQuery({
+    queryKey: objetosQueryKeys.pending(params),
+    queryFn: () => listarObjetosPendientesCompletar(params)
   });
 }
 
@@ -73,6 +82,7 @@ export function useActualizarObjetoMutation(id: number) {
     onSuccess: (objeto) => {
       queryClient.setQueryData(objetosQueryKeys.detail(id), objeto);
       void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.all });
     }
   });
 }
