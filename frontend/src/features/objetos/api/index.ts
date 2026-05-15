@@ -6,15 +6,20 @@ export {
   crearObjeto,
   descargarCopiaFirmadaRecibo,
   descargarFotoObjeto,
+  descargarReciboEscaneadoObjeto,
   descargarReciboPdf,
   eliminarFotoObjeto,
+  eliminarReciboEscaneadoObjeto,
   listarFotosObjeto,
   listarObjetos,
   listarObjetosEliminados,
   listarObjetosPendientesCompletar,
   listarRecibosObjeto,
   obtenerObjetoPorId,
+  obtenerReciboEscaneadoObjeto,
   restaurarObjeto,
   subirCopiaFirmadaRecibo,
-  subirFotoObjeto
+  subirFotoObjeto,
+  subirFotosObjeto,
+  subirReciboEscaneadoObjeto
 } from "./objetos-api";

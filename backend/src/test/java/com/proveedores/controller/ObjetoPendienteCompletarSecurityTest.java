@@ -10,6 +10,7 @@ import com.proveedores.security.KeycloakJwtAuthenticationConverter;
 import com.proveedores.security.SecurityConfig;
 import com.proveedores.service.FotoObjetoMuseoService;
 import com.proveedores.service.ObjetoMuseoService;
+import com.proveedores.service.ReciboEscaneadoObjetoMuseoService;
 import com.proveedores.service.ReciboIngresoObjetoService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,9 @@ class ObjetoPendienteCompletarSecurityTest {
 
     @MockBean
     private FotoObjetoMuseoService fotoObjetoMuseoService;
+
+    @MockBean
+    private ReciboEscaneadoObjetoMuseoService reciboEscaneadoObjetoMuseoService;
 
     @MockBean
     private ReciboIngresoObjetoService reciboIngresoObjetoService;

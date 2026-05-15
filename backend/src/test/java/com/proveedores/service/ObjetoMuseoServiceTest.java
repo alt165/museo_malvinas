@@ -14,11 +14,13 @@ import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.CategoriaObjetoRepository;
 import com.proveedores.repository.DepositanteRepository;
+import com.proveedores.repository.FotoObjetoMuseoRepository;
 import com.proveedores.repository.InventarioRepository;
 import com.proveedores.repository.MovimientoInventarioRepository;
 import com.proveedores.repository.ObjetoCategoriaRepository;
 import com.proveedores.repository.ObjetoDepositanteRepository;
 import com.proveedores.repository.ObjetoMuseoRepository;
+import com.proveedores.repository.ReciboEscaneadoObjetoMuseoRepository;
 import com.proveedores.repository.ReciboIngresoObjetoRepository;
 import java.util.List;
 import java.util.Optional;
@@ -50,6 +52,12 @@ class ObjetoMuseoServiceTest {
     private ReciboIngresoObjetoRepository reciboIngresoObjetoRepository;
 
     @Mock
+    private FotoObjetoMuseoRepository fotoObjetoMuseoRepository;
+
+    @Mock
+    private ReciboEscaneadoObjetoMuseoRepository reciboEscaneadoObjetoMuseoRepository;
+
+    @Mock
     private InventarioRepository inventarioRepository;
 
     @Mock
@@ -79,6 +87,8 @@ class ObjetoMuseoServiceTest {
         });
         when(objetoCategoriaRepository.findByObjetoMuseoIdAndEliminadoFalse(2L)).thenReturn(List.of());
         when(inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(2L)).thenReturn(Optional.empty());
+        when(fotoObjetoMuseoRepository.findByObjetoMuseoIdAndEliminadoFalse(2L)).thenReturn(List.of());
+        when(reciboEscaneadoObjetoMuseoRepository.findFirstByObjetoMuseoIdAndEliminadoFalseOrderByFechaCargaDesc(2L)).thenReturn(Optional.empty());
 
         ObjetoMuseoResponseDTO response = service.crear(new ObjetoMuseoRequestDTO("INV-2", "Carta", "Descripcion", null, null, null, null, null));
 

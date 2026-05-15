@@ -65,7 +65,7 @@ class AdminObjetoMuseoControllerTest {
     @Test
     void restaurarPasaUsuarioActualAlServicio() throws Exception {
         when(objetoMuseoService.restaurar(eq(1L), eq("admin-id")))
-                .thenReturn(new ObjetoMuseoResponseDTO(1L, "INV-1", "Casco", null, null, null, null, null, null, null, null, null, null, List.of()));
+                .thenReturn(new ObjetoMuseoResponseDTO(1L, "INV-1", "Casco", null, null, null, null, null, null, null, null, null, null, List.of(), List.of(), null));
 
         mockMvc.perform(post("/api/admin/objetos/1/restaurar")
                         .principal(new TestingAuthenticationToken("admin-id", null)))

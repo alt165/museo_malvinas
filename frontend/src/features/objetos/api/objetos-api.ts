@@ -9,6 +9,7 @@ import type {
   ObjetoMuseoRequestDTO,
   ObjetoMuseoResponseDTO,
   PageResponse,
+  ReciboEscaneadoObjetoMuseoResponseDTO,
   ReciboIngresoObjetoResponseDTO
 } from "../types";
 
@@ -104,16 +105,21 @@ export function listarFotosObjeto(id: number) {
   return apiRequest<FotoObjetoMuseoResponseDTO[]>(`${basePath}/${id}/fotos`);
 }
 
-export function subirFotoObjeto(id: number, archivo: File, descripcion?: string) {
+export function subirFotosObjeto(id: number, archivos: File[], descripcion?: string) {
   const formData = new FormData();
-  formData.append("archivo", archivo);
+  archivos.forEach((archivo) => formData.append("archivos", archivo));
   if (descripcion) {
     formData.append("descripcion", descripcion);
   }
-  return apiRequest<FotoObjetoMuseoResponseDTO>(`${basePath}/${id}/fotos`, {
+  return apiRequest<FotoObjetoMuseoResponseDTO[]>(`${basePath}/${id}/fotos`, {
     method: "POST",
     body: formData
   });
+}
+
+export async function subirFotoObjeto(id: number, archivo: File, descripcion?: string) {
+  const [foto] = await subirFotosObjeto(id, [archivo], descripcion);
+  return foto;
 }
 
 export function eliminarFotoObjeto(id: number, fotoId: number) {
@@ -124,6 +130,29 @@ export function eliminarFotoObjeto(id: number, fotoId: number) {
 
 export function descargarFotoObjeto(id: number, fotoId: number) {
   return apiBlobRequest(`${basePath}/${id}/fotos/${fotoId}`);
+}
+
+export function obtenerReciboEscaneadoObjeto(id: number) {
+  return apiRequest<ReciboEscaneadoObjetoMuseoResponseDTO>(`${basePath}/${id}/recibo-escaneado`);
+}
+
+export function subirReciboEscaneadoObjeto(id: number, archivo: File) {
+  const formData = new FormData();
+  formData.append("archivo", archivo);
+  return apiRequest<ReciboEscaneadoObjetoMuseoResponseDTO>(`${basePath}/${id}/recibo-escaneado`, {
+    method: "POST",
+    body: formData
+  });
+}
+
+export function descargarReciboEscaneadoObjeto(id: number) {
+  return apiBlobRequest(`${basePath}/${id}/recibo-escaneado/archivo`);
+}
+
+export function eliminarReciboEscaneadoObjeto(id: number, archivoId: number) {
+  return apiRequest<void>(`${basePath}/${id}/recibo-escaneado/${archivoId}`, {
+    method: "DELETE"
+  });
 }
 
 export function listarRecibosObjeto(id: number) {

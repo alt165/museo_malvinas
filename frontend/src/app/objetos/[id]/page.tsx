@@ -1,9 +1,11 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
@@ -13,9 +15,12 @@ import { ApiClientError } from "@/lib/errors/api-error";
 import {
   descargarCopiaFirmadaRecibo,
   descargarFotoObjeto,
+  descargarReciboEscaneadoObjeto,
   descargarReciboPdf,
+  eliminarReciboEscaneadoObjeto,
   subirCopiaFirmadaRecibo,
-  subirFotoObjeto
+  subirFotoObjeto,
+  subirReciboEscaneadoObjeto
 } from "@/features/objetos/api";
 import {
   objetosQueryKeys,
@@ -42,6 +47,16 @@ function descargarBlob(blob: Blob, nombre: string) {
   URL.revokeObjectURL(url);
 }
 
+async function abrirBlobEnNuevaVentana(blob: Blob) {
+  const url = URL.createObjectURL(blob);
+  const nuevaVentana = window.open(url, "_blank", "noopener,noreferrer");
+  if (!nuevaVentana) {
+    URL.revokeObjectURL(url);
+    return;
+  }
+  nuevaVentana.addEventListener("beforeunload", () => URL.revokeObjectURL(url), { once: true });
+}
+
 export default function DetalleObjetoPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -50,6 +65,8 @@ export default function DetalleObjetoPage() {
   const puedeEscribir = canWrite(roles);
   const queryClient = useQueryClient();
   const [fotoDescripcion, setFotoDescripcion] = useState("");
+  const [fotoThumbUrls, setFotoThumbUrls] = useState<Record<number, string>>({});
+  const fotoThumbUrlsRef = useRef<Record<number, string>>({});
   const { data, error, isError, isLoading } = useObjetoQuery(id);
   const { data: fotos = [] } = useFotosObjetoQuery(id);
   const { data: recibos = [] } = useRecibosObjetoQuery(id);
@@ -60,6 +77,7 @@ export default function DetalleObjetoPage() {
     onSuccess: () => {
       setFotoDescripcion("");
       void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.fotos(id) });
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.detail(id) });
     }
   });
   const subirCopiaFirmadaMutation = useMutation({
@@ -68,6 +86,61 @@ export default function DetalleObjetoPage() {
       void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.recibos(id) });
     }
   });
+  const subirReciboEscaneadoMutation = useMutation({
+    mutationFn: (archivo: File) => subirReciboEscaneadoObjeto(id, archivo),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.detail(id) });
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.reciboEscaneado(id) });
+    }
+  });
+  const eliminarReciboEscaneadoMutation = useMutation({
+    mutationFn: (archivoId: number) => eliminarReciboEscaneadoObjeto(id, archivoId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.detail(id) });
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.reciboEscaneado(id) });
+    }
+  });
+
+  useEffect(() => {
+    let activo = true;
+    const urlsNuevas: string[] = [];
+
+    async function cargarMiniaturas() {
+      const entries = await Promise.all(
+        fotos.map(async (foto) => {
+          const blob = await descargarFotoObjeto(id, foto.id);
+          const url = URL.createObjectURL(blob);
+          urlsNuevas.push(url);
+          return [foto.id, url] as const;
+        })
+      );
+      if (activo) {
+        const nextUrls = Object.fromEntries(entries);
+        Object.values(fotoThumbUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
+        fotoThumbUrlsRef.current = nextUrls;
+        setFotoThumbUrls(nextUrls);
+      } else {
+        urlsNuevas.forEach((url) => URL.revokeObjectURL(url));
+      }
+    }
+
+    if (Number.isFinite(id) && fotos.length > 0) {
+      void cargarMiniaturas();
+    } else {
+      Promise.resolve().then(() => {
+        if (activo) {
+          Object.values(fotoThumbUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
+          fotoThumbUrlsRef.current = {};
+          setFotoThumbUrls({});
+        }
+      });
+    }
+
+    return () => {
+      activo = false;
+      urlsNuevas.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [fotos, id]);
 
   return (
     <AppShell>
@@ -185,22 +258,88 @@ export default function DetalleObjetoPage() {
                 <span className="self-center text-sm text-muted-foreground">{subirFotoMutation.isPending ? "Subiendo..." : ""}</span>
               </div>
             ) : null}
-            <div className="mt-4 grid gap-3">
+            <div className="mt-4">
               {fotos.length === 0 ? <p className="text-sm text-muted-foreground">Sin fotos adjuntas.</p> : null}
-              {fotos.map((foto) => (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3 text-sm" key={foto.id}>
+              {fotos.length > 0 ? (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {fotos.map((foto) => (
+                    <div className="overflow-hidden rounded-md border bg-background text-sm" key={foto.id}>
+                      <button
+                        className="block h-40 w-full bg-muted"
+                        onClick={async () => abrirBlobEnNuevaVentana(await descargarFotoObjeto(data.id, foto.id))}
+                        title="Abrir imagen completa"
+                        type="button"
+                      >
+                        {fotoThumbUrls[foto.id] ? (
+                          <img
+                            alt={foto.nombreArchivo}
+                            className="h-full w-full object-cover"
+                            src={fotoThumbUrls[foto.id]}
+                          />
+                        ) : (
+                          <span className="flex h-full items-center justify-center text-sm text-muted-foreground">Cargando imagen...</span>
+                        )}
+                      </button>
+                      <div className="space-y-2 p-3">
+                        <div>
+                          <p className="truncate font-medium">{foto.nombreArchivo}</p>
+                          <p className="truncate text-muted-foreground">{foto.descripcion || foto.contentType}</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            className="rounded-md border px-3 py-1.5 hover:bg-muted"
+                            onClick={async () => abrirBlobEnNuevaVentana(await descargarFotoObjeto(data.id, foto.id))}
+                            type="button"
+                          >
+                            Abrir
+                          </button>
+                          <button className="rounded-md border px-3 py-1.5 hover:bg-muted" onClick={async () => descargarBlob(await descargarFotoObjeto(data.id, foto.id), foto.nombreArchivo)} type="button">Descargar</button>
+                          {puedeEscribir ? (
+                            <button className="rounded-md border px-3 py-1.5 text-destructive hover:bg-destructive/10" onClick={() => eliminarFotoMutation.mutate(foto.id)} type="button">Eliminar</button>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+        {data ? (
+          <div className="rounded-lg border p-5">
+            <h2 className="text-base font-semibold">Recibo escaneado</h2>
+            <div className="mt-4 grid gap-3">
+              {data.reciboEscaneado ? (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3 text-sm">
                   <div>
-                    <p className="font-medium">{foto.nombreArchivo}</p>
-                    <p className="text-muted-foreground">{foto.descripcion || foto.contentType}</p>
+                    <p className="font-medium">{data.reciboEscaneado.nombreArchivoOriginal}</p>
+                    <p className="text-muted-foreground">{data.reciboEscaneado.contentType}</p>
                   </div>
                   <div className="flex gap-2">
-                    <button className="rounded-md border px-3 py-1.5 hover:bg-muted" onClick={async () => descargarBlob(await descargarFotoObjeto(data.id, foto.id), foto.nombreArchivo)} type="button">Descargar</button>
+                    <button className="rounded-md border px-3 py-1.5 hover:bg-muted" onClick={async () => descargarBlob(await descargarReciboEscaneadoObjeto(data.id), data.reciboEscaneado?.nombreArchivoOriginal || `recibo-escaneado-${data.id}`)} type="button">Descargar</button>
                     {puedeEscribir ? (
-                      <button className="rounded-md border px-3 py-1.5 text-destructive hover:bg-destructive/10" onClick={() => eliminarFotoMutation.mutate(foto.id)} type="button">Eliminar</button>
+                      <button className="rounded-md border px-3 py-1.5 text-destructive hover:bg-destructive/10" onClick={() => data.reciboEscaneado ? eliminarReciboEscaneadoMutation.mutate(data.reciboEscaneado.id) : undefined} type="button">Eliminar</button>
                     ) : null}
                   </div>
                 </div>
-              ))}
+              ) : (
+                <p className="text-sm text-muted-foreground">Sin recibo escaneado adjunto.</p>
+              )}
+              {puedeEscribir ? (
+                <input
+                  accept="application/pdf,image/jpeg,image/png,image/webp"
+                  className="h-10 rounded-md border bg-background px-3 py-2 text-sm"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      subirReciboEscaneadoMutation.mutate(file);
+                    }
+                    event.currentTarget.value = "";
+                  }}
+                  type="file"
+                />
+              ) : null}
             </div>
           </div>
         ) : null}

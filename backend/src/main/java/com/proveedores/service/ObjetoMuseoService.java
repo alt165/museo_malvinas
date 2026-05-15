@@ -4,10 +4,12 @@ import com.proveedores.dto.AgregarCategoriaObjetoRequestDTO;
 import com.proveedores.dto.CargaRapidaObjetoRequestDTO;
 import com.proveedores.dto.CargaRapidaObjetoResponseDTO;
 import com.proveedores.dto.CategoriaObjetoResponseDTO;
+import com.proveedores.dto.FotoObjetoMuseoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoEliminadoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
 import com.proveedores.dto.ObjetoPendienteCompletarResponseDTO;
+import com.proveedores.dto.ReciboEscaneadoObjetoMuseoResponseDTO;
 import com.proveedores.dto.ReciboIngresoObjetoResponseDTO;
 import com.proveedores.entity.CategoriaObjeto;
 import com.proveedores.entity.Depositante;
@@ -25,11 +27,13 @@ import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.mapper.ObjetoMuseoMapper;
 import com.proveedores.repository.CategoriaObjetoRepository;
 import com.proveedores.repository.DepositanteRepository;
+import com.proveedores.repository.FotoObjetoMuseoRepository;
 import com.proveedores.repository.InventarioRepository;
 import com.proveedores.repository.MovimientoInventarioRepository;
 import com.proveedores.repository.ObjetoCategoriaRepository;
 import com.proveedores.repository.ObjetoDepositanteRepository;
 import com.proveedores.repository.ObjetoMuseoRepository;
+import com.proveedores.repository.ReciboEscaneadoObjetoMuseoRepository;
 import com.proveedores.repository.ReciboIngresoObjetoRepository;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
@@ -63,6 +67,8 @@ public class ObjetoMuseoService {
     private final DepositanteRepository depositanteRepository;
     private final ObjetoDepositanteRepository objetoDepositanteRepository;
     private final ReciboIngresoObjetoRepository reciboIngresoObjetoRepository;
+    private final FotoObjetoMuseoRepository fotoObjetoMuseoRepository;
+    private final ReciboEscaneadoObjetoMuseoRepository reciboEscaneadoObjetoMuseoRepository;
     private final InventarioRepository inventarioRepository;
     private final MovimientoInventarioRepository movimientoInventarioRepository;
 
@@ -73,6 +79,8 @@ public class ObjetoMuseoService {
             DepositanteRepository depositanteRepository,
             ObjetoDepositanteRepository objetoDepositanteRepository,
             ReciboIngresoObjetoRepository reciboIngresoObjetoRepository,
+            FotoObjetoMuseoRepository fotoObjetoMuseoRepository,
+            ReciboEscaneadoObjetoMuseoRepository reciboEscaneadoObjetoMuseoRepository,
             InventarioRepository inventarioRepository,
             MovimientoInventarioRepository movimientoInventarioRepository
     ) {
@@ -82,6 +90,8 @@ public class ObjetoMuseoService {
         this.depositanteRepository = depositanteRepository;
         this.objetoDepositanteRepository = objetoDepositanteRepository;
         this.reciboIngresoObjetoRepository = reciboIngresoObjetoRepository;
+        this.fotoObjetoMuseoRepository = fotoObjetoMuseoRepository;
+        this.reciboEscaneadoObjetoMuseoRepository = reciboEscaneadoObjetoMuseoRepository;
         this.inventarioRepository = inventarioRepository;
         this.movimientoInventarioRepository = movimientoInventarioRepository;
     }
@@ -461,7 +471,32 @@ public class ObjetoMuseoService {
         LocalDate fechaIngreso = inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(objeto.getId())
                 .map(Inventario::getFechaIngreso)
                 .orElse(null);
-        return ObjetoMuseoMapper.toResponse(objeto, fechaIngreso, categorias);
+        List<FotoObjetoMuseoResponseDTO> fotos = fotoObjetoMuseoRepository.findByObjetoMuseoIdAndEliminadoFalse(objeto.getId()).stream()
+                .map(foto -> new FotoObjetoMuseoResponseDTO(
+                        foto.getId(),
+                        foto.getObjetoMuseo().getId(),
+                        foto.getNombreArchivo(),
+                        foto.getNombreArchivoAlmacenado(),
+                        foto.getContentType(),
+                        foto.getTamanioBytes(),
+                        foto.getDescripcion(),
+                        foto.getFechaCarga(),
+                        foto.getCargadoPor()
+                ))
+                .toList();
+        ReciboEscaneadoObjetoMuseoResponseDTO reciboEscaneado = reciboEscaneadoObjetoMuseoRepository
+                .findFirstByObjetoMuseoIdAndEliminadoFalseOrderByFechaCargaDesc(objeto.getId())
+                .map(recibo -> new ReciboEscaneadoObjetoMuseoResponseDTO(
+                        recibo.getId(),
+                        recibo.getObjetoMuseo().getId(),
+                        recibo.getNombreArchivoOriginal(),
+                        recibo.getContentType(),
+                        recibo.getTamanioBytes(),
+                        recibo.getFechaCarga(),
+                        recibo.getCargadoPor()
+                ))
+                .orElse(null);
+        return ObjetoMuseoMapper.toResponse(objeto, fechaIngreso, categorias, fotos, reciboEscaneado);
     }
 
     private ObjetoMuseoEliminadoResponseDTO toEliminadoResponse(ObjetoMuseo objeto) {

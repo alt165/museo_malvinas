@@ -18,10 +18,10 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(
-        name = "fotos_objeto_museo",
-        indexes = @Index(name = "idx_fotos_objeto_museo_objeto", columnList = "objeto_museo_id")
+        name = "recibos_escaneados_objeto_museo",
+        indexes = @Index(name = "idx_recibos_escaneados_objeto", columnList = "objeto_museo_id")
 )
-public class FotoObjetoMuseo extends EntidadBase {
+public class ReciboEscaneadoObjetoMuseo extends EntidadBase {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,13 +31,10 @@ public class FotoObjetoMuseo extends EntidadBase {
     @JoinColumn(name = "objeto_museo_id", nullable = false)
     private ObjetoMuseo objetoMuseo;
 
-    @Column(name = "nombre_archivo", nullable = false, length = 255)
-    private String nombreArchivo;
-
-    @Column(name = "nombre_archivo_original", length = 255)
+    @Column(name = "nombre_archivo_original", nullable = false, length = 255)
     private String nombreArchivoOriginal;
 
-    @Column(name = "nombre_archivo_almacenado", length = 255)
+    @Column(name = "nombre_archivo_almacenado", nullable = false, length = 255)
     private String nombreArchivoAlmacenado;
 
     @Column(name = "content_type", nullable = false, length = 120)
@@ -46,14 +43,8 @@ public class FotoObjetoMuseo extends EntidadBase {
     @Column(name = "tamanio_bytes", nullable = false)
     private Long tamanioBytes;
 
-    @Column(name = "ruta_almacenamiento", nullable = false, length = 500)
-    private String rutaAlmacenamiento;
-
-    @Column(name = "ruta_relativa", length = 500)
+    @Column(name = "ruta_relativa", nullable = false, length = 500)
     private String rutaRelativa;
-
-    @Column(columnDefinition = "TEXT")
-    private String descripcion;
 
     @Column(name = "fecha_carga", nullable = false)
     private LocalDateTime fechaCarga;

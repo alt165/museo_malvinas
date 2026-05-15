@@ -20,6 +20,8 @@ public record ObjetoMuseoResponseDTO(
         Boolean datosCompletos,
         LocalDateTime fechaCargaRapida,
         String cargaRapidaPor,
-        List<CategoriaObjetoResponseDTO> categorias
+        List<CategoriaObjetoResponseDTO> categorias,
+        List<FotoObjetoMuseoResponseDTO> fotos,
+        ReciboEscaneadoObjetoMuseoResponseDTO reciboEscaneado
 ) {
 }

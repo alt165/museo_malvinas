@@ -99,7 +99,12 @@ POST   /api/objetos/{id}/fotos
 GET    /api/objetos/{id}/fotos
 GET    /api/objetos/{id}/fotos/{fotoId}
 DELETE /api/objetos/{id}/fotos/{fotoId}
+POST   /api/objetos/{id}/recibo-escaneado
+GET    /api/objetos/{id}/recibo-escaneado
+GET    /api/objetos/{id}/recibo-escaneado/archivo
+DELETE /api/objetos/{id}/recibo-escaneado/{archivoId}
 POST   /api/objetos/carga-rapida
+GET    /api/objetos/pendientes-completar
 GET    /api/objetos/{id}/recibos
 GET    /api/recibos/{id}
 GET    /api/recibos/{id}/pdf
@@ -107,7 +112,9 @@ POST   /api/recibos/{id}/copia-firmada
 GET    /api/recibos/{id}/copia-firmada
 ```
 
-Las fotos aceptan `image/jpeg`, `image/png` e `image/webp`. La copia firmada del recibo acepta esos tipos y `application/pdf`. Los binarios se guardan en storage local configurable; PostgreSQL conserva metadata y rutas internas.
+Las fotos aceptan `image/jpeg`, `image/png` e `image/webp`; `POST /api/objetos/{id}/fotos` consume `multipart/form-data` y permite enviar multiples partes `archivos`. El recibo escaneado del objeto es opcional, consume `multipart/form-data`, acepta `application/pdf`, `image/jpeg`, `image/png` e `image/webp`, y mantiene un unico archivo activo por objeto reemplazando el anterior. La copia firmada de un recibo emitido sigue usando `/api/recibos/{id}/copia-firmada`.
+
+Los binarios se guardan en storage local configurable por `APP_STORAGE_OBJECT_FILES_DIR`; PostgreSQL conserva metadata y rutas internas. Los archivos no se exponen por ruta publica directa: se descargan por endpoints autenticados.
 
 ### Finalizar exhibicion
 
@@ -177,13 +184,18 @@ curl -X POST http://localhost:8080/api/objetos/carga-rapida \
 
 La respuesta incluye el objeto creado, el recibo emitido y `reciboPdfUrl`.
 
-### Adjuntar foto y copia firmada
+### Adjuntar fotos, recibo escaneado y copia firmada
 
 ```bash
 curl -X POST http://localhost:8080/api/objetos/1/fotos \
   -H "Authorization: Bearer $TOKEN" \
-  -F "archivo=@foto.webp;type=image/webp" \
-  -F "descripcion=Vista frontal"
+  -F "archivos=@foto-frente.webp;type=image/webp" \
+  -F "archivos=@foto-dorso.jpg;type=image/jpeg" \
+  -F "descripcion=Registro inicial"
+
+curl -X POST http://localhost:8080/api/objetos/1/recibo-escaneado \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "archivo=@recibo-escaneado.pdf;type=application/pdf"
 
 curl -X POST http://localhost:8080/api/recibos/1/copia-firmada \
   -H "Authorization: Bearer $TOKEN" \

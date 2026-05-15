@@ -7,14 +7,17 @@ import com.proveedores.dto.FotoObjetoMuseoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
 import com.proveedores.dto.ObjetoPendienteCompletarResponseDTO;
+import com.proveedores.dto.ReciboEscaneadoObjetoMuseoResponseDTO;
 import com.proveedores.dto.ReciboIngresoObjetoResponseDTO;
 import com.proveedores.service.FotoObjetoMuseoService;
 import com.proveedores.service.ObjetoMuseoService;
+import com.proveedores.service.ReciboEscaneadoObjetoMuseoService;
 import com.proveedores.service.ReciboIngresoObjetoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.ArrayList;
 import java.util.List;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.core.io.Resource;
@@ -46,15 +49,18 @@ public class ObjetoMuseoController {
 
     private final ObjetoMuseoService objetoMuseoService;
     private final FotoObjetoMuseoService fotoObjetoMuseoService;
+    private final ReciboEscaneadoObjetoMuseoService reciboEscaneadoObjetoMuseoService;
     private final ReciboIngresoObjetoService reciboIngresoObjetoService;
 
     public ObjetoMuseoController(
             ObjetoMuseoService objetoMuseoService,
             FotoObjetoMuseoService fotoObjetoMuseoService,
+            ReciboEscaneadoObjetoMuseoService reciboEscaneadoObjetoMuseoService,
             ReciboIngresoObjetoService reciboIngresoObjetoService
     ) {
         this.objetoMuseoService = objetoMuseoService;
         this.fotoObjetoMuseoService = fotoObjetoMuseoService;
+        this.reciboEscaneadoObjetoMuseoService = reciboEscaneadoObjetoMuseoService;
         this.reciboIngresoObjetoService = reciboIngresoObjetoService;
     }
 
@@ -135,14 +141,24 @@ public class ObjetoMuseoController {
 
     @Operation(summary = "Subir foto del objeto")
     @PostMapping(path = "/{id}/fotos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<FotoObjetoMuseoResponseDTO> subirFoto(
+    public ResponseEntity<List<FotoObjetoMuseoResponseDTO>> subirFoto(
             @PathVariable Long id,
-            @RequestParam("archivo") MultipartFile archivo,
+            @RequestParam(value = "archivos", required = false) List<MultipartFile> archivos,
+            @RequestParam(value = "archivo", required = false) MultipartFile archivo,
             @RequestParam(value = "descripcion", required = false) String descripcion,
             Authentication authentication
     ) {
+        List<MultipartFile> archivosParaSubir = new ArrayList<>();
+        if (archivos != null) {
+            archivosParaSubir.addAll(archivos);
+        }
+        if (archivo != null) {
+            archivosParaSubir.add(archivo);
+        }
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(fotoObjetoMuseoService.subir(id, archivo, descripcion, usuario(authentication)));
+                .body(archivosParaSubir.stream()
+                        .map(item -> fotoObjetoMuseoService.subir(id, item, descripcion, usuario(authentication)))
+                        .toList());
     }
 
     @Operation(summary = "Listar fotos del objeto")
@@ -172,6 +188,42 @@ public class ObjetoMuseoController {
     @DeleteMapping("/{id}/fotos/{fotoId}")
     public ResponseEntity<Void> eliminarFoto(@PathVariable Long id, @PathVariable Long fotoId) {
         fotoObjetoMuseoService.eliminar(id, fotoId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Subir recibo escaneado del objeto")
+    @PostMapping(path = "/{id}/recibo-escaneado", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ReciboEscaneadoObjetoMuseoResponseDTO> subirReciboEscaneado(
+            @PathVariable Long id,
+            @RequestParam("archivo") MultipartFile archivo,
+            Authentication authentication
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(reciboEscaneadoObjetoMuseoService.subir(id, archivo, usuario(authentication)));
+    }
+
+    @Operation(summary = "Obtener metadata del recibo escaneado del objeto")
+    @GetMapping("/{id}/recibo-escaneado")
+    public ResponseEntity<ReciboEscaneadoObjetoMuseoResponseDTO> obtenerReciboEscaneado(@PathVariable Long id) {
+        return reciboEscaneadoObjetoMuseoService.obtener(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "Descargar recibo escaneado del objeto")
+    @GetMapping("/{id}/recibo-escaneado/archivo")
+    public ResponseEntity<Resource> descargarReciboEscaneado(@PathVariable Long id) {
+        ReciboEscaneadoObjetoMuseoService.ReciboEscaneadoArchivo recibo = reciboEscaneadoObjetoMuseoService.descargar(id);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(recibo.contentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + recibo.nombreArchivo() + "\"")
+                .body(recibo.resource());
+    }
+
+    @Operation(summary = "Eliminar recibo escaneado del objeto")
+    @DeleteMapping("/{id}/recibo-escaneado/{archivoId}")
+    public ResponseEntity<Void> eliminarReciboEscaneado(@PathVariable Long id, @PathVariable Long archivoId) {
+        reciboEscaneadoObjetoMuseoService.eliminar(id, archivoId);
         return ResponseEntity.noContent().build();
     }
 

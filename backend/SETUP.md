@@ -62,9 +62,11 @@ La aplicacion tiene defaults para desarrollo en `application.yml`:
 | `KEYCLOAK_JWK_SET_URI` | `http://localhost:8081/realms/museo/protocol/openid-connect/certs` |
 | `KEYCLOAK_CLIENT_ID` | `museo-backend` |
 | `APP_CORS_ALLOWED_ORIGINS` | `http://localhost:3000,http://localhost:5173` |
+| `APP_STORAGE_OBJECT_FILES_DIR` | `./storage/object-files` |
 | `APP_STORAGE_OBJECT_PHOTOS_DIR` | `./storage/object-photos` |
 | `APP_STORAGE_SIGNED_RECEIPTS_DIR` | `./storage/signed-receipts` |
 | `APP_UPLOAD_MAX_PHOTO_SIZE_MB` | `5` |
+| `APP_UPLOAD_MAX_RECEIPT_SIZE_MB` | `10` |
 | `APP_UPLOAD_MAX_SIGNED_RECEIPT_SIZE_MB` | `10` |
 | `SERVER_PORT` | `8080` |
 | `APP_LOG_LEVEL` | `INFO` |
@@ -121,11 +123,18 @@ Los tests incluyen:
 - Unit tests de services.
 - Tests web de controller.
 - Tests de integracion con Testcontainers y PostgreSQL real.
-- Validacion de migraciones Flyway `V1`, `V2` y `V3`.
+- Validacion de migraciones Flyway.
 
 ## Storage de archivos
 
-Las fotos de objetos y copias firmadas de recibos no se guardan como binarios en PostgreSQL. El backend guarda los archivos en los directorios configurados por `APP_STORAGE_OBJECT_PHOTOS_DIR` y `APP_STORAGE_SIGNED_RECEIPTS_DIR`, y persiste metadata/rutas internas en base de datos.
+Las fotos de objetos y los recibos escaneados no se guardan como binarios en PostgreSQL. El backend guarda esos archivos debajo de `APP_STORAGE_OBJECT_FILES_DIR`, separados internamente por objeto:
+
+```text
+objeto-{id}/fotos/
+objeto-{id}/recibos/
+```
+
+Las copias firmadas de recibos emitidos siguen usando `APP_STORAGE_SIGNED_RECEIPTS_DIR`. PostgreSQL conserva metadata/rutas internas y los archivos se descargan por endpoints autenticados.
 
 ## Reset de datos locales
 

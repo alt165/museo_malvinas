@@ -2,14 +2,12 @@ package com.proveedores.dto;
 
 import java.time.LocalDateTime;
 
-public record FotoObjetoMuseoResponseDTO(
+public record ReciboEscaneadoObjetoMuseoResponseDTO(
         Long id,
         Long objetoMuseoId,
-        String nombreArchivo,
-        String nombreArchivoAlmacenado,
+        String nombreArchivoOriginal,
         String contentType,
         Long tamanioBytes,
-        String descripcion,
         LocalDateTime fechaCarga,
         String cargadoPor
 ) {

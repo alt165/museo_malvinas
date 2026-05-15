@@ -29,6 +29,8 @@ export type ObjetoMuseoResponseDTO = {
   fechaCargaRapida?: string | null;
   cargaRapidaPor?: string | null;
   categorias?: CategoriaObjetoResponseDTO[];
+  fotos?: FotoObjetoMuseoResponseDTO[];
+  reciboEscaneado?: ReciboEscaneadoObjetoMuseoResponseDTO | null;
 };
 
 export type ObjetoMuseoEliminadoResponseDTO = {
@@ -94,9 +96,20 @@ export type FotoObjetoMuseoResponseDTO = {
   id: number;
   objetoMuseoId: number;
   nombreArchivo: string;
+  nombreArchivoAlmacenado?: string | null;
   contentType: string;
   tamanioBytes: number;
   descripcion?: string | null;
+  fechaCarga: string;
+  cargadoPor?: string | null;
+};
+
+export type ReciboEscaneadoObjetoMuseoResponseDTO = {
+  id: number;
+  objetoMuseoId: number;
+  nombreArchivoOriginal: string;
+  contentType: string;
+  tamanioBytes: number;
   fechaCarga: string;
   cargadoPor?: string | null;
 };

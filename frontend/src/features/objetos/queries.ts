@@ -12,6 +12,7 @@ import {
   listarObjetosPendientesCompletar,
   listarRecibosObjeto,
   obtenerObjetoPorId,
+  obtenerReciboEscaneadoObjeto,
   restaurarObjeto
 } from "./api";
 import type { BuscarObjetosParams, CargaRapidaObjetoRequestDTO, ObjetoMuseoRequestDTO } from "./types";
@@ -24,6 +25,7 @@ export const objetosQueryKeys = {
   pending: (params: { page?: number; size?: number; sort?: string }) => [...objetosQueryKeys.all, "pending", params] as const,
   detail: (id: number) => [...objetosQueryKeys.all, "detail", id] as const,
   fotos: (id: number) => [...objetosQueryKeys.all, "detail", id, "fotos"] as const,
+  reciboEscaneado: (id: number) => [...objetosQueryKeys.all, "detail", id, "recibo-escaneado"] as const,
   recibos: (id: number) => [...objetosQueryKeys.all, "detail", id, "recibos"] as const
 };
 
@@ -133,6 +135,15 @@ export function useRecibosObjetoQuery(id: number) {
     queryKey: objetosQueryKeys.recibos(id),
     queryFn: () => listarRecibosObjeto(id),
     enabled: Number.isFinite(id)
+  });
+}
+
+export function useReciboEscaneadoObjetoQuery(id: number) {
+  return useQuery({
+    queryKey: objetosQueryKeys.reciboEscaneado(id),
+    queryFn: () => obtenerReciboEscaneadoObjeto(id),
+    enabled: Number.isFinite(id),
+    retry: false
   });
 }
 

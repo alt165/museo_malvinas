@@ -17,6 +17,7 @@ import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.security.KeycloakJwtAuthenticationConverter;
 import com.proveedores.service.FotoObjetoMuseoService;
 import com.proveedores.service.ObjetoMuseoService;
+import com.proveedores.service.ReciboEscaneadoObjetoMuseoService;
 import com.proveedores.service.ReciboIngresoObjetoService;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -48,6 +49,9 @@ class ObjetoMuseoControllerTest {
     private FotoObjetoMuseoService fotoObjetoMuseoService;
 
     @MockBean
+    private ReciboEscaneadoObjetoMuseoService reciboEscaneadoObjetoMuseoService;
+
+    @MockBean
     private ReciboIngresoObjetoService reciboIngresoObjetoService;
 
     @MockBean
@@ -55,7 +59,7 @@ class ObjetoMuseoControllerTest {
 
     @Test
     void crearObjetoMuseoCorrectamenteDevuelveCreated() throws Exception {
-        ObjetoMuseoResponseDTO response = new ObjetoMuseoResponseDTO(1L, "INV-1", "Casco", null, null, null, null, null, null, null, null, null, null, java.util.List.of());
+        ObjetoMuseoResponseDTO response = new ObjetoMuseoResponseDTO(1L, "INV-1", "Casco", null, null, null, null, null, null, null, null, null, null, java.util.List.of(), java.util.List.of(), null);
         when(objetoMuseoService.crear(any(ObjetoMuseoRequestDTO.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/objetos")
@@ -68,7 +72,7 @@ class ObjetoMuseoControllerTest {
 
     @Test
     void buscarObjetosPaginadosDevuelvePage() throws Exception {
-        ObjetoMuseoResponseDTO response = new ObjetoMuseoResponseDTO(1L, "INV-1", "Casco", null, null, null, null, null, null, null, null, null, null, java.util.List.of());
+        ObjetoMuseoResponseDTO response = new ObjetoMuseoResponseDTO(1L, "INV-1", "Casco", null, null, null, null, null, null, null, null, null, null, java.util.List.of(), java.util.List.of(), null);
         when(objetoMuseoService.buscar(eq("Casco"), eq("INV"), eq(java.util.List.of(2L)), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(java.util.List.of(response)));
 

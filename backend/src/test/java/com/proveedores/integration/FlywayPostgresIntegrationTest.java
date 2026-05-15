@@ -23,7 +23,7 @@ class FlywayPostgresIntegrationTest extends IntegrationTestBase {
         Integer ubicacionesSembradas = jdbcTemplate.queryForObject("select count(*) from ubicaciones", Integer.class);
         Integer exhibicionesSembradas = jdbcTemplate.queryForObject("select count(*) from exhibiciones", Integer.class);
 
-        assertThat(versiones).containsExactly("1", "2", "3", "4", "5", "6", "7", "8");
+        assertThat(versiones).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9");
         assertThat(objetosSembrados).isGreaterThanOrEqualTo(6);
         assertThat(ubicacionesSembradas).isGreaterThanOrEqualTo(5);
         assertThat(exhibicionesSembradas).isGreaterThanOrEqualTo(1);
@@ -46,6 +46,12 @@ class FlywayPostgresIntegrationTest extends IntegrationTestBase {
         assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.columns where table_name = 'objetos_museo' and column_name in ('origen_carga', 'datos_completos', 'fecha_carga_rapida', 'carga_rapida_por')", Integer.class))
                 .isEqualTo(4);
         assertThat(jdbcTemplate.queryForObject("select count(*) from pg_indexes where tablename = 'objetos_museo' and indexname in ('idx_objetos_museo_pendientes_completar', 'idx_objetos_museo_fecha_carga_rapida')", Integer.class))
+                .isEqualTo(2);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.tables where table_name = 'recibos_escaneados_objeto_museo'", Integer.class))
+                .isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.columns where table_name = 'fotos_objeto_museo' and column_name in ('nombre_archivo_original', 'nombre_archivo_almacenado', 'ruta_relativa')", Integer.class))
+                .isEqualTo(3);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from pg_indexes where tablename = 'recibos_escaneados_objeto_museo' and indexname in ('idx_recibos_escaneados_objeto', 'uk_recibo_escaneado_activo_objeto')", Integer.class))
                 .isEqualTo(2);
     }
 }
