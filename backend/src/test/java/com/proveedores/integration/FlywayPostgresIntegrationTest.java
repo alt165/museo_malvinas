@@ -23,7 +23,7 @@ class FlywayPostgresIntegrationTest extends IntegrationTestBase {
         Integer ubicacionesSembradas = jdbcTemplate.queryForObject("select count(*) from ubicaciones", Integer.class);
         Integer exhibicionesSembradas = jdbcTemplate.queryForObject("select count(*) from exhibiciones", Integer.class);
 
-        assertThat(versiones).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
+        assertThat(versiones).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11");
         assertThat(objetosSembrados).isGreaterThanOrEqualTo(6);
         assertThat(ubicacionesSembradas).isGreaterThanOrEqualTo(5);
         assertThat(jdbcTemplate.queryForObject("select count(*) from ubicaciones where nombre = 'Pre ingreso' and eliminado = false", Integer.class))
@@ -55,5 +55,13 @@ class FlywayPostgresIntegrationTest extends IntegrationTestBase {
                 .isEqualTo(3);
         assertThat(jdbcTemplate.queryForObject("select count(*) from pg_indexes where tablename = 'recibos_escaneados_objeto_museo' and indexname in ('idx_recibos_escaneados_objeto', 'uk_recibo_escaneado_activo_objeto')", Integer.class))
                 .isEqualTo(2);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.tables where table_name = 'colecciones_objetos'", Integer.class))
+                .isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.columns where table_name = 'objetos_museo' and column_name = 'coleccion_id'", Integer.class))
+                .isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from pg_indexes where tablename = 'objetos_museo' and indexname = 'idx_objetos_museo_coleccion'", Integer.class))
+                .isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from pg_indexes where tablename = 'colecciones_objetos' and indexname = 'uk_colecciones_objetos_nombre_activo'", Integer.class))
+                .isEqualTo(1);
     }
 }

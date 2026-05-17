@@ -102,6 +102,13 @@ public class ObjetoMuseoController {
         return ResponseEntity.ok(objetoMuseoService.buscar(nombre, numeroInventario, categoriaIds, pageable));
     }
 
+    @Operation(summary = "Listar objetos sin coleccion")
+    @ApiResponse(responseCode = "200", description = "Objetos obtenidos")
+    @GetMapping("/sin-coleccion")
+    public ResponseEntity<List<ObjetoMuseoResponseDTO>> listarSinColeccion() {
+        return ResponseEntity.ok(objetoMuseoService.listarSinColeccion());
+    }
+
     @Operation(summary = "Listar objetos creados por carga rapida pendientes de completar")
     @ApiResponse(responseCode = "200", description = "Pendientes obtenidos")
     @GetMapping("/pendientes-completar")

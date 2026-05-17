@@ -13,7 +13,7 @@ type ProtectedRouteProps = {
 
 export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps) {
   const router = useRouter();
-  const { authenticated, loading, login, roles } = useAuth();
+  const { authenticated, loading, roles } = useAuth();
 
   const allowed = !requiredRoles || hasAnyRole(roles, requiredRoles);
 
@@ -23,14 +23,14 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
     }
 
     if (!authenticated) {
-      void login();
+      router.replace("/login");
       return;
     }
 
     if (!allowed) {
       router.replace("/unauthorized");
     }
-  }, [allowed, authenticated, loading, login, router]);
+  }, [allowed, authenticated, loading, router]);
 
   if (loading || !authenticated) {
     return (

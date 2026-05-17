@@ -103,6 +103,16 @@ export default function DetalleObjetoPage() {
                 <dd className="mt-1 font-medium">{data.ubicacionNombre || "Sin ubicacion registrada"}</dd>
               </div>
               <div>
+                <dt className="text-muted-foreground">Coleccion</dt>
+                <dd className="mt-1 font-medium">
+                  {data.coleccionId ? (
+                    <Link className="text-primary underline-offset-4 hover:underline" href={`/objetos/colecciones/${data.coleccionId}`}>
+                      {data.coleccionNombre}
+                    </Link>
+                  ) : "Sin coleccion"}
+                </dd>
+              </div>
+              <div>
                 <dt className="text-muted-foreground">Categorias</dt>
                 <dd className="mt-1 font-medium">{data.categorias?.map((categoria) => categoria.nombre).join(", ") || "Sin categorias"}</dd>
               </div>

@@ -14,7 +14,8 @@ export default function LoginPage() {
       return;
     }
 
-    if (!loading && authenticated) {
+    const explicitLogout = window.sessionStorage.getItem("museo.logout") === "1";
+    if (!loading && authenticated && !explicitLogout) {
       router.replace("/dashboard");
     }
   }, [authenticated, loading, router]);
@@ -33,6 +34,7 @@ export default function LoginPage() {
         className="relative z-10 w-full max-w-md rounded-lg border border-white/30 bg-white/95 p-8 text-center shadow-2xl backdrop-blur"
         onSubmit={(event) => {
           event.preventDefault();
+          window.sessionStorage.removeItem("museo.logout");
           void login();
         }}
       >

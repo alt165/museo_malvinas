@@ -138,6 +138,13 @@ public class ObjetoMuseoService {
     }
 
     @Transactional(readOnly = true)
+    public List<ObjetoMuseoResponseDTO> listarSinColeccion() {
+        return objetoMuseoRepository.findByColeccionObjetoIsNullAndEliminadoFalseOrderByNumeroInventarioAsc().stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public Page<ObjetoMuseoResponseDTO> buscar(String nombre, String numeroInventario, List<Long> categoriaIds, Pageable pageable) {
         List<Long> categorias = categoriaIds == null
                 ? List.of()
@@ -515,6 +522,10 @@ public class ObjetoMuseoService {
         return depositante;
     }
 
+    ObjetoMuseoResponseDTO toResponseForRelations(ObjetoMuseo objeto) {
+        return toResponse(objeto);
+    }
+
     private ObjetoMuseoResponseDTO toResponse(ObjetoMuseo objeto) {
         List<CategoriaObjetoResponseDTO> categorias = objetoCategoriaRepository.findByObjetoMuseoIdAndEliminadoFalse(objeto.getId()).stream()
                 .map(ObjetoCategoria::getCategoriaObjeto)
@@ -524,6 +535,8 @@ public class ObjetoMuseoService {
         LocalDate fechaIngreso = inventario == null ? null : inventario.getFechaIngreso();
         Long ubicacionId = inventario == null || inventario.getUbicacion() == null ? null : inventario.getUbicacion().getId();
         String ubicacionNombre = inventario == null || inventario.getUbicacion() == null ? null : inventario.getUbicacion().getNombre();
+        Long coleccionId = objeto.getColeccionObjeto() == null ? null : objeto.getColeccionObjeto().getId();
+        String coleccionNombre = objeto.getColeccionObjeto() == null ? null : objeto.getColeccionObjeto().getNombre();
         List<FotoObjetoMuseoResponseDTO> fotos = fotoObjetoMuseoRepository.findByObjetoMuseoIdAndEliminadoFalse(objeto.getId()).stream()
                 .map(foto -> new FotoObjetoMuseoResponseDTO(
                         foto.getId(),
@@ -549,7 +562,7 @@ public class ObjetoMuseoService {
                         recibo.getCargadoPor()
                 ))
                 .orElse(null);
-        return ObjetoMuseoMapper.toResponse(objeto, fechaIngreso, ubicacionId, ubicacionNombre, categorias, fotos, reciboEscaneado);
+        return ObjetoMuseoMapper.toResponse(objeto, fechaIngreso, ubicacionId, ubicacionNombre, coleccionId, coleccionNombre, categorias, fotos, reciboEscaneado);
     }
 
     private void crearInventarioInicial(ObjetoMuseo objeto, Ubicacion ubicacion, String observaciones, String usuarioMovimiento) {

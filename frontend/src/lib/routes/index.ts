@@ -40,6 +40,8 @@ export const routes = {
   objetosEliminados: "/objetos/eliminados",
   objetosCargaRapida: "/objetos/carga-rapida",
   objetosPendientes: "/objetos/pendientes",
+  objetosColecciones: "/objetos/colecciones",
+  objetosColeccionNueva: "/objetos/colecciones/nueva",
   objetoNuevo: "/objetos/nuevo",
   relacionesObjetos: "/relaciones-objetos",
   relacionObjetoNueva: "/relaciones-objetos/nueva",
@@ -74,6 +76,7 @@ export const navigationGroups: NavigationGroup[] = [
       { href: routes.objetosEliminados, label: "Eliminados", icon: Archive, roles: adminRoles },
       { href: routes.objetosCargaRapida, label: "Alta rapida", icon: Archive, roles: writeRoles },
       { href: routes.objetosPendientes, label: "Pendientes de completar", icon: Archive, roles: writeRoles },
+      { href: routes.objetosColecciones, label: "Colecciones", icon: FolderTree, roles: readRoles },
       { href: routes.objetoNuevo, label: "Alta completa", icon: Archive, roles: writeRoles },
       { href: routes.relacionesObjetos, label: "Relaciones entre objetos", icon: Link2, roles: writeRoles }
     ]

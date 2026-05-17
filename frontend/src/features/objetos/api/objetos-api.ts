@@ -21,6 +21,10 @@ export function listarObjetos() {
   return apiRequest<ObjetoMuseoResponseDTO[]>(basePath);
 }
 
+export function listarObjetosSinColeccion() {
+  return apiRequest<ObjetoMuseoResponseDTO[]>(`${basePath}/sin-coleccion`);
+}
+
 export function buscarObjetos(params: BuscarObjetosParams) {
   const searchParams = new URLSearchParams();
 

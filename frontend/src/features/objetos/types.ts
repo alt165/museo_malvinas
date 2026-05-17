@@ -31,6 +31,8 @@ export type ObjetoMuseoResponseDTO = {
   cargaRapidaPor?: string | null;
   ubicacionId?: number | null;
   ubicacionNombre?: string | null;
+  coleccionId?: number | null;
+  coleccionNombre?: string | null;
   categorias?: CategoriaObjetoResponseDTO[];
   fotos?: FotoObjetoMuseoResponseDTO[];
   reciboEscaneado?: ReciboEscaneadoObjetoMuseoResponseDTO | null;

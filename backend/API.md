@@ -59,6 +59,7 @@ DELETE /api/<recurso>/{id}  -> baja logica, responde 204
 | Actuaciones de veteranos | `/api/actuaciones-veteranos` | Participacion, unidad, rol y periodo. |
 | Depositantes | `/api/depositantes` | Personas o instituciones depositantes. |
 | Categorias | `/api/categorias` | Clasificacion de objetos. |
+| Colecciones de objetos | `/api/colecciones` | Agrupaciones opcionales 1:N de objetos patrimoniales. |
 | Ubicaciones | `/api/ubicaciones` | Lugares fisicos/logicos del museo. |
 | Relaciones entre objetos | `/api/relaciones-objetos` | Vinculos semanticos entre objetos. |
 | Administracion de usuarios | `/api/admin/usuarios` | Usuarios reales en Keycloak. Solo `ADMIN`. |
@@ -105,6 +106,7 @@ GET    /api/objetos/{id}/recibo-escaneado/archivo
 DELETE /api/objetos/{id}/recibo-escaneado/{archivoId}
 POST   /api/objetos/carga-rapida
 GET    /api/objetos/pendientes-completar
+GET    /api/objetos/sin-coleccion
 GET    /api/objetos/{id}/recibos
 GET    /api/recibos/{id}
 GET    /api/recibos/{id}/pdf
@@ -115,6 +117,22 @@ GET    /api/recibos/{id}/copia-firmada
 Las fotos aceptan `image/jpeg`, `image/png` e `image/webp`; `POST /api/objetos/{id}/fotos` consume `multipart/form-data` y permite enviar multiples partes `archivos`. El recibo escaneado del objeto es opcional, consume `multipart/form-data`, acepta `application/pdf`, `image/jpeg`, `image/png` e `image/webp`, y mantiene un unico archivo activo por objeto reemplazando el anterior. La copia firmada de un recibo emitido sigue usando `/api/recibos/{id}/copia-firmada`.
 
 Los binarios se guardan en storage local configurable por `APP_STORAGE_OBJECT_FILES_DIR`; PostgreSQL conserva metadata y rutas internas. Los archivos no se exponen por ruta publica directa: se descargan por endpoints autenticados.
+
+### Colecciones de objetos
+
+```http
+GET    /api/colecciones
+GET    /api/colecciones/{id}
+POST   /api/colecciones
+PUT    /api/colecciones/{id}
+DELETE /api/colecciones/{id}
+GET    /api/colecciones/{id}/objetos
+POST   /api/colecciones/{id}/objetos
+DELETE /api/colecciones/{id}/objetos/{objetoId}
+GET    /api/objetos/sin-coleccion
+```
+
+Cada objeto puede pertenecer como maximo a una coleccion. `POST /api/colecciones/{id}/objetos` acepta `{ "objetoIds": [1, 2] }` y solo asocia objetos activos, no eliminados y sin coleccion previa. `DELETE /api/colecciones/{id}/objetos/{objetoId}` deja el objeto sin coleccion. Al dar de baja una coleccion se desvinculan sus objetos asociados y no se eliminan los objetos.
 
 ### Finalizar exhibicion
 

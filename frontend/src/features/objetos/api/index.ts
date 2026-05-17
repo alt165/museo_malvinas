@@ -15,6 +15,7 @@ export {
   listarObjetos,
   listarObjetosEliminados,
   listarObjetosPendientesCompletar,
+  listarObjetosSinColeccion,
   listarRecibosObjeto,
   moverObjeto,
   obtenerObjetoPorId,

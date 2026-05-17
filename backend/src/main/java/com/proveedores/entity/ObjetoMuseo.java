@@ -11,6 +11,8 @@ import jakarta.persistence.Index;
 import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
@@ -74,5 +76,9 @@ public class ObjetoMuseo extends EntidadBase {
 
     @OneToOne(mappedBy = "objetoMuseo", fetch = FetchType.LAZY)
     private Inventario inventario;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "coleccion_id")
+    private ColeccionObjeto coleccionObjeto;
 
 }

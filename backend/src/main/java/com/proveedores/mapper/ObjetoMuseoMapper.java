@@ -24,11 +24,11 @@ public final class ObjetoMuseoMapper {
     }
 
     public static ObjetoMuseoResponseDTO toResponse(ObjetoMuseo entity, List<CategoriaObjetoResponseDTO> categorias) {
-        return toResponse(entity, null, null, null, categorias, List.of(), null);
+        return toResponse(entity, null, null, null, null, null, categorias, List.of(), null);
     }
 
     public static ObjetoMuseoResponseDTO toResponse(ObjetoMuseo entity, LocalDate fechaIngreso, List<CategoriaObjetoResponseDTO> categorias) {
-        return toResponse(entity, fechaIngreso, null, null, categorias, List.of(), null);
+        return toResponse(entity, fechaIngreso, null, null, null, null, categorias, List.of(), null);
     }
 
     public static ObjetoMuseoResponseDTO toResponse(
@@ -36,6 +36,8 @@ public final class ObjetoMuseoMapper {
             LocalDate fechaIngreso,
             Long ubicacionId,
             String ubicacionNombre,
+            Long coleccionId,
+            String coleccionNombre,
             List<CategoriaObjetoResponseDTO> categorias,
             List<FotoObjetoMuseoResponseDTO> fotos,
             ReciboEscaneadoObjetoMuseoResponseDTO reciboEscaneado
@@ -56,6 +58,8 @@ public final class ObjetoMuseoMapper {
                 entity.getCargaRapidaPor(),
                 ubicacionId,
                 ubicacionNombre,
+                coleccionId,
+                coleccionNombre,
                 categorias,
                 fotos,
                 reciboEscaneado

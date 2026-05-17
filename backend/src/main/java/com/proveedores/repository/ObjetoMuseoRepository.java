@@ -20,6 +20,12 @@ public interface ObjetoMuseoRepository extends JpaRepository<ObjetoMuseo, Long>,
             org.springframework.data.domain.Pageable pageable
     );
 
+    List<ObjetoMuseo> findByColeccionObjetoIsNullAndEliminadoFalseOrderByNumeroInventarioAsc();
+
+    List<ObjetoMuseo> findByColeccionObjetoIdAndEliminadoFalseOrderByNumeroInventarioAsc(Long coleccionId);
+
+    long countByColeccionObjetoIdAndEliminadoFalse(Long coleccionId);
+
     @Query("""
             select oc.objetoMuseo
             from ObjetoCategoria oc

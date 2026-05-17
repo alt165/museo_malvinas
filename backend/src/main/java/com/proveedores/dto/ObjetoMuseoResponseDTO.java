@@ -22,6 +22,8 @@ public record ObjetoMuseoResponseDTO(
         String cargaRapidaPor,
         Long ubicacionId,
         String ubicacionNombre,
+        Long coleccionId,
+        String coleccionNombre,
         List<CategoriaObjetoResponseDTO> categorias,
         List<FotoObjetoMuseoResponseDTO> fotos,
         ReciboEscaneadoObjetoMuseoResponseDTO reciboEscaneado
@@ -58,6 +60,8 @@ public record ObjetoMuseoResponseDTO(
                 datosCompletos,
                 fechaCargaRapida,
                 cargaRapidaPor,
+                null,
+                null,
                 null,
                 null,
                 categorias,
