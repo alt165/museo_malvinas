@@ -4,6 +4,8 @@ import com.proveedores.dto.AgregarCategoriaObjetoRequestDTO;
 import com.proveedores.dto.CargaRapidaObjetoRequestDTO;
 import com.proveedores.dto.CargaRapidaObjetoResponseDTO;
 import com.proveedores.dto.FotoObjetoMuseoResponseDTO;
+import com.proveedores.dto.MoverObjetoRequestDTO;
+import com.proveedores.dto.MovimientoObjetoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
 import com.proveedores.dto.ObjetoPendienteCompletarResponseDTO;
@@ -114,6 +116,24 @@ public class ObjetoMuseoController {
     @PutMapping("/{id}")
     public ResponseEntity<ObjetoMuseoResponseDTO> actualizar(@PathVariable Long id, @RequestBody @Valid ObjetoMuseoRequestDTO dto) {
         return ResponseEntity.ok(objetoMuseoService.actualizar(id, dto));
+    }
+
+    @Operation(summary = "Mover objeto a otra ubicacion")
+    @ApiResponse(responseCode = "200", description = "Objeto movido")
+    @PostMapping("/{id}/mover")
+    public ResponseEntity<MovimientoObjetoResponseDTO> mover(
+            @PathVariable Long id,
+            @RequestBody @Valid MoverObjetoRequestDTO dto,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(objetoMuseoService.mover(id, dto, usuario(authentication)));
+    }
+
+    @Operation(summary = "Listar movimientos del objeto")
+    @ApiResponse(responseCode = "200", description = "Movimientos obtenidos")
+    @GetMapping("/{id}/movimientos")
+    public ResponseEntity<List<MovimientoObjetoResponseDTO>> listarMovimientos(@PathVariable Long id) {
+        return ResponseEntity.ok(objetoMuseoService.listarMovimientos(id));
     }
 
     @Operation(summary = "Dar de baja recurso")

@@ -1,1 +1,7 @@
-export { listarUbicaciones } from "./ubicaciones-api";
+export {
+  actualizarUbicacion,
+  bajaLogicaUbicacion,
+  crearUbicacion,
+  listarUbicaciones,
+  obtenerUbicacionPorId
+} from "./ubicaciones-api";

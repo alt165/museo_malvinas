@@ -5,6 +5,7 @@ import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
+import { ObjetoArchivosPanel } from "@/features/objetos/components/objeto-archivos-panel";
 import { ObjetoMuseoForm } from "@/features/objetos/components/objeto-museo-form";
 import { useActualizarObjetoMutation, useObjetoQuery } from "@/features/objetos/queries";
 import { getApiErrorMessage } from "@/features/objetos/utils";
@@ -45,17 +46,20 @@ export default function EditarObjetoPage() {
           />
         ) : null}
         {data ? (
-          <ObjetoMuseoForm
-            initialValue={data}
-            isSubmitting={mutation.isPending}
-            onSubmit={(payload) =>
-              mutation.mutate(payload, {
-                onSuccess: (objeto) => router.push(`/objetos/${objeto.id}`)
-              })
-            }
-            submitError={mutation.error}
-            submitLabel="Guardar cambios"
-          />
+          <>
+            <ObjetoMuseoForm
+              initialValue={data}
+              isSubmitting={mutation.isPending}
+              onSubmit={(payload) =>
+                mutation.mutate(payload, {
+                  onSuccess: (objeto) => router.push(`/objetos/${objeto.id}`)
+                })
+              }
+              submitError={mutation.error}
+              submitLabel="Guardar cambios"
+            />
+            <ObjetoArchivosPanel mode="edit" objeto={data} />
+          </>
         ) : null}
       </div>
     </AppShell>

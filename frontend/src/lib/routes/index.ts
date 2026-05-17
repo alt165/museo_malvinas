@@ -6,7 +6,7 @@ import {
   IdCard,
   Landmark,
   Link2,
-  MoveRight,
+  MapPin,
   UserCog,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -46,6 +46,8 @@ export const routes = {
   inventario: "/inventario",
   inventarioNuevo: "/inventario/nuevo",
   movimientosInventario: "/movimientos-inventario",
+  ubicaciones: "/ubicaciones",
+  ubicacionNueva: "/ubicaciones/nueva",
   categorias: "/categorias",
   categoriaNueva: "/categorias/nueva",
   depositantes: "/depositantes",
@@ -73,8 +75,17 @@ export const navigationGroups: NavigationGroup[] = [
       { href: routes.objetosCargaRapida, label: "Alta rapida", icon: Archive, roles: writeRoles },
       { href: routes.objetosPendientes, label: "Pendientes de completar", icon: Archive, roles: writeRoles },
       { href: routes.objetoNuevo, label: "Alta completa", icon: Archive, roles: writeRoles },
-      { href: routes.movimientosInventario, label: "Movimientos de inventario", icon: MoveRight, roles: writeRoles },
       { href: routes.relacionesObjetos, label: "Relaciones entre objetos", icon: Link2, roles: writeRoles }
+    ]
+  },
+  {
+    key: "ubicaciones",
+    label: "Ubicaciones",
+    icon: MapPin,
+    roles: writeRoles,
+    items: [
+      { href: routes.ubicaciones, label: "Consulta", icon: MapPin, roles: writeRoles },
+      { href: routes.ubicacionNueva, label: "Alta", icon: MapPin, roles: adminRoles }
     ]
   },
   {

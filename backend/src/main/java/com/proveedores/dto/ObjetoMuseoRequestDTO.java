@@ -24,8 +24,23 @@ public record ObjetoMuseoRequestDTO(
 
         EstadoConservacion estadoConservacion,
 
-        Set<Long> categoriaIds
+        Set<Long> categoriaIds,
+
+        Long ubicacionId
 ) {
+    public ObjetoMuseoRequestDTO(
+            String numeroInventario,
+            String denominacionObjeto,
+            String descripcion,
+            String descripcionTecnica,
+            String materiales,
+            String dimensiones,
+            EstadoConservacion estadoConservacion,
+            Set<Long> categoriaIds
+    ) {
+        this(numeroInventario, denominacionObjeto, descripcion, descripcionTecnica, materiales, dimensiones, estadoConservacion, categoriaIds, null);
+    }
+
     @AssertTrue(message = "La denominacion o nombre es obligatorio")
     public boolean isDenominacionONombreValida() {
         return denominacionObjeto != null && !denominacionObjeto.isBlank();

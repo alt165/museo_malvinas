@@ -4,3 +4,9 @@ export type UbicacionResponseDTO = {
   tipo?: string | null;
   descripcion?: string | null;
 };
+
+export type UbicacionRequestDTO = {
+  nombre: string;
+  tipo?: string | null;
+  descripcion?: string | null;
+};

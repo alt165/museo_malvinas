@@ -4,6 +4,8 @@ import type {
   CargaRapidaObjetoResponseDTO,
   FotoObjetoMuseoResponseDTO,
   BuscarObjetosParams,
+  MoverObjetoRequestDTO,
+  MovimientoObjetoResponseDTO,
   ObjetoPendienteCompletarResponseDTO,
   ObjetoMuseoEliminadoResponseDTO,
   ObjetoMuseoRequestDTO,
@@ -99,6 +101,17 @@ export function cargaRapidaObjeto(payload: CargaRapidaObjetoRequestDTO) {
     method: "POST",
     body: JSON.stringify(payload)
   });
+}
+
+export function moverObjeto(id: number, payload: MoverObjetoRequestDTO) {
+  return apiRequest<MovimientoObjetoResponseDTO>(`${basePath}/${id}/mover`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function listarMovimientosObjeto(id: number) {
+  return apiRequest<MovimientoObjetoResponseDTO[]>(`${basePath}/${id}/movimientos`);
 }
 
 export function listarFotosObjeto(id: number) {

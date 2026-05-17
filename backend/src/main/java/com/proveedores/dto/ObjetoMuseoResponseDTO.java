@@ -20,8 +20,49 @@ public record ObjetoMuseoResponseDTO(
         Boolean datosCompletos,
         LocalDateTime fechaCargaRapida,
         String cargaRapidaPor,
+        Long ubicacionId,
+        String ubicacionNombre,
         List<CategoriaObjetoResponseDTO> categorias,
         List<FotoObjetoMuseoResponseDTO> fotos,
         ReciboEscaneadoObjetoMuseoResponseDTO reciboEscaneado
 ) {
+    public ObjetoMuseoResponseDTO(
+            Long id,
+            String numeroInventario,
+            String denominacionObjeto,
+            String descripcion,
+            String descripcionTecnica,
+            String materiales,
+            String dimensiones,
+            EstadoConservacion estadoConservacion,
+            LocalDate fechaIngreso,
+            OrigenCargaObjeto origenCarga,
+            Boolean datosCompletos,
+            LocalDateTime fechaCargaRapida,
+            String cargaRapidaPor,
+            List<CategoriaObjetoResponseDTO> categorias,
+            List<FotoObjetoMuseoResponseDTO> fotos,
+            ReciboEscaneadoObjetoMuseoResponseDTO reciboEscaneado
+    ) {
+        this(
+                id,
+                numeroInventario,
+                denominacionObjeto,
+                descripcion,
+                descripcionTecnica,
+                materiales,
+                dimensiones,
+                estadoConservacion,
+                fechaIngreso,
+                origenCarga,
+                datosCompletos,
+                fechaCargaRapida,
+                cargaRapidaPor,
+                null,
+                null,
+                categorias,
+                fotos,
+                reciboEscaneado
+        );
+    }
 }

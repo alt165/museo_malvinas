@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.proveedores.dto.CategoriaObjetoRequestDTO;
 import com.proveedores.dto.CargaRapidaObjetoRequestDTO;
+import com.proveedores.dto.MoverObjetoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.entity.Depositante;
 import com.proveedores.entity.EstadoConservacion;
@@ -14,6 +15,7 @@ import com.proveedores.entity.OrigenCargaObjeto;
 import com.proveedores.entity.TipoDepositante;
 import com.proveedores.entity.Ubicacion;
 import com.proveedores.exception.BusinessException;
+import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.DepositanteRepository;
 import com.proveedores.repository.InventarioRepository;
 import com.proveedores.repository.ObjetoMuseoRepository;
@@ -380,6 +382,90 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
                 });
     }
 
+    @Test
+    void altaRapidaAsignaUbicacionPreIngreso() {
+        Depositante depositante = crearDepositante("IT Depositante pre ingreso");
+
+        var response = objetoMuseoService.cargaRapida(new CargaRapidaObjetoRequestDTO(
+                depositante.getId(),
+                "Objeto pre ingreso",
+                "IT-MOV-PRE-001",
+                "Descripcion breve pre ingreso"
+        ), "operador-test");
+
+        assertThat(inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(response.objeto().id()))
+                .get()
+                .satisfies(inventario -> assertThat(inventario.getUbicacion().getNombre()).isEqualTo("Pre ingreso"));
+    }
+
+    @Test
+    void moverObjetoActualizaUbicacionYCreaMovimiento() {
+        var origen = crearUbicacion("IT Movimiento origen");
+        var destino = crearUbicacion("IT Movimiento destino");
+        var objeto = objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
+                "IT-MOV-001",
+                "Objeto movible",
+                null,
+                null, null, null, EstadoConservacion.BUENO, null,
+                origen.getId()
+        ));
+
+        var movimiento = objetoMuseoService.mover(objeto.id(), new MoverObjetoRequestDTO(destino.getId(), "Traslado de prueba"), "operador-test");
+
+        assertThat(inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(objeto.id()))
+                .get()
+                .satisfies(inventario -> assertThat(inventario.getUbicacion().getId()).isEqualTo(destino.getId()));
+        assertThat(movimiento.fechaMovimiento()).isNotNull();
+        assertThat(movimiento.ubicacionOrigen()).isEqualTo(origen.getNombre());
+        assertThat(movimiento.ubicacionDestino()).isEqualTo(destino.getNombre());
+        assertThat(movimiento.descripcion()).isEqualTo("Traslado de prueba");
+        assertThat(movimiento.usuarioMovimiento()).isEqualTo("operador-test");
+    }
+
+    @Test
+    void movimientosPorObjetoVienenOrdenadosDesc() {
+        var origen = crearUbicacion("IT Movimiento desc origen");
+        var destino1 = crearUbicacion("IT Movimiento desc destino 1");
+        var destino2 = crearUbicacion("IT Movimiento desc destino 2");
+        var objeto = objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
+                "IT-MOV-DESC-001",
+                "Objeto historial desc",
+                null,
+                null, null, null, EstadoConservacion.BUENO, null,
+                origen.getId()
+        ));
+
+        objetoMuseoService.mover(objeto.id(), new MoverObjetoRequestDTO(destino1.getId(), "Primer movimiento"), "operador-test");
+        objetoMuseoService.mover(objeto.id(), new MoverObjetoRequestDTO(destino2.getId(), "Segundo movimiento"), "operador-test");
+
+        assertThat(objetoMuseoService.listarMovimientos(objeto.id()))
+                .extracting("descripcion")
+                .containsSubsequence("Segundo movimiento", "Primer movimiento", "Alta completa");
+    }
+
+    @Test
+    void noPermiteMoverObjetoEliminadoOUbicacionInactiva() {
+        var origen = crearUbicacion("IT Movimiento bloqueado origen");
+        var inactiva = crearUbicacion("IT Movimiento bloqueado inactiva");
+        inactiva.setActivo(false);
+        inactiva.setEliminado(true);
+        ubicacionRepository.save(inactiva);
+        var objeto = objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
+                "IT-MOV-BLOCK-001",
+                "Objeto bloqueado",
+                null,
+                null, null, null, EstadoConservacion.BUENO, null,
+                origen.getId()
+        ));
+
+        assertThatThrownBy(() -> objetoMuseoService.mover(objeto.id(), new MoverObjetoRequestDTO(inactiva.getId(), "No debe mover"), "operador-test"))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        objetoMuseoService.bajaLogica(objeto.id(), "admin-test");
+        assertThatThrownBy(() -> objetoMuseoService.mover(objeto.id(), new MoverObjetoRequestDTO(origen.getId(), "No debe mover"), "operador-test"))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
     private void crearInventario(Long objetoId, LocalDate fechaIngreso) {
         Ubicacion ubicacion = new Ubicacion();
         ubicacion.setNombre("IT Ubicacion " + objetoId + " " + fechaIngreso);
@@ -401,5 +487,12 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
         depositante.setNombre(nombre);
         depositante.setTipo(TipoDepositante.PERSONA);
         return depositanteRepository.save(depositante);
+    }
+
+    private Ubicacion crearUbicacion(String nombre) {
+        Ubicacion ubicacion = new Ubicacion();
+        ubicacion.setNombre(nombre);
+        ubicacion.setTipo("TEST");
+        return ubicacionRepository.save(ubicacion);
     }
 }

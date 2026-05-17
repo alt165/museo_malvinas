@@ -5,6 +5,8 @@ import com.proveedores.dto.CargaRapidaObjetoRequestDTO;
 import com.proveedores.dto.CargaRapidaObjetoResponseDTO;
 import com.proveedores.dto.CategoriaObjetoResponseDTO;
 import com.proveedores.dto.FotoObjetoMuseoResponseDTO;
+import com.proveedores.dto.MoverObjetoRequestDTO;
+import com.proveedores.dto.MovimientoObjetoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoEliminadoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
@@ -22,6 +24,8 @@ import com.proveedores.entity.ObjetoDepositante;
 import com.proveedores.entity.OrigenCargaObjeto;
 import com.proveedores.entity.ReciboIngresoObjeto;
 import com.proveedores.entity.TipoMovimientoInventario;
+import com.proveedores.entity.Ubicacion;
+import com.proveedores.entity.Usuario;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.mapper.ObjetoMuseoMapper;
@@ -35,6 +39,8 @@ import com.proveedores.repository.ObjetoDepositanteRepository;
 import com.proveedores.repository.ObjetoMuseoRepository;
 import com.proveedores.repository.ReciboEscaneadoObjetoMuseoRepository;
 import com.proveedores.repository.ReciboIngresoObjetoRepository;
+import com.proveedores.repository.UbicacionRepository;
+import com.proveedores.repository.UsuarioRepository;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
@@ -60,6 +66,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ObjetoMuseoService {
 
     private static final Logger log = LoggerFactory.getLogger(ObjetoMuseoService.class);
+    private static final String UBICACION_PRE_INGRESO = "Pre ingreso";
 
     private final ObjetoMuseoRepository objetoMuseoRepository;
     private final CategoriaObjetoRepository categoriaObjetoRepository;
@@ -71,6 +78,8 @@ public class ObjetoMuseoService {
     private final ReciboEscaneadoObjetoMuseoRepository reciboEscaneadoObjetoMuseoRepository;
     private final InventarioRepository inventarioRepository;
     private final MovimientoInventarioRepository movimientoInventarioRepository;
+    private final UbicacionRepository ubicacionRepository;
+    private final UsuarioRepository usuarioRepository;
 
     public ObjetoMuseoService(
             ObjetoMuseoRepository objetoMuseoRepository,
@@ -82,7 +91,9 @@ public class ObjetoMuseoService {
             FotoObjetoMuseoRepository fotoObjetoMuseoRepository,
             ReciboEscaneadoObjetoMuseoRepository reciboEscaneadoObjetoMuseoRepository,
             InventarioRepository inventarioRepository,
-            MovimientoInventarioRepository movimientoInventarioRepository
+            MovimientoInventarioRepository movimientoInventarioRepository,
+            UbicacionRepository ubicacionRepository,
+            UsuarioRepository usuarioRepository
     ) {
         this.objetoMuseoRepository = objetoMuseoRepository;
         this.categoriaObjetoRepository = categoriaObjetoRepository;
@@ -94,6 +105,8 @@ public class ObjetoMuseoService {
         this.reciboEscaneadoObjetoMuseoRepository = reciboEscaneadoObjetoMuseoRepository;
         this.inventarioRepository = inventarioRepository;
         this.movimientoInventarioRepository = movimientoInventarioRepository;
+        this.ubicacionRepository = ubicacionRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @Transactional
@@ -104,6 +117,9 @@ public class ObjetoMuseoService {
         entity.setDatosCompletos(tieneDatosCompletos(dto));
         ObjetoMuseo saved = objetoMuseoRepository.save(entity);
         sincronizarCategorias(saved, dto.categoriaIds());
+        if (dto.ubicacionId() != null) {
+            crearInventarioInicial(saved, buscarUbicacionActiva(dto.ubicacionId()), "Alta completa", null);
+        }
         log.info("event=objeto_museo.created objetoMuseoId={} numeroInventario={}", saved.getId(), saved.getNumeroInventario());
         return toResponse(saved);
     }
@@ -196,6 +212,7 @@ public class ObjetoMuseoService {
         objeto.setFechaCargaRapida(fechaCargaRapida);
         objeto.setCargaRapidaPor(operador);
         ObjetoMuseo saved = objetoMuseoRepository.save(objeto);
+        crearInventarioInicial(saved, buscarUbicacionPreIngreso(), "Alta rapida", operador);
 
         ObjetoDepositante relacion = new ObjetoDepositante();
         relacion.setObjetoMuseo(saved);
@@ -218,6 +235,41 @@ public class ObjetoMuseoService {
                 OrigenCargaObjeto.RAPIDA,
                 normalizarPageablePendientes(pageable)
         ).map(this::toPendienteResponse);
+    }
+
+    @Transactional
+    public MovimientoObjetoResponseDTO mover(Long id, MoverObjetoRequestDTO dto, String usuarioMovimiento) {
+        ObjetoMuseo objeto = buscarActivo(id);
+        Ubicacion destino = buscarUbicacionActiva(dto.ubicacionDestinoId());
+        java.util.Optional<Inventario> inventarioActual = inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(id);
+        Inventario inventario = inventarioActual.orElseGet(() -> crearInventarioInicialSinMovimiento(objeto, destino));
+        Ubicacion origen = inventarioActual.map(Inventario::getUbicacion).orElse(null);
+        LocalDateTime fecha = LocalDateTime.now();
+
+        inventario.setUbicacion(destino);
+        inventario.setFechaUltimoMovimiento(fecha);
+        inventario.setObservaciones(dto.descripcion());
+        inventarioRepository.save(inventario);
+
+        MovimientoInventario movimiento = registrarMovimiento(
+                objeto,
+                inventarioActual.isEmpty() ? TipoMovimientoInventario.INGRESO : TipoMovimientoInventario.CAMBIO_UBICACION,
+                origen,
+                destino,
+                dto.descripcion(),
+                usuarioMovimiento,
+                fecha
+        );
+        log.info("event=objeto_museo.moved objetoMuseoId={} ubicacionOrigenId={} ubicacionDestinoId={}", id, origen == null ? null : origen.getId(), destino.getId());
+        return toMovimientoObjetoResponse(movimiento, usuarioMovimiento);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MovimientoObjetoResponseDTO> listarMovimientos(Long id) {
+        buscarActivo(id);
+        return movimientoInventarioRepository.findByObjetoMuseoIdAndEliminadoFalseOrderByFechaDesc(id).stream()
+                .map(movimiento -> toMovimientoObjetoResponse(movimiento, null))
+                .toList();
     }
 
     @Transactional
@@ -468,9 +520,10 @@ public class ObjetoMuseoService {
                 .map(ObjetoCategoria::getCategoriaObjeto)
                 .map(categoria -> new CategoriaObjetoResponseDTO(categoria.getId(), categoria.getNombre(), categoria.getDescripcion()))
                 .toList();
-        LocalDate fechaIngreso = inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(objeto.getId())
-                .map(Inventario::getFechaIngreso)
-                .orElse(null);
+        Inventario inventario = inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(objeto.getId()).orElse(null);
+        LocalDate fechaIngreso = inventario == null ? null : inventario.getFechaIngreso();
+        Long ubicacionId = inventario == null || inventario.getUbicacion() == null ? null : inventario.getUbicacion().getId();
+        String ubicacionNombre = inventario == null || inventario.getUbicacion() == null ? null : inventario.getUbicacion().getNombre();
         List<FotoObjetoMuseoResponseDTO> fotos = fotoObjetoMuseoRepository.findByObjetoMuseoIdAndEliminadoFalse(objeto.getId()).stream()
                 .map(foto -> new FotoObjetoMuseoResponseDTO(
                         foto.getId(),
@@ -496,7 +549,86 @@ public class ObjetoMuseoService {
                         recibo.getCargadoPor()
                 ))
                 .orElse(null);
-        return ObjetoMuseoMapper.toResponse(objeto, fechaIngreso, categorias, fotos, reciboEscaneado);
+        return ObjetoMuseoMapper.toResponse(objeto, fechaIngreso, ubicacionId, ubicacionNombre, categorias, fotos, reciboEscaneado);
+    }
+
+    private void crearInventarioInicial(ObjetoMuseo objeto, Ubicacion ubicacion, String observaciones, String usuarioMovimiento) {
+        Inventario inventario = inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(objeto.getId())
+                .orElseGet(() -> crearInventarioInicialSinMovimiento(objeto, ubicacion));
+        Ubicacion origen = inventario.getUbicacion();
+        inventario.setUbicacion(ubicacion);
+        inventario.setFechaUltimoMovimiento(LocalDateTime.now());
+        inventario.setObservaciones(observaciones);
+        inventarioRepository.save(inventario);
+        registrarMovimiento(objeto, TipoMovimientoInventario.INGRESO, origen == ubicacion ? null : origen, ubicacion, observaciones, usuarioMovimiento, LocalDateTime.now());
+    }
+
+    private Inventario crearInventarioInicialSinMovimiento(ObjetoMuseo objeto, Ubicacion ubicacion) {
+        Inventario inventario = new Inventario();
+        inventario.setObjetoMuseo(objeto);
+        inventario.setUbicacion(ubicacion);
+        inventario.setEstado(EstadoInventario.DISPONIBLE);
+        inventario.setEstadoConservacion(objeto.getEstadoConservacion() == null ? com.proveedores.entity.EstadoConservacion.BUENO : objeto.getEstadoConservacion());
+        inventario.setFechaIngreso(LocalDate.now());
+        inventario.setFechaUltimoMovimiento(LocalDateTime.now());
+        return inventarioRepository.save(inventario);
+    }
+
+    private MovimientoInventario registrarMovimiento(
+            ObjetoMuseo objeto,
+            TipoMovimientoInventario tipo,
+            Ubicacion origen,
+            Ubicacion destino,
+            String observaciones,
+            String usuarioMovimiento,
+            LocalDateTime fecha
+    ) {
+        MovimientoInventario movimiento = new MovimientoInventario();
+        movimiento.setObjetoMuseo(objeto);
+        movimiento.setTipo(tipo);
+        movimiento.setFecha(fecha);
+        movimiento.setUbicacionOrigen(origen);
+        movimiento.setUbicacionDestino(destino);
+        resolverUsuario(usuarioMovimiento).ifPresent(movimiento::setUsuario);
+        movimiento.setObservaciones(observaciones);
+        return movimientoInventarioRepository.save(movimiento);
+    }
+
+    private java.util.Optional<Usuario> resolverUsuario(String usuarioMovimiento) {
+        if (usuarioMovimiento == null || usuarioMovimiento.isBlank()) {
+            return java.util.Optional.empty();
+        }
+        return usuarioRepository.findByEmailAndEliminadoFalse(usuarioMovimiento);
+    }
+
+    private Ubicacion buscarUbicacionPreIngreso() {
+        return ubicacionRepository.findByNombreAndEliminadoFalse(UBICACION_PRE_INGRESO)
+                .orElseThrow(() -> new ResourceNotFoundException("Ubicacion Pre ingreso no encontrada"));
+    }
+
+    private Ubicacion buscarUbicacionActiva(Long id) {
+        Ubicacion ubicacion = ubicacionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Ubicacion no encontrada"));
+        if (ubicacion.getEliminado() || !ubicacion.getActivo()) {
+            throw new ResourceNotFoundException("Ubicacion no encontrada");
+        }
+        return ubicacion;
+    }
+
+    private MovimientoObjetoResponseDTO toMovimientoObjetoResponse(MovimientoInventario movimiento, String usuarioFallback) {
+        return new MovimientoObjetoResponseDTO(
+                movimiento.getId(),
+                movimiento.getFecha(),
+                movimiento.getUbicacionOrigen() == null ? null : movimiento.getUbicacionOrigen().getId(),
+                movimiento.getUbicacionOrigen() == null ? null : movimiento.getUbicacionOrigen().getNombre(),
+                movimiento.getUbicacionDestino() == null ? null : movimiento.getUbicacionDestino().getId(),
+                movimiento.getUbicacionDestino() == null ? null : movimiento.getUbicacionDestino().getNombre(),
+                movimiento.getObservaciones(),
+                movimiento.getUsuario() == null ? usuarioFallback : movimiento.getUsuario().getNombre(),
+                movimiento.getTipo(),
+                null,
+                null
+        );
     }
 
     private ObjetoMuseoEliminadoResponseDTO toEliminadoResponse(ObjetoMuseo objeto) {

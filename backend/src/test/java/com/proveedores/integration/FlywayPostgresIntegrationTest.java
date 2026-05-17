@@ -23,9 +23,11 @@ class FlywayPostgresIntegrationTest extends IntegrationTestBase {
         Integer ubicacionesSembradas = jdbcTemplate.queryForObject("select count(*) from ubicaciones", Integer.class);
         Integer exhibicionesSembradas = jdbcTemplate.queryForObject("select count(*) from exhibiciones", Integer.class);
 
-        assertThat(versiones).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9");
+        assertThat(versiones).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
         assertThat(objetosSembrados).isGreaterThanOrEqualTo(6);
         assertThat(ubicacionesSembradas).isGreaterThanOrEqualTo(5);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from ubicaciones where nombre = 'Pre ingreso' and eliminado = false", Integer.class))
+                .isEqualTo(1);
         assertThat(exhibicionesSembradas).isGreaterThanOrEqualTo(1);
         assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.tables where table_name = 'fotos_objeto_museo'", Integer.class))
                 .isEqualTo(1);

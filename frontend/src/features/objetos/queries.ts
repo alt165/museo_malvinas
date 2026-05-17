@@ -7,15 +7,17 @@ import {
   crearObjeto,
   eliminarFotoObjeto,
   listarFotosObjeto,
+  listarMovimientosObjeto,
   listarObjetos,
   listarObjetosEliminados,
   listarObjetosPendientesCompletar,
   listarRecibosObjeto,
+  moverObjeto,
   obtenerObjetoPorId,
   obtenerReciboEscaneadoObjeto,
   restaurarObjeto
 } from "./api";
-import type { BuscarObjetosParams, CargaRapidaObjetoRequestDTO, ObjetoMuseoRequestDTO } from "./types";
+import type { BuscarObjetosParams, CargaRapidaObjetoRequestDTO, MoverObjetoRequestDTO, ObjetoMuseoRequestDTO } from "./types";
 
 export const objetosQueryKeys = {
   all: ["objetos"] as const,
@@ -25,6 +27,7 @@ export const objetosQueryKeys = {
   pending: (params: { page?: number; size?: number; sort?: string }) => [...objetosQueryKeys.all, "pending", params] as const,
   detail: (id: number) => [...objetosQueryKeys.all, "detail", id] as const,
   fotos: (id: number) => [...objetosQueryKeys.all, "detail", id, "fotos"] as const,
+  movimientos: (id: number) => [...objetosQueryKeys.all, "detail", id, "movimientos"] as const,
   reciboEscaneado: (id: number) => [...objetosQueryKeys.all, "detail", id, "recibo-escaneado"] as const,
   recibos: (id: number) => [...objetosQueryKeys.all, "detail", id, "recibos"] as const
 };
@@ -119,6 +122,26 @@ export function useCargaRapidaObjetoMutation() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.all });
     }
+  });
+}
+
+export function useMoverObjetoMutation(id: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: MoverObjetoRequestDTO) => moverObjeto(id, payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.all });
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.movimientos(id) });
+    }
+  });
+}
+
+export function useMovimientosObjetoQuery(id: number) {
+  return useQuery({
+    queryKey: objetosQueryKeys.movimientos(id),
+    queryFn: () => listarMovimientosObjeto(id),
+    enabled: Number.isFinite(id)
   });
 }
 

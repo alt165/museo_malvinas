@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { useCategoriasQuery } from "@/features/categorias/queries";
+import { useUbicacionesQuery } from "@/features/ubicaciones/queries";
 import type { ObjetoMuseoRequestDTO, ObjetoMuseoResponseDTO } from "../types";
 import { objetoMuseoSchema, type ObjetoMuseoFormValues } from "../schemas";
 import { getValidationErrors } from "../utils";
@@ -41,6 +42,7 @@ export function ObjetoMuseoForm({
     isError: isCategoriasError,
     isLoading: isCategoriasLoading
   } = useCategoriasQuery();
+  const ubicacionesQuery = useUbicacionesQuery();
   const categoriasOrdenadas = [...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre));
   const [categoriaBusqueda, setCategoriaBusqueda] = useState("");
   const [fotos, setFotos] = useState<File[]>([]);
@@ -63,7 +65,8 @@ export function ObjetoMuseoForm({
       materiales: initialValue?.materiales ?? "",
       dimensiones: initialValue?.dimensiones ?? "",
       estadoConservacion: initialValue?.estadoConservacion ?? "",
-      categoriaIds: initialValue?.categorias?.map((categoria) => categoria.id) ?? []
+      categoriaIds: initialValue?.categorias?.map((categoria) => categoria.id) ?? [],
+      ubicacionId: initialValue?.ubicacionId ?? 0
     }
   });
   const watchedCategoriaIds = useWatch({ control, name: "categoriaIds", defaultValue: [] });
@@ -102,7 +105,8 @@ export function ObjetoMuseoForm({
         field === "materiales" ||
         field === "dimensiones" ||
         field === "estadoConservacion" ||
-        field === "categoriaIds"
+        field === "categoriaIds" ||
+        field === "ubicacionId"
       ) {
         setError(field, { message });
       }
@@ -166,7 +170,8 @@ export function ObjetoMuseoForm({
           materiales: values.materiales?.trim() || null,
           dimensiones: values.dimensiones?.trim() || null,
           estadoConservacion: values.estadoConservacion || null,
-          categoriaIds: values.categoriaIds ?? []
+          categoriaIds: values.categoriaIds ?? [],
+          ubicacionId: values.ubicacionId && values.ubicacionId > 0 ? Number(values.ubicacionId) : null
         }, { fotos, reciboEscaneado })
       )}
     >
@@ -193,6 +198,28 @@ export function ObjetoMuseoForm({
           ) : null}
         </div>
       </div>
+      {!initialValue ? (
+        <div className="space-y-2">
+          <label className="text-sm font-medium" htmlFor="ubicacionId">
+            Ubicacion inicial
+          </label>
+          <select
+            className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+            disabled={isSubmitting || ubicacionesQuery.isLoading}
+            id="ubicacionId"
+            {...register("ubicacionId", { valueAsNumber: true })}
+          >
+            <option value={0}>Seleccionar ubicacion</option>
+            {(ubicacionesQuery.data ?? []).map((ubicacion) => (
+              <option key={ubicacion.id} value={ubicacion.id}>
+                {ubicacion.nombre}
+              </option>
+            ))}
+          </select>
+          {ubicacionesQuery.isError ? <p className="text-sm text-destructive">No se pudieron cargar las ubicaciones.</p> : null}
+          {errors.ubicacionId ? <p className="text-sm text-destructive">{errors.ubicacionId.message}</p> : null}
+        </div>
+      ) : null}
       <div className="space-y-2">
         <label className="text-sm font-medium" htmlFor="denominacionObjeto">
           Denominacion

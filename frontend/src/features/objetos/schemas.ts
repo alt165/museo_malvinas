@@ -16,7 +16,8 @@ export const objetoMuseoSchema = z.object({
   materiales: z.string().trim().optional().or(z.literal("")),
   dimensiones: z.string().trim().optional().or(z.literal("")),
   estadoConservacion: z.enum(["", "EXCELENTE", "BUENO", "REGULAR", "MALO", "CRITICO"]),
-  categoriaIds: z.array(z.number()).optional()
+  categoriaIds: z.array(z.number()).optional(),
+  ubicacionId: z.number().optional()
 });
 
 export type ObjetoMuseoFormValues = z.infer<typeof objetoMuseoSchema>;

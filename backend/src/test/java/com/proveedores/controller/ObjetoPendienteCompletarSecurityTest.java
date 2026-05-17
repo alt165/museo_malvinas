@@ -71,4 +71,32 @@ class ObjetoPendienteCompletarSecurityTest {
         mockMvc.perform(get("/api/objetos/pendientes-completar").with(user("viewer").roles("VIEWER")))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    void adminPuedeListarMovimientosDeObjeto() throws Exception {
+        when(objetoMuseoService.listarMovimientos(1L)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/objetos/1/movimientos").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void operatorPuedeListarMovimientosDeObjeto() throws Exception {
+        when(objetoMuseoService.listarMovimientos(1L)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/objetos/1/movimientos").with(user("operator").roles("OPERATOR")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void viewerNoPuedeListarMovimientosDeObjeto() throws Exception {
+        mockMvc.perform(get("/api/objetos/1/movimientos").with(user("viewer").roles("VIEWER")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void viewerNoPuedeListarUbicaciones() throws Exception {
+        mockMvc.perform(get("/api/ubicaciones").with(user("viewer").roles("VIEWER")))
+                .andExpect(status().isForbidden());
+    }
 }

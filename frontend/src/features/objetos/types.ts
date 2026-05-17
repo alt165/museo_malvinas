@@ -12,6 +12,7 @@ export type ObjetoMuseoRequestDTO = {
   dimensiones?: string | null;
   estadoConservacion?: EstadoConservacion | null;
   categoriaIds?: number[];
+  ubicacionId?: number | null;
 };
 
 export type ObjetoMuseoResponseDTO = {
@@ -28,6 +29,8 @@ export type ObjetoMuseoResponseDTO = {
   datosCompletos?: boolean | null;
   fechaCargaRapida?: string | null;
   cargaRapidaPor?: string | null;
+  ubicacionId?: number | null;
+  ubicacionNombre?: string | null;
   categorias?: CategoriaObjetoResponseDTO[];
   fotos?: FotoObjetoMuseoResponseDTO[];
   reciboEscaneado?: ReciboEscaneadoObjetoMuseoResponseDTO | null;
@@ -144,4 +147,23 @@ export type CargaRapidaObjetoResponseDTO = {
   objeto: ObjetoMuseoResponseDTO;
   recibo: ReciboIngresoObjetoResponseDTO;
   reciboPdfUrl: string;
+};
+
+export type MoverObjetoRequestDTO = {
+  ubicacionDestinoId: number;
+  descripcion?: string | null;
+};
+
+export type MovimientoObjetoResponseDTO = {
+  id: number;
+  fechaMovimiento: string;
+  ubicacionOrigenId?: number | null;
+  ubicacionOrigen?: string | null;
+  ubicacionDestinoId?: number | null;
+  ubicacionDestino?: string | null;
+  descripcion?: string | null;
+  usuarioMovimiento?: string | null;
+  tipoMovimiento?: string | null;
+  estadoAnterior?: string | null;
+  estadoNuevo?: string | null;
 };

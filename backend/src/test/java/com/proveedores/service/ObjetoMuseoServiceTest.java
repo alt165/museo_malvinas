@@ -22,6 +22,8 @@ import com.proveedores.repository.ObjetoDepositanteRepository;
 import com.proveedores.repository.ObjetoMuseoRepository;
 import com.proveedores.repository.ReciboEscaneadoObjetoMuseoRepository;
 import com.proveedores.repository.ReciboIngresoObjetoRepository;
+import com.proveedores.repository.UbicacionRepository;
+import com.proveedores.repository.UsuarioRepository;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -62,6 +64,12 @@ class ObjetoMuseoServiceTest {
 
     @Mock
     private MovimientoInventarioRepository movimientoInventarioRepository;
+
+    @Mock
+    private UbicacionRepository ubicacionRepository;
+
+    @Mock
+    private UsuarioRepository usuarioRepository;
 
     @InjectMocks
     private ObjetoMuseoService service;

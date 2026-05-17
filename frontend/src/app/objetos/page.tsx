@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
 import { canWrite, useAuth } from "@/lib/auth";
 import { useBajaLogicaObjetoMutation, useBuscarObjetosQuery } from "@/features/objetos/queries";
+import { MoverObjetoModal } from "@/features/objetos/components/mover-objeto-modal";
 import { ObjetosTable } from "@/features/objetos/components/objetos-table";
 import { getApiErrorMessage } from "@/features/objetos/utils";
 import { ApiClientError } from "@/lib/errors/api-error";
@@ -36,6 +37,7 @@ export default function ObjetosPage() {
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(20);
   const [sort, setSort] = useState<ObjetosSort>({ field: "numeroInventario", direction: "asc" });
+  const [objetoParaMover, setObjetoParaMover] = useState<ObjetoMuseoResponseDTO | null>(null);
   const categoriasQuery = useCategoriasQuery();
   const categorias = useMemo(() => categoriasQuery.data ?? [], [categoriasQuery.data]);
   const categoriasFiltradas = useMemo(() => {
@@ -246,6 +248,7 @@ export default function ObjetosPage() {
               deletingId={bajaLogica.variables ?? null}
               objetos={objetos}
               onDelete={puedeEscribir ? handleBajaLogica : undefined}
+              onMove={puedeEscribir ? setObjetoParaMover : undefined}
               onSortChange={handleSortChange}
               sort={sort}
             />
@@ -292,6 +295,7 @@ export default function ObjetosPage() {
             </div>
           </div>
         ) : null}
+        {objetoParaMover ? <MoverObjetoModal objeto={objetoParaMover} onClose={() => setObjetoParaMover(null)} /> : null}
       </div>
     </AppShell>
   );
