@@ -66,7 +66,7 @@ export function InventarioForm({
 
   return (
     <form
-      className="max-w-4xl space-y-5 rounded-lg border p-5"
+      className="w-full space-y-5 rounded-lg border p-5"
       onSubmit={handleSubmit((values) =>
         onSubmit({
           objetoMuseoId: Number(values.objetoMuseoId),

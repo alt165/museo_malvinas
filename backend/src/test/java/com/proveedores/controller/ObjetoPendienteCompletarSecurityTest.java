@@ -12,6 +12,7 @@ import com.proveedores.service.FotoObjetoMuseoService;
 import com.proveedores.service.ObjetoMuseoService;
 import com.proveedores.service.ReciboEscaneadoObjetoMuseoService;
 import com.proveedores.service.ReciboIngresoObjetoService;
+import com.proveedores.service.RelacionObjetoService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,9 @@ class ObjetoPendienteCompletarSecurityTest {
 
     @MockBean
     private ReciboIngresoObjetoService reciboIngresoObjetoService;
+
+    @MockBean
+    private RelacionObjetoService relacionObjetoService;
 
     @MockBean
     private KeycloakJwtAuthenticationConverter keycloakJwtAuthenticationConverter;
@@ -92,6 +96,22 @@ class ObjetoPendienteCompletarSecurityTest {
     void viewerNoPuedeListarMovimientosDeObjeto() throws Exception {
         mockMvc.perform(get("/api/objetos/1/movimientos").with(user("viewer").roles("VIEWER")))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void viewerPuedeListarRelacionesDeObjeto() throws Exception {
+        when(relacionObjetoService.listarPorObjeto(1L)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/objetos/1/relaciones").with(user("viewer").roles("VIEWER")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void viewerPuedeConsultarGrafoRelacionesDeObjeto() throws Exception {
+        when(relacionObjetoService.obtenerGrafoRelaciones(1L, 1)).thenReturn(new com.proveedores.dto.ObjetoGrafoResponseDTO(List.of(), List.of()));
+
+        mockMvc.perform(get("/api/objetos/1/grafo-relaciones").param("profundidad", "1").with(user("viewer").roles("VIEWER")))
+                .andExpect(status().isOk());
     }
 
     @Test

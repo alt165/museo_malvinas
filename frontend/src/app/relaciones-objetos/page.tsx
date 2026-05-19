@@ -1,59 +1,48 @@
 "use client";
 
+import { Link2, Plus } from "lucide-react";
 import Link from "next/link";
-import { EmptyState } from "@/components/common/empty-state";
-import { ErrorState } from "@/components/common/error-state";
-import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
-import { RelacionesObjetosTable } from "@/features/relaciones-objetos/components/relaciones-objetos-table";
-import { useBajaLogicaRelacionObjetoMutation, useRelacionesObjetoQuery } from "@/features/relaciones-objetos/queries";
-import { getApiErrorMessage } from "@/features/relaciones-objetos/utils";
+import { ObjetoSearchSelector } from "@/features/objetos/components/objeto-search-selector";
 import { canWrite, useAuth } from "@/lib/auth";
-import { ApiClientError } from "@/lib/errors/api-error";
 
 export default function RelacionesObjetosPage() {
   const { roles } = useAuth();
   const puedeEscribir = canWrite(roles);
-  const relacionesQuery = useRelacionesObjetoQuery();
-  const bajaMutation = useBajaLogicaRelacionObjetoMutation();
-
-  function handleDelete(id: number) {
-    if (window.confirm("Dar de baja esta relacion entre objetos?")) {
-      bajaMutation.mutate(id);
-    }
-  }
 
   return (
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          actions={puedeEscribir ? <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/relaciones-objetos/nueva">Nueva relacion</Link> : null}
-          description="Vinculos historicos o documentales entre objetos del museo."
+          description="Busque un objeto para consultar su grafo de relaciones o crear un nuevo vinculo desde ese objeto."
           title="Relaciones entre objetos"
         />
-        {relacionesQuery.isLoading ? <LoadingState label="Cargando relaciones..." /> : null}
-        {relacionesQuery.isError ? (
-          <ErrorState
-            message={getApiErrorMessage(relacionesQuery.error)}
-            requestId={relacionesQuery.error instanceof ApiClientError ? relacionesQuery.error.requestId : undefined}
-          />
-        ) : null}
-        {bajaMutation.isError ? (
-          <ErrorState
-            message={getApiErrorMessage(bajaMutation.error)}
-            requestId={bajaMutation.error instanceof ApiClientError ? bajaMutation.error.requestId : undefined}
-          />
-        ) : null}
-        {relacionesQuery.data?.length === 0 ? <EmptyState title="Sin relaciones" description="Todavia no hay relaciones entre objetos registradas." /> : null}
-        {relacionesQuery.data && relacionesQuery.data.length > 0 ? (
-          <RelacionesObjetosTable
-            canEdit={puedeEscribir}
-            isDeleting={bajaMutation.isPending}
-            onDelete={handleDelete}
-            relaciones={relacionesQuery.data}
-          />
-        ) : null}
+
+        <ObjetoSearchSelector
+          description="Filtre por nombre, numero de inventario o categorias. Las acciones se realizan desde cada objeto del listado."
+          renderActions={(objeto) => (
+            <div className="flex flex-wrap justify-end gap-2">
+              <Link
+                className="inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs font-medium hover:bg-muted"
+                href={`/objetos/${objeto.id}/relaciones?view=graph`}
+              >
+                <Link2 className="h-3.5 w-3.5" />
+                Ver relaciones
+              </Link>
+              {puedeEscribir ? (
+                <Link
+                  className="inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs font-medium text-[#163A61] hover:bg-muted"
+                  href={`/relaciones-objetos/nueva?origenId=${objeto.id}`}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Nueva relacion
+                </Link>
+              ) : null}
+            </div>
+          )}
+          title="Buscar objeto"
+        />
       </div>
     </AppShell>
   );

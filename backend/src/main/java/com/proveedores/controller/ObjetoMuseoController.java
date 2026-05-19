@@ -8,13 +8,16 @@ import com.proveedores.dto.MoverObjetoRequestDTO;
 import com.proveedores.dto.MovimientoObjetoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
+import com.proveedores.dto.ObjetoGrafoResponseDTO;
 import com.proveedores.dto.ObjetoPendienteCompletarResponseDTO;
 import com.proveedores.dto.ReciboEscaneadoObjetoMuseoResponseDTO;
 import com.proveedores.dto.ReciboIngresoObjetoResponseDTO;
+import com.proveedores.dto.RelacionObjetoPorObjetoResponseDTO;
 import com.proveedores.service.FotoObjetoMuseoService;
 import com.proveedores.service.ObjetoMuseoService;
 import com.proveedores.service.ReciboEscaneadoObjetoMuseoService;
 import com.proveedores.service.ReciboIngresoObjetoService;
+import com.proveedores.service.RelacionObjetoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -53,17 +56,20 @@ public class ObjetoMuseoController {
     private final FotoObjetoMuseoService fotoObjetoMuseoService;
     private final ReciboEscaneadoObjetoMuseoService reciboEscaneadoObjetoMuseoService;
     private final ReciboIngresoObjetoService reciboIngresoObjetoService;
+    private final RelacionObjetoService relacionObjetoService;
 
     public ObjetoMuseoController(
             ObjetoMuseoService objetoMuseoService,
             FotoObjetoMuseoService fotoObjetoMuseoService,
             ReciboEscaneadoObjetoMuseoService reciboEscaneadoObjetoMuseoService,
-            ReciboIngresoObjetoService reciboIngresoObjetoService
+            ReciboIngresoObjetoService reciboIngresoObjetoService,
+            RelacionObjetoService relacionObjetoService
     ) {
         this.objetoMuseoService = objetoMuseoService;
         this.fotoObjetoMuseoService = fotoObjetoMuseoService;
         this.reciboEscaneadoObjetoMuseoService = reciboEscaneadoObjetoMuseoService;
         this.reciboIngresoObjetoService = reciboIngresoObjetoService;
+        this.relacionObjetoService = relacionObjetoService;
     }
 
     @Operation(summary = "Crear recurso")
@@ -141,6 +147,23 @@ public class ObjetoMuseoController {
     @GetMapping("/{id}/movimientos")
     public ResponseEntity<List<MovimientoObjetoResponseDTO>> listarMovimientos(@PathVariable Long id) {
         return ResponseEntity.ok(objetoMuseoService.listarMovimientos(id));
+    }
+
+    @Operation(summary = "Listar relaciones del objeto")
+    @ApiResponse(responseCode = "200", description = "Relaciones obtenidas")
+    @GetMapping("/{id}/relaciones")
+    public ResponseEntity<List<RelacionObjetoPorObjetoResponseDTO>> listarRelaciones(@PathVariable Long id) {
+        return ResponseEntity.ok(relacionObjetoService.listarPorObjeto(id));
+    }
+
+    @Operation(summary = "Obtener grafo de relaciones del objeto")
+    @ApiResponse(responseCode = "200", description = "Grafo obtenido")
+    @GetMapping("/{id}/grafo-relaciones")
+    public ResponseEntity<ObjetoGrafoResponseDTO> obtenerGrafoRelaciones(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "1") Integer profundidad
+    ) {
+        return ResponseEntity.ok(relacionObjetoService.obtenerGrafoRelaciones(id, profundidad));
     }
 
     @Operation(summary = "Dar de baja recurso")

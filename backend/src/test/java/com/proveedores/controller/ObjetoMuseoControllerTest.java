@@ -19,6 +19,7 @@ import com.proveedores.service.FotoObjetoMuseoService;
 import com.proveedores.service.ObjetoMuseoService;
 import com.proveedores.service.ReciboEscaneadoObjetoMuseoService;
 import com.proveedores.service.ReciboIngresoObjetoService;
+import com.proveedores.service.RelacionObjetoService;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +54,9 @@ class ObjetoMuseoControllerTest {
 
     @MockBean
     private ReciboIngresoObjetoService reciboIngresoObjetoService;
+
+    @MockBean
+    private RelacionObjetoService relacionObjetoService;
 
     @MockBean
     private KeycloakJwtAuthenticationConverter keycloakJwtAuthenticationConverter;

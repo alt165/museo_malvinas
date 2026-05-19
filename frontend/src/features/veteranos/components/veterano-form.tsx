@@ -48,7 +48,7 @@ export function VeteranoForm({ initialValue, isSubmitting, onSubmit, submitError
   }, [setError, submitError]);
 
   return (
-    <form className="max-w-4xl space-y-5 rounded-lg border p-5" onSubmit={handleSubmit((values) => onSubmit({
+    <form className="w-full space-y-5 rounded-lg border p-5" onSubmit={handleSubmit((values) => onSubmit({
       nombre: values.nombre.trim(),
       apellido: values.apellido.trim(),
       fuerza: values.fuerza,

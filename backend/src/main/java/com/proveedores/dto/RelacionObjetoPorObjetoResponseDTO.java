@@ -1,7 +1,7 @@
 package com.proveedores.dto;
 
-public record RelacionObjetoResponseDTO(
-        Long id,
+public record RelacionObjetoPorObjetoResponseDTO(
+        Long idRelacion,
         Long objetoOrigenId,
         String objetoOrigenNumeroInventario,
         String objetoOrigenNombre,
@@ -10,7 +10,6 @@ public record RelacionObjetoResponseDTO(
         String objetoDestinoNombre,
         String tipoRelacion,
         String descripcion,
-        java.time.LocalDateTime fechaCreacion,
-        String creadoPor
+        String direccion
 ) {
 }

@@ -67,6 +67,14 @@ export default function DetalleObjetoPage() {
                   Ver movimientos
                 </Link>
               ) : null}
+              {data ? (
+                <Link
+                  className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
+                  href={`/objetos/${data.id}/relaciones`}
+                >
+                  Ver relaciones
+                </Link>
+              ) : null}
             </div>
           }
           description="Detalle completo del objeto patrimonial."

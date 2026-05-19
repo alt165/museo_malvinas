@@ -1,6 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import { LoadingState } from "@/components/common/loading-state";
 import { ErrorState } from "@/components/common/error-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
@@ -11,7 +13,17 @@ import { ApiClientError } from "@/lib/errors/api-error";
 import { routePermissions } from "@/lib/routes";
 
 export default function NuevaRelacionObjetoPage() {
+  return (
+    <Suspense fallback={<LoadingState label="Cargando formulario..." />}>
+      <NuevaRelacionObjetoContent />
+    </Suspense>
+  );
+}
+
+function NuevaRelacionObjetoContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const objetoOrigenId = Number(searchParams.get("origenId") ?? searchParams.get("objetoOrigenId"));
   const mutation = useCrearRelacionObjetoMutation();
 
   return (
@@ -25,8 +37,11 @@ export default function NuevaRelacionObjetoPage() {
           />
         ) : null}
         <RelacionObjetoForm
+          defaultObjetoOrigenId={Number.isFinite(objetoOrigenId) && objetoOrigenId > 0 ? objetoOrigenId : undefined}
           isSubmitting={mutation.isPending}
-          onSubmit={(payload) => mutation.mutate(payload, { onSuccess: (relacion) => router.push(`/relaciones-objetos/${relacion.id}`) })}
+          onSubmit={(payload) =>
+            mutation.mutate(payload, { onSuccess: () => router.push(`/objetos/${payload.objetoOrigenId}/relaciones?view=graph`) })
+          }
           submitError={mutation.error}
           submitLabel="Crear relacion"
         />

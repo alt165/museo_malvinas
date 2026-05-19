@@ -40,7 +40,7 @@ export function ResetPasswordForm({ isSubmitting = false, onSubmit, submitError 
 
   return (
     <form
-      className="max-w-2xl space-y-4 rounded-lg border p-5"
+      className="w-full space-y-4 rounded-lg border p-5"
       onSubmit={handleSubmit((values) => onSubmit(values, () => reset({ contrasena: "" })))}
     >
       <label className="space-y-2 text-sm font-medium">

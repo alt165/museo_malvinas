@@ -107,6 +107,8 @@ DELETE /api/objetos/{id}/recibo-escaneado/{archivoId}
 POST   /api/objetos/carga-rapida
 GET    /api/objetos/pendientes-completar
 GET    /api/objetos/sin-coleccion
+GET    /api/objetos/{id}/relaciones
+GET    /api/objetos/{id}/grafo-relaciones?profundidad=1
 GET    /api/objetos/{id}/recibos
 GET    /api/recibos/{id}
 GET    /api/recibos/{id}/pdf
@@ -133,6 +135,22 @@ GET    /api/objetos/sin-coleccion
 ```
 
 Cada objeto puede pertenecer como maximo a una coleccion. `POST /api/colecciones/{id}/objetos` acepta `{ "objetoIds": [1, 2] }` y solo asocia objetos activos, no eliminados y sin coleccion previa. `DELETE /api/colecciones/{id}/objetos/{objetoId}` deja el objeto sin coleccion. Al dar de baja una coleccion se desvinculan sus objetos asociados y no se eliminan los objetos.
+
+### Relaciones entre objetos
+
+```http
+GET    /api/relaciones-objetos
+GET    /api/relaciones-objetos/{id}
+POST   /api/relaciones-objetos
+PUT    /api/relaciones-objetos/{id}
+DELETE /api/relaciones-objetos/{id}
+GET    /api/objetos/{id}/relaciones
+GET    /api/objetos/{id}/grafo-relaciones?profundidad=1
+```
+
+Las relaciones son direccionales: `objetoOrigenId -> objetoDestinoId`. No se permite relacionar un objeto consigo mismo ni duplicar una relacion activa con el mismo origen, destino y tipo. `GET /api/objetos/{id}/relaciones` consulta en base de datos relaciones entrantes y salientes del objeto e informa la direccion relativa como `ENTRANTE` o `SALIENTE`. La baja es logica.
+
+`GET /api/objetos/{id}/grafo-relaciones` devuelve `nodes` y `edges` para visualizar el grafo del objeto. La profundidad es opcional, por defecto `1`; si se solicita una profundidad mayor a `3`, el backend responde `400` con `BusinessException`.
 
 ### Finalizar exhibicion
 

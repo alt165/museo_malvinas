@@ -11,6 +11,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -47,4 +48,10 @@ public class RelacionObjeto extends EntidadBase {
 
     @Column(columnDefinition = "TEXT")
     private String descripcion;
+
+    @Column(name = "fecha_creacion", nullable = false)
+    private LocalDateTime fechaCreacion = LocalDateTime.now();
+
+    @Column(name = "creado_por", length = 160)
+    private String creadoPor;
 }

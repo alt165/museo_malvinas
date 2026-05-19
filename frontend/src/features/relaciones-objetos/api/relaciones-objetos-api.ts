@@ -1,5 +1,10 @@
 import { apiRequest } from "@/lib/api";
-import type { RelacionObjetoRequestDTO, RelacionObjetoResponseDTO } from "../types";
+import type {
+  ObjetoGrafoResponseDTO,
+  RelacionObjetoPorObjetoResponseDTO,
+  RelacionObjetoRequestDTO,
+  RelacionObjetoResponseDTO
+} from "../types";
 
 const basePath = "/api/relaciones-objetos";
 
@@ -11,11 +16,12 @@ export function obtenerRelacionObjetoPorId(id: number) {
   return apiRequest<RelacionObjetoResponseDTO>(`${basePath}/${id}`);
 }
 
-export async function listarRelacionesPorObjeto(objetoId: number) {
-  const relaciones = await listarRelacionesObjeto();
-  return relaciones.filter(
-    (relacion) => relacion.objetoOrigenId === objetoId || relacion.objetoDestinoId === objetoId
-  );
+export function listarRelacionesDeObjeto(objetoId: number) {
+  return apiRequest<RelacionObjetoPorObjetoResponseDTO[]>(`/api/objetos/${objetoId}/relaciones`);
+}
+
+export function obtenerGrafoRelacionesObjeto(objetoId: number, profundidad: number) {
+  return apiRequest<ObjetoGrafoResponseDTO>(`/api/objetos/${objetoId}/grafo-relaciones?profundidad=${profundidad}`);
 }
 
 export function crearRelacionObjeto(payload: RelacionObjetoRequestDTO) {

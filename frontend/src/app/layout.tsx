@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "reactflow/dist/style.css";
 import "./globals.css";
 import { AppProviders } from "./providers";
 

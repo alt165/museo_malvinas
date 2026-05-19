@@ -2,7 +2,8 @@ export {
   actualizarRelacionObjeto,
   bajaLogicaRelacionObjeto,
   crearRelacionObjeto,
+  listarRelacionesDeObjeto,
   listarRelacionesObjeto,
-  listarRelacionesPorObjeto,
+  obtenerGrafoRelacionesObjeto,
   obtenerRelacionObjetoPorId
 } from "./relaciones-objetos-api";

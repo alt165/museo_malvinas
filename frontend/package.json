@@ -20,6 +20,7 @@
     "react": "latest",
     "react-dom": "latest",
     "react-hook-form": "latest",
+    "reactflow": "^11.11.4",
     "tailwind-merge": "latest",
     "zod": "latest"
   },

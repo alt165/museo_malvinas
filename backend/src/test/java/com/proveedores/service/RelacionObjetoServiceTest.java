@@ -33,6 +33,8 @@ class RelacionObjetoServiceTest {
     void crearRelacionValidaEntidadesRelacionadas() {
         when(objetoMuseoRepository.findById(1L)).thenReturn(Optional.of(objeto(1L, "Origen")));
         when(objetoMuseoRepository.findById(2L)).thenReturn(Optional.of(objeto(2L, "Destino")));
+        when(relacionObjetoRepository.findByObjetoOrigenIdAndObjetoDestinoIdAndTipoRelacionAndEliminadoFalse(1L, 2L, "pertenece a"))
+                .thenReturn(Optional.empty());
         when(relacionObjetoRepository.save(any(RelacionObjeto.class))).thenAnswer(invocation -> {
             RelacionObjeto entity = invocation.getArgument(0);
             entity.setId(5L);
@@ -50,6 +52,8 @@ class RelacionObjetoServiceTest {
     void crearConDestinoInexistenteLanzaResourceNotFoundException() {
         when(objetoMuseoRepository.findById(1L)).thenReturn(Optional.of(objeto(1L, "Origen")));
         when(objetoMuseoRepository.findById(2L)).thenReturn(Optional.empty());
+        when(relacionObjetoRepository.findByObjetoOrigenIdAndObjetoDestinoIdAndTipoRelacionAndEliminadoFalse(1L, 2L, "pertenece a"))
+                .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.crear(new RelacionObjetoRequestDTO(1L, 2L, "pertenece a", null)))
                 .isInstanceOf(ResourceNotFoundException.class);

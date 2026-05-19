@@ -43,7 +43,7 @@ export function ColeccionForm({ initialValue, isSubmitting = false, onSubmit, su
 
   return (
     <form
-      className="max-w-3xl space-y-5 rounded-lg border p-5"
+      className="w-full space-y-5 rounded-lg border p-5"
       onSubmit={handleSubmit((values) =>
         onSubmit({
           nombre: values.nombre.trim(),

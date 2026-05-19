@@ -78,7 +78,7 @@ export const navigationGroups: NavigationGroup[] = [
       { href: routes.objetosPendientes, label: "Pendientes de completar", icon: Archive, roles: writeRoles },
       { href: routes.objetosColecciones, label: "Colecciones", icon: FolderTree, roles: readRoles },
       { href: routes.objetoNuevo, label: "Alta completa", icon: Archive, roles: writeRoles },
-      { href: routes.relacionesObjetos, label: "Relaciones entre objetos", icon: Link2, roles: writeRoles }
+      { href: routes.relacionesObjetos, label: "Relaciones entre objetos", icon: Link2, roles: readRoles }
     ]
   },
   {
