@@ -48,11 +48,17 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   );
   const currentActiveHref = activeHref(pathname, visibleGroups);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+  const [collapsedActiveGroups, setCollapsedActiveGroups] = useState<string[]>([]);
 
-  function toggleGroup(key: string) {
-    setExpandedGroups((current) =>
-      current.includes(key) ? current.filter((item) => item !== key) : [...current, key]
-    );
+  function toggleGroup(key: string, expanded: boolean) {
+    if (expanded) {
+      setExpandedGroups((current) => current.filter((item) => item !== key));
+      setCollapsedActiveGroups((current) => (current.includes(key) ? current : [...current, key]));
+      return;
+    }
+
+    setExpandedGroups((current) => (current.includes(key) ? current : [...current, key]));
+    setCollapsedActiveGroups((current) => current.filter((item) => item !== key));
   }
 
   return (
@@ -89,7 +95,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             {visibleGroups.map((group) => {
               const GroupIcon = group.icon;
               const groupActive = groupHasRoute(pathname, group);
-              const expanded = groupActive || expandedGroups.includes(group.key);
+              const expanded = expandedGroups.includes(group.key) || (groupActive && !collapsedActiveGroups.includes(group.key));
 
               return (
                 <div className="space-y-1" key={group.key}>
@@ -98,7 +104,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                       "flex w-full items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/10",
                       groupActive ? "border-accent bg-white/10 text-white" : "text-white/75"
                     )}
-                    onClick={() => toggleGroup(group.key)}
+                    onClick={() => toggleGroup(group.key, expanded)}
                     type="button"
                   >
                     <GroupIcon className="h-4 w-4 shrink-0" />

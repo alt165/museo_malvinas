@@ -5,6 +5,16 @@
     <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>${msg("loginTitle",(realm.displayName!realm.name))}</title>
+    <#assign timeoutMessage = message?has_content && (message.summary?lower_case?contains("timed out") || message.summary?lower_case?contains("expir") || message.summary?lower_case?contains("tiempo"))>
+    <#assign restartLoginUrl = "">
+    <#if url.loginRestartFlowUrl??>
+      <#assign restartLoginUrl = url.loginRestartFlowUrl>
+    <#elseif url.loginUrl??>
+      <#assign restartLoginUrl = url.loginUrl>
+    </#if>
+    <#if timeoutMessage && restartLoginUrl?has_content>
+      <meta http-equiv="refresh" content="0;url=${restartLoginUrl}">
+    </#if>
     <link rel="icon" href="${url.resourcesPath}/img/favicon.png">
     <link rel="stylesheet" href="${url.resourcesPath}/css/login.css">
   </head>
