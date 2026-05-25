@@ -8,9 +8,6 @@ public record UbicacionRequestDTO(
         @Size(max = 120, message = "El nombre no puede superar 120 caracteres")
         String nombre,
 
-        @Size(max = 80, message = "El tipo no puede superar 80 caracteres")
-        String tipo,
-
         String descripcion
 ) {
 }

@@ -22,7 +22,6 @@ export function UbicacionForm({ initialValue, isSubmitting = false, onSubmit, su
     resolver: zodResolver(ubicacionSchema),
     defaultValues: {
       nombre: initialValue?.nombre ?? "",
-      tipo: initialValue?.tipo ?? "",
       descripcion: initialValue?.descripcion ?? ""
     }
   });
@@ -33,7 +32,6 @@ export function UbicacionForm({ initialValue, isSubmitting = false, onSubmit, su
       onSubmit={handleSubmit((values) =>
         onSubmit({
           nombre: values.nombre.trim(),
-          tipo: values.tipo?.trim() || null,
           descripcion: values.descripcion?.trim() || null
         })
       )}
@@ -42,11 +40,6 @@ export function UbicacionForm({ initialValue, isSubmitting = false, onSubmit, su
         <label className="text-sm font-medium" htmlFor="nombre">Nombre</label>
         <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id="nombre" {...register("nombre")} />
         {errors.nombre ? <p className="text-sm text-destructive">{errors.nombre.message}</p> : null}
-      </div>
-      <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="tipo">Tipo</label>
-        <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id="tipo" {...register("tipo")} />
-        {errors.tipo ? <p className="text-sm text-destructive">{errors.tipo.message}</p> : null}
       </div>
       <div className="space-y-2">
         <label className="text-sm font-medium" htmlFor="descripcion">Descripcion</label>

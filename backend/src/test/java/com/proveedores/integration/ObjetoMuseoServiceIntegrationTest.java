@@ -469,7 +469,6 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
     private void crearInventario(Long objetoId, LocalDate fechaIngreso) {
         Ubicacion ubicacion = new Ubicacion();
         ubicacion.setNombre("IT Ubicacion " + objetoId + " " + fechaIngreso);
-        ubicacion.setTipo("TEST");
         Ubicacion savedUbicacion = ubicacionRepository.save(ubicacion);
 
         Inventario inventario = new Inventario();
@@ -492,7 +491,6 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
     private Ubicacion crearUbicacion(String nombre) {
         Ubicacion ubicacion = new Ubicacion();
         ubicacion.setNombre(nombre);
-        ubicacion.setTipo("TEST");
         return ubicacionRepository.save(ubicacion);
     }
 }

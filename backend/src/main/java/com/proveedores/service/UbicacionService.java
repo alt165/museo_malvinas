@@ -39,7 +39,6 @@ public class UbicacionService {
     public UbicacionResponseDTO actualizar(Long id, UbicacionRequestDTO dto) {
         Ubicacion entity = buscarActivo(id);
         entity.setNombre(dto.nombre());
-        entity.setTipo(dto.tipo());
         entity.setDescripcion(dto.descripcion());
         return UbicacionMapper.toResponse(ubicacionRepository.save(entity));
     }

@@ -47,7 +47,6 @@ export default function UbicacionesPage() {
               <thead className="bg-primary text-primary-foreground">
                 <tr>
                   <th className="px-4 py-3 text-left font-semibold text-white">Nombre</th>
-                  <th className="px-4 py-3 text-left font-semibold text-white">Tipo</th>
                   <th className="px-4 py-3 text-left font-semibold text-white">Descripcion</th>
                   {esAdmin ? <th className="px-4 py-3 text-right font-semibold text-white">Acciones</th> : null}
                 </tr>
@@ -56,7 +55,6 @@ export default function UbicacionesPage() {
                 {data.map((ubicacion) => (
                   <tr className="border-t" key={ubicacion.id}>
                     <td className="px-4 py-3 align-top font-medium">{ubicacion.nombre}</td>
-                    <td className="px-4 py-3 align-top">{ubicacion.tipo || "Sin tipo"}</td>
                     <td className="px-4 py-3 align-top text-muted-foreground">{ubicacion.descripcion || "Sin descripcion"}</td>
                     {esAdmin ? (
                       <td className="px-4 py-3 align-top">
