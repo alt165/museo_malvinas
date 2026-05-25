@@ -10,6 +10,7 @@ import com.proveedores.entity.TipoDepositante;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.DepositanteRepository;
 import java.lang.reflect.Field;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -72,6 +73,37 @@ class DepositanteServiceTest {
         assertThatThrownBy(() -> service.buscarPorIdentificacion("99.999.999"))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Depositante no encontrado");
+    }
+
+    @Test
+    void buscarPorNombreDevuelveCoincidenciasParcialesCaseInsensitive() {
+        Depositante juan = depositante(4L, "Juan Perez", TipoDepositante.PERSONA);
+        when(depositanteRepository.findByNombreContainingIgnoreCaseAndEliminadoFalse("JUAN"))
+                .thenReturn(List.of(juan));
+        when(depositanteRepository.findAll()).thenReturn(List.of(juan));
+
+        List<DepositanteResponseDTO> response = service.buscarPorNombre("JUAN");
+
+        assertThat(response).extracting(DepositanteResponseDTO::id).containsExactly(4L);
+    }
+
+    @Test
+    void buscarPorNombreNormalizaAcentos() {
+        Depositante juan = depositante(5L, "Juan Pérez", TipoDepositante.PERSONA);
+        when(depositanteRepository.findByNombreContainingIgnoreCaseAndEliminadoFalse("Perez"))
+                .thenReturn(List.of());
+        when(depositanteRepository.findAll()).thenReturn(List.of(juan));
+
+        List<DepositanteResponseDTO> response = service.buscarPorNombre("Perez");
+
+        assertThat(response).extracting(DepositanteResponseDTO::id).containsExactly(5L);
+    }
+
+    @Test
+    void buscarPorNombreVacioLanzaBusinessException() {
+        assertThatThrownBy(() -> service.buscarPorNombre("  "))
+                .isInstanceOf(com.proveedores.exception.BusinessException.class)
+                .hasMessage("El nombre de busqueda es obligatorio");
     }
 
     @Test

@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { ErrorState } from "@/components/common/error-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
-import { useBuscarDepositantePorIdentificacionMutation } from "@/features/depositantes/queries";
+import { useBuscarDepositantePorIdentificacionMutation, useBuscarDepositantesPorNombreQuery } from "@/features/depositantes/queries";
 import type { DepositanteResponseDTO } from "@/features/depositantes/types";
 import { identificacionVisible, telefonoVisible } from "@/features/depositantes/utils";
 import { descargarReciboPdf } from "@/features/objetos/api";
@@ -27,11 +27,18 @@ function abrirBlob(blob: Blob, nombre: string) {
   URL.revokeObjectURL(url);
 }
 
+function tipoDepositanteLabel(depositante: DepositanteResponseDTO) {
+  return depositante.tipo === "PERSONA" ? "Persona" : "Institucion";
+}
+
 export default function CargaRapidaObjetoPage() {
   const [resultado, setResultado] = useState<CargaRapidaObjetoResponseDTO | null>(null);
   const [identificacion, setIdentificacion] = useState("");
+  const [nombreDepositante, setNombreDepositante] = useState("");
+  const [nombreDepositanteDebounced, setNombreDepositanteDebounced] = useState("");
   const [depositanteSeleccionado, setDepositanteSeleccionado] = useState<DepositanteResponseDTO | null>(null);
   const buscarDepositanteMutation = useBuscarDepositantePorIdentificacionMutation();
+  const depositantesPorNombreQuery = useBuscarDepositantesPorNombreQuery(nombreDepositanteDebounced);
   const mutation = useCargaRapidaObjetoMutation();
   const {
     formState: { errors },
@@ -57,6 +64,23 @@ export default function CargaRapidaObjetoPage() {
       }
     });
   }, [mutation.error, setError]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setNombreDepositanteDebounced(nombreDepositante.trim());
+    }, 350);
+
+    return () => window.clearTimeout(timeout);
+  }, [nombreDepositante]);
+
+  function seleccionarDepositante(depositante: DepositanteResponseDTO) {
+    setDepositanteSeleccionado(depositante);
+    setValue("depositanteId", depositante.id, { shouldDirty: true, shouldValidate: true });
+  }
+
+  const resultadosNombre = depositantesPorNombreQuery.data ?? [];
+  const buscandoPorNombre = Boolean(nombreDepositante.trim()) && (nombreDepositante.trim() !== nombreDepositanteDebounced || depositantesPorNombreQuery.isFetching);
+  const mostrarSinResultadosNombre = Boolean(nombreDepositanteDebounced) && !depositantesPorNombreQuery.isFetching && !depositantesPorNombreQuery.isError && resultadosNombre.length === 0;
 
   return (
     <AppShell requiredRoles={[...routePermissions.write]}>
@@ -112,7 +136,7 @@ export default function CargaRapidaObjetoPage() {
           <section className="space-y-3">
             <div>
               <h2 className="text-base font-semibold">Buscar depositante</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Selecciona un depositante existente por DNI o CUIT.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Selecciona un depositante existente por DNI/CUIT o por nombre.</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
               <label className="space-y-2 text-sm font-medium">
@@ -134,8 +158,7 @@ export default function CargaRapidaObjetoPage() {
                 onClick={() => {
                   buscarDepositanteMutation.mutate(identificacion.trim(), {
                     onSuccess: (depositante) => {
-                      setDepositanteSeleccionado(depositante);
-                      setValue("depositanteId", depositante.id, { shouldDirty: true, shouldValidate: true });
+                      seleccionarDepositante(depositante);
                     },
                     onError: () => {
                       setDepositanteSeleccionado(null);
@@ -148,10 +171,51 @@ export default function CargaRapidaObjetoPage() {
                 {buscarDepositanteMutation.isPending ? "Buscando..." : "Buscar"}
               </button>
             </div>
+            <div className="space-y-3">
+              <label className="space-y-2 text-sm font-medium">
+                <span>Buscar depositante por nombre</span>
+                <input
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  onChange={(event) => {
+                    setNombreDepositante(event.target.value);
+                    setDepositanteSeleccionado(null);
+                    setValue("depositanteId", 0, { shouldDirty: true, shouldValidate: true });
+                  }}
+                  placeholder="Nombre, apellido u organizacion"
+                  value={nombreDepositante}
+                />
+              </label>
+              {buscandoPorNombre ? <p className="text-sm text-muted-foreground">Buscando depositantes...</p> : null}
+              {mostrarSinResultadosNombre ? <p className="text-sm text-muted-foreground">No se encontraron depositantes con ese nombre.</p> : null}
+              {depositantesPorNombreQuery.isError ? (
+                <ErrorState
+                  message={getApiErrorMessage(depositantesPorNombreQuery.error)}
+                  requestId={depositantesPorNombreQuery.error instanceof ApiClientError ? depositantesPorNombreQuery.error.requestId : undefined}
+                />
+              ) : null}
+              {resultadosNombre.length > 0 ? (
+                <div className="overflow-hidden rounded-md border">
+                  {resultadosNombre.map((depositante) => (
+                    <button
+                      className="flex w-full items-start justify-between gap-4 border-b px-4 py-3 text-left text-sm hover:bg-muted/60 last:border-b-0"
+                      key={depositante.id}
+                      onClick={() => seleccionarDepositante(depositante)}
+                      type="button"
+                    >
+                      <span>
+                        <span className="block font-medium">{depositante.nombre}</span>
+                        <span className="mt-1 block text-muted-foreground">{identificacionVisible(depositante)}</span>
+                      </span>
+                      <span className="shrink-0 rounded-md border px-2 py-1 text-xs text-muted-foreground">{tipoDepositanteLabel(depositante)}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
             {depositanteSeleccionado ? (
               <div className="rounded-md border bg-muted/30 p-4 text-sm">
                 <p className="font-medium">{depositanteSeleccionado.nombre}</p>
-                <p className="mt-1 text-muted-foreground">{identificacionVisible(depositanteSeleccionado)}</p>
+                <p className="mt-1 text-muted-foreground">{tipoDepositanteLabel(depositanteSeleccionado)} - {identificacionVisible(depositanteSeleccionado)}</p>
                 {[depositanteSeleccionado.contacto, telefonoVisible(depositanteSeleccionado)]
                   .filter((item) => item && item !== "Sin telefono")
                   .length > 0 ? (

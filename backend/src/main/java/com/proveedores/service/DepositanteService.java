@@ -7,7 +7,9 @@ import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.mapper.DepositanteMapper;
 import com.proveedores.repository.DepositanteRepository;
+import java.text.Normalizer;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,6 +58,23 @@ public class DepositanteService {
                 .orElseThrow(() -> new ResourceNotFoundException("Depositante no encontrado"));
     }
 
+    @Transactional(readOnly = true)
+    public List<DepositanteResponseDTO> buscarPorNombre(String valor) {
+        String nombre = normalizarBusquedaNombre(valor);
+        String nombreNormalizado = normalizarTexto(nombre);
+        LinkedHashMap<Long, Depositante> resultados = new LinkedHashMap<>();
+
+        depositanteRepository.findByNombreContainingIgnoreCaseAndEliminadoFalse(nombre)
+                .forEach(depositante -> resultados.put(depositante.getId(), depositante));
+
+        depositanteRepository.findAll().stream()
+                .filter(depositante -> !depositante.getEliminado())
+                .filter(depositante -> normalizarTexto(depositante.getNombre()).contains(nombreNormalizado))
+                .forEach(depositante -> resultados.putIfAbsent(depositante.getId(), depositante));
+
+        return resultados.values().stream().map(DepositanteMapper::toResponse).toList();
+    }
+
     @Transactional
     public void bajaLogica(Long id) {
         Depositante entity = buscarActivo(id);
@@ -82,5 +101,19 @@ public class DepositanteService {
             throw new BusinessException("La identificacion es obligatoria");
         }
         return normalizado;
+    }
+
+    private String normalizarBusquedaNombre(String valor) {
+        if (valor == null || valor.trim().isBlank()) {
+            throw new BusinessException("El nombre de busqueda es obligatorio");
+        }
+
+        return valor.trim();
+    }
+
+    private String normalizarTexto(String valor) {
+        String sinAcentos = Normalizer.normalize(valor == null ? "" : valor, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "");
+        return sinAcentos.toLowerCase();
     }
 }

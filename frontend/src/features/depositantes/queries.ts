@@ -3,6 +3,7 @@ import {
   actualizarDepositante,
   bajaLogicaDepositante,
   buscarDepositantePorIdentificacion,
+  buscarDepositantesPorNombre,
   crearDepositante,
   listarDepositantes,
   obtenerDepositantePorId
@@ -13,6 +14,7 @@ export const depositantesQueryKeys = {
   all: ["depositantes"] as const,
   lists: () => [...depositantesQueryKeys.all, "list"] as const,
   identificacion: (valor: string) => [...depositantesQueryKeys.all, "identificacion", valor] as const,
+  nombre: (valor: string) => [...depositantesQueryKeys.all, "nombre", valor] as const,
   detail: (id: number) => [...depositantesQueryKeys.all, "detail", id] as const
 };
 
@@ -34,6 +36,16 @@ export function useDepositanteQuery(id: number) {
 export function useBuscarDepositantePorIdentificacionMutation() {
   return useMutation({
     mutationFn: buscarDepositantePorIdentificacion
+  });
+}
+
+export function useBuscarDepositantesPorNombreQuery(valor: string) {
+  const valorNormalizado = valor.trim();
+
+  return useQuery({
+    queryKey: depositantesQueryKeys.nombre(valorNormalizado),
+    queryFn: () => buscarDepositantesPorNombre(valorNormalizado),
+    enabled: valorNormalizado.length > 0
   });
 }
 

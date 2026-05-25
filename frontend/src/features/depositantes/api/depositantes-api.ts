@@ -15,6 +15,10 @@ export function buscarDepositantePorIdentificacion(valor: string) {
   return apiRequest<DepositanteResponseDTO>(`${basePath}/buscar-identificacion?valor=${encodeURIComponent(valor)}`);
 }
 
+export function buscarDepositantesPorNombre(valor: string) {
+  return apiRequest<DepositanteResponseDTO[]>(`${basePath}/buscar-nombre?valor=${encodeURIComponent(valor)}`);
+}
+
 export function crearDepositante(payload: DepositanteRequestDTO) {
   return apiRequest<DepositanteResponseDTO>(basePath, {
     method: "POST",

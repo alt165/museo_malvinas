@@ -60,6 +60,13 @@ public class DepositanteController {
         return ResponseEntity.ok(depositanteService.buscarPorIdentificacion(valor));
     }
 
+    @Operation(summary = "Buscar depositantes por nombre")
+    @ApiResponse(responseCode = "200", description = "Listado obtenido")
+    @GetMapping("/buscar-nombre")
+    public ResponseEntity<List<DepositanteResponseDTO>> buscarPorNombre(@RequestParam String valor) {
+        return ResponseEntity.ok(depositanteService.buscarPorNombre(valor));
+    }
+
     @Operation(summary = "Actualizar recurso")
     @ApiResponse(responseCode = "200", description = "Recurso actualizado")
     @PutMapping("/{id}")

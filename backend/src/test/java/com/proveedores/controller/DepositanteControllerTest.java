@@ -11,6 +11,7 @@ import com.proveedores.exception.GlobalExceptionHandler;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.security.KeycloakJwtAuthenticationConverter;
 import com.proveedores.service.DepositanteService;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -53,5 +54,17 @@ class DepositanteControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").value("Depositante no encontrado"));
+    }
+
+    @Test
+    void buscarNombreDevuelveListaDeDepositantes() throws Exception {
+        when(depositanteService.buscarPorNombre("juan"))
+                .thenReturn(List.of(new DepositanteResponseDTO(1L, "Juan Perez", TipoDepositante.PERSONA, "juan@example.com", "12.345.678", null, null)));
+
+        mockMvc.perform(get("/api/depositantes/buscar-nombre").param("valor", "juan"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(1L))
+                .andExpect(jsonPath("$[0].nombre").value("Juan Perez"))
+                .andExpect(jsonPath("$[0].dni").value("12.345.678"));
     }
 }
