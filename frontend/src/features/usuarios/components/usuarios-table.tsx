@@ -6,6 +6,7 @@ import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tan
 import { Pencil, Search, ShieldCheck, ShieldOff } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
+import { formatRoles } from "@/lib/auth/role-labels";
 import type { UsuarioKeycloakResponseDTO } from "../types";
 import { nombreCompleto } from "../utils";
 
@@ -39,7 +40,7 @@ export function UsuariosTable({ isUpdating = false, onToggleEnabled, usuarios }:
       {
         id: "roles",
         header: "Rol",
-        cell: ({ row }) => row.original.roles.join(", ") || "Sin rol"
+        cell: ({ row }) => formatRoles(row.original.roles)
       },
       {
         id: "estado",

@@ -28,7 +28,7 @@ async function parseErrorResponse(response: Response): Promise<ApiErrorResponse>
   return {
     status: response.status,
     error: response.statusText,
-    message: response.statusText || "Error de API",
+    message: "No se pudo completar la operacion.",
     requestId
   };
 }

@@ -1,18 +1,10 @@
-import { ApiClientError } from "@/lib/errors/api-error";
+import { ApiClientError, getUserFacingErrorMessage } from "@/lib/errors/api-error";
 import type { UserRole } from "@/models/session";
 import type { UsuarioFormValues } from "./schemas";
 import type { UsuarioKeycloakRequestDTO, UsuarioKeycloakResponseDTO } from "./types";
 
 export function getApiErrorMessage(error: unknown) {
-  if (error instanceof ApiClientError) {
-    return error.message;
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Ocurrio un error inesperado";
+  return getUserFacingErrorMessage(error);
 }
 
 export function getValidationErrors(error: unknown) {

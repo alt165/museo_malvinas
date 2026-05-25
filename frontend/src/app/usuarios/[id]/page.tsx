@@ -9,6 +9,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { ResetPasswordForm } from "@/features/usuarios/components/reset-password-form";
 import { useCambiarEstadoUsuarioMutation, useResetearPasswordUsuarioMutation, useUsuarioQuery } from "@/features/usuarios/queries";
 import { getApiErrorMessage, nombreCompleto } from "@/features/usuarios/utils";
+import { formatRoles } from "@/lib/auth/role-labels";
 import { ApiClientError } from "@/lib/errors/api-error";
 import { routePermissions } from "@/lib/routes";
 
@@ -74,7 +75,7 @@ export default function DetalleUsuarioPage() {
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Rol</dt>
-                  <dd className="font-medium">{data.roles.join(", ") || "Sin rol"}</dd>
+                  <dd className="font-medium">{formatRoles(data.roles)}</dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Id Keycloak</dt>

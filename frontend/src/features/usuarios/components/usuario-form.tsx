@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { getRoleLabel } from "@/lib/auth/role-labels";
 import type { UserRole } from "@/models/session";
 import { usuarioCrearSchema, usuarioSchema, type UsuarioFormValues } from "../schemas";
 import { rolesUsuario, type UsuarioKeycloakRequestDTO, type UsuarioKeycloakResponseDTO } from "../types";
@@ -108,7 +109,7 @@ export function UsuarioForm({
           >
             {rolesUsuario.map((rol) => (
               <option key={rol} value={rol}>
-                {rol}
+                {getRoleLabel(rol)}
               </option>
             ))}
           </select>

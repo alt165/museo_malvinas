@@ -9,6 +9,7 @@ import { UsuarioForm } from "@/features/usuarios/components/usuario-form";
 import { useActualizarUsuarioMutation, useAsignarRolUsuarioMutation, useUsuarioQuery } from "@/features/usuarios/queries";
 import { getApiErrorMessage, getRolPrincipal } from "@/features/usuarios/utils";
 import { useAuth } from "@/lib/auth";
+import { getRoleLabel } from "@/lib/auth/role-labels";
 import { ApiClientError } from "@/lib/errors/api-error";
 import { routePermissions } from "@/lib/routes";
 
@@ -41,7 +42,7 @@ export default function EditarUsuarioPage() {
               const currentRol = getRolPrincipal(data.roles);
               const isSelfAdminRemoval = user?.id === data.id && currentRol === "ADMIN" && rol !== "ADMIN";
               const confirmarQuitarAdminPropio = isSelfAdminRemoval
-                ? window.confirm("Confirmar que queres quitarte tu propio rol ADMIN?")
+                ? window.confirm(`Confirmar que queres quitarte tu propio rol ${getRoleLabel("ADMIN")}?`)
                 : false;
 
               if (isSelfAdminRemoval && !confirmarQuitarAdminPropio) {

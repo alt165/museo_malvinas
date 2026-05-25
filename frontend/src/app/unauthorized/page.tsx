@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
+import { formatRoles } from "@/lib/auth/role-labels";
 
 export default function UnauthorizedPage() {
   const { logout, roles, user } = useAuth();
@@ -17,7 +18,7 @@ export default function UnauthorizedPage() {
         </div>
         <div className="rounded-md bg-muted p-3 text-sm">
           <p className="font-medium">{user?.name ?? user?.username ?? "Usuario"}</p>
-          <p className="text-muted-foreground">{roles.join(", ") || "Sin roles"}</p>
+          <p className="text-muted-foreground">{formatRoles(roles, "Sin roles")}</p>
         </div>
         <div className="flex gap-3">
           <Link

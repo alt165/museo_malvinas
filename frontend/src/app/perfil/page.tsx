@@ -3,6 +3,7 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/common/page-header";
 import { useAuth } from "@/lib/auth";
+import { formatRoles } from "@/lib/auth/role-labels";
 
 export default function PerfilPage() {
   const { authenticated, roles, user } = useAuth();
@@ -34,7 +35,7 @@ export default function PerfilPage() {
             </div>
             <div className="sm:col-span-2">
               <dt className="text-muted-foreground">Roles</dt>
-              <dd className="mt-1 font-medium">{roles.join(", ") || "Sin roles"}</dd>
+              <dd className="mt-1 font-medium">{formatRoles(roles, "Sin roles")}</dd>
             </div>
           </dl>
         </div>
