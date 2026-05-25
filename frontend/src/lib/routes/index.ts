@@ -67,28 +67,13 @@ export const routes = {
 
 export const navigationGroups: NavigationGroup[] = [
   {
-    key: "objetos",
-    label: "Objetos",
-    icon: Archive,
+    key: "colecciones",
+    label: "Colecciones",
+    icon: FolderTree,
     roles: readRoles,
     items: [
-      { href: routes.objetos, label: "Consulta", icon: Archive, roles: readRoles },
-      { href: routes.objetosEliminados, label: "Eliminados", icon: Archive, roles: adminRoles },
-      { href: routes.objetosCargaRapida, label: "Alta rapida", icon: Archive, roles: writeRoles },
-      { href: routes.objetosPendientes, label: "Pendientes de completar", icon: Archive, roles: writeRoles },
-      { href: routes.objetosColecciones, label: "Colecciones", icon: FolderTree, roles: readRoles },
-      { href: routes.objetoNuevo, label: "Alta completa", icon: Archive, roles: writeRoles },
-      { href: routes.relacionesObjetos, label: "Relaciones entre objetos", icon: Link2, roles: readRoles }
-    ]
-  },
-  {
-    key: "ubicaciones",
-    label: "Ubicaciones",
-    icon: MapPin,
-    roles: writeRoles,
-    items: [
-      { href: routes.ubicaciones, label: "Consulta", icon: MapPin, roles: writeRoles },
-      { href: routes.ubicacionNueva, label: "Alta", icon: MapPin, roles: adminRoles }
+      { href: routes.objetosColecciones, label: "Consulta", icon: FolderTree, roles: readRoles },
+      { href: routes.objetosColeccionNueva, label: "Alta", icon: FolderTree, roles: writeRoles }
     ]
   },
   {
@@ -100,6 +85,50 @@ export const navigationGroups: NavigationGroup[] = [
       { href: routes.veteranos, label: "Consulta", icon: IdCard, roles: readRoles },
       { href: routes.veteranoNuevo, label: "Alta de veterano", icon: IdCard, roles: writeRoles },
       { href: routes.actuacionesVeteranos, label: "Actuaciones de veteranos", icon: History, roles: writeRoles }
+    ]
+  },
+  {
+    key: "usuarios",
+    label: "Usuarios",
+    icon: UserCog,
+    roles: adminRoles,
+    items: [
+      { href: routes.usuarios, label: "Consulta", icon: UserCog, roles: adminRoles },
+      { href: routes.usuarioNuevo, label: "Alta", icon: UserCog, roles: adminRoles }
+    ]
+  },
+  {
+    key: "objetos",
+    label: "Objetos",
+    icon: Archive,
+    roles: readRoles,
+    items: [
+      { href: routes.objetos, label: "Consulta", icon: Archive, roles: readRoles },
+      { href: routes.objetosEliminados, label: "Eliminados", icon: Archive, roles: adminRoles },
+      { href: routes.objetosCargaRapida, label: "Alta rapida", icon: Archive, roles: writeRoles },
+      { href: routes.objetosPendientes, label: "Pendientes de completar", icon: Archive, roles: writeRoles },
+      { href: routes.objetoNuevo, label: "Alta completa", icon: Archive, roles: writeRoles },
+      { href: routes.relacionesObjetos, label: "Relaciones entre objetos", icon: Link2, roles: readRoles }
+    ]
+  },
+  {
+    key: "categorias",
+    label: "Categorias",
+    icon: FolderTree,
+    roles: readRoles,
+    items: [
+      { href: routes.categorias, label: "Consulta", icon: FolderTree, roles: readRoles },
+      { href: routes.categoriaNueva, label: "Alta", icon: FolderTree, roles: writeRoles }
+    ]
+  },
+  {
+    key: "ubicaciones",
+    label: "Ubicaciones",
+    icon: MapPin,
+    roles: writeRoles,
+    items: [
+      { href: routes.ubicaciones, label: "Consulta", icon: MapPin, roles: writeRoles },
+      { href: routes.ubicacionNueva, label: "Alta", icon: MapPin, roles: adminRoles }
     ]
   },
   {
@@ -121,26 +150,6 @@ export const navigationGroups: NavigationGroup[] = [
       { href: routes.exhibiciones, label: "Consulta", icon: Landmark, roles: readRoles },
       { href: routes.exhibicionNueva, label: "Alta", icon: Landmark, roles: writeRoles },
       { href: "#", label: "Repetir", icon: Landmark, roles: writeRoles, disabled: true, badge: "Proximamente" }
-    ]
-  },
-  {
-    key: "categorias",
-    label: "Categorias",
-    icon: FolderTree,
-    roles: readRoles,
-    items: [
-      { href: routes.categorias, label: "Consulta", icon: FolderTree, roles: readRoles },
-      { href: routes.categoriaNueva, label: "Alta", icon: FolderTree, roles: writeRoles }
-    ]
-  },
-  {
-    key: "usuarios",
-    label: "Usuarios",
-    icon: UserCog,
-    roles: adminRoles,
-    items: [
-      { href: routes.usuarios, label: "Consulta", icon: UserCog, roles: adminRoles },
-      { href: routes.usuarioNuevo, label: "Alta", icon: UserCog, roles: adminRoles }
     ]
   }
 ];

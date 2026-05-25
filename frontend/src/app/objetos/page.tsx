@@ -254,11 +254,11 @@ export default function ObjetosPage() {
             />
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-surface px-4 py-3 text-sm">
               <div className="text-muted-foreground">
-                {isFetching ? "Actualizando..." : `${data?.totalElements ?? 0} resultado(s)`}
+                {isFetching ? "Actualizando..." : `${data?.totalElements ?? 0} elementos encontrados`}
               </div>
               <div className="flex items-center gap-2">
                 <label className="flex items-center gap-2">
-                  <span>Tamaño</span>
+                  <span>Cantidad de elementos por página</span>
                   <select
                     className="h-9 rounded-md border bg-white px-2"
                     onChange={(event) => {

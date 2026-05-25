@@ -8,33 +8,22 @@ type TopbarProps = {
 };
 
 export function Topbar({ onOpenSidebar }: TopbarProps) {
-  const { authenticated, logout, roles, user } = useAuth();
+  const { logout, user } = useAuth();
   const displayName = user?.name ?? user?.username ?? "Usuario";
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-primary/10 bg-surface/95 px-4 shadow-sm backdrop-blur md:px-6">
-      <div className="flex items-center gap-3">
+    <header className="relative z-10 flex h-full items-center justify-between px-4 text-white md:px-6">
+      <button
+        className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/30 bg-white/10 text-white hover:bg-white/20 md:hidden"
+        onClick={onOpenSidebar}
+        type="button"
+      >
+        <Menu className="h-4 w-4" />
+      </button>
+      <div className="ml-auto flex min-w-0 items-center gap-3">
+        <p className="min-w-0 truncate text-sm font-semibold text-white">{displayName}</p>
         <button
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md border bg-surface text-primary hover:bg-secondary/20 md:hidden"
-          onClick={onOpenSidebar}
-          type="button"
-        >
-          <Menu className="h-4 w-4" />
-        </button>
-        <div>
-          <div className="text-sm font-semibold text-primary">Administracion</div>
-          <div className="text-xs text-muted-foreground">
-            {authenticated ? "Sesion activa" : "Sesion no autenticada"}
-          </div>
-        </div>
-      </div>
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="hidden min-w-0 text-right sm:block">
-          <p className="text-sm font-semibold text-primary">{displayName}</p>
-          <p className="text-xs text-muted-foreground">{roles.join(", ") || "Sin roles"}</p>
-        </div>
-        <button
-          className="inline-flex h-9 items-center gap-2 rounded-md border border-primary/20 bg-surface px-3 text-sm font-medium text-primary hover:bg-secondary/20"
+          className="inline-flex h-9 items-center gap-2 rounded-md border border-white/30 bg-white/10 px-3 text-sm font-medium text-white hover:bg-white/20"
           onClick={() => void logout()}
           type="button"
         >
