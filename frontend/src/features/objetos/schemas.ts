@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const caracteresConVencimiento = new Set(["PRESTAMO", "COMODATO"]);
+
 export const objetoMuseoSchema = z.object({
   numeroInventario: z
     .string()
@@ -17,7 +19,17 @@ export const objetoMuseoSchema = z.object({
   dimensiones: z.string().trim().optional().or(z.literal("")),
   estadoConservacion: z.enum(["", "EXCELENTE", "BUENO", "REGULAR", "MALO", "CRITICO"]),
   categoriaIds: z.array(z.number()).optional(),
-  ubicacionId: z.number().optional()
+  ubicacionId: z.number().optional(),
+  depositanteId: z.number().min(1, "El depositante es obligatorio"),
+  caracterRecepcion: z.enum(["", "PRESTAMO", "COMODATO", "DONACION", "COMPRA", "ESTUDIO", "OTRO"]),
+  fechaVencimiento: z.string().optional().or(z.literal(""))
+}).superRefine((values, ctx) => {
+  if (!values.caracterRecepcion) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "El caracter de recepcion es obligatorio", path: ["caracterRecepcion"] });
+  }
+  if (caracteresConVencimiento.has(values.caracterRecepcion) && !values.fechaVencimiento) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "La fecha de vencimiento es obligatoria", path: ["fechaVencimiento"] });
+  }
 });
 
 export type ObjetoMuseoFormValues = z.infer<typeof objetoMuseoSchema>;

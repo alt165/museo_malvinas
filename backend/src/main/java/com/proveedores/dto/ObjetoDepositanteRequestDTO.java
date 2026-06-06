@@ -2,7 +2,6 @@ package com.proveedores.dto;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
-import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
 public record ObjetoDepositanteRequestDTO(
@@ -15,8 +14,9 @@ public record ObjetoDepositanteRequestDTO(
         @PastOrPresent(message = "La fecha de deposito no puede ser futura")
         LocalDate fechaDeposito,
 
-        @Size(max = 80, message = "El tipo de deposito no puede superar 80 caracteres")
-        String tipoDeposito,
+        com.proveedores.entity.CaracterRecepcionObjeto tipoDeposito,
+
+        LocalDate fechaVencimiento,
 
         String observaciones
 ) {

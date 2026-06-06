@@ -1,6 +1,7 @@
 package com.proveedores.mapper;
 
 import com.proveedores.dto.CategoriaObjetoResponseDTO;
+import com.proveedores.entity.CaracterRecepcionObjeto;
 import com.proveedores.dto.FotoObjetoMuseoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
@@ -24,11 +25,11 @@ public final class ObjetoMuseoMapper {
     }
 
     public static ObjetoMuseoResponseDTO toResponse(ObjetoMuseo entity, List<CategoriaObjetoResponseDTO> categorias) {
-        return toResponse(entity, null, null, null, null, null, categorias, List.of(), null);
+        return toResponse(entity, null, null, null, null, null, null, null, null, null, categorias, List.of(), null);
     }
 
     public static ObjetoMuseoResponseDTO toResponse(ObjetoMuseo entity, LocalDate fechaIngreso, List<CategoriaObjetoResponseDTO> categorias) {
-        return toResponse(entity, fechaIngreso, null, null, null, null, categorias, List.of(), null);
+        return toResponse(entity, fechaIngreso, null, null, null, null, null, null, null, null, categorias, List.of(), null);
     }
 
     public static ObjetoMuseoResponseDTO toResponse(
@@ -38,6 +39,10 @@ public final class ObjetoMuseoMapper {
             String ubicacionNombre,
             Long coleccionId,
             String coleccionNombre,
+            Long depositanteId,
+            String depositanteNombre,
+            CaracterRecepcionObjeto caracterRecepcion,
+            LocalDate fechaVencimiento,
             List<CategoriaObjetoResponseDTO> categorias,
             List<FotoObjetoMuseoResponseDTO> fotos,
             ReciboEscaneadoObjetoMuseoResponseDTO reciboEscaneado
@@ -60,6 +65,10 @@ public final class ObjetoMuseoMapper {
                 ubicacionNombre,
                 coleccionId,
                 coleccionNombre,
+                depositanteId,
+                depositanteNombre,
+                caracterRecepcion,
+                fechaVencimiento,
                 categorias,
                 fotos,
                 reciboEscaneado

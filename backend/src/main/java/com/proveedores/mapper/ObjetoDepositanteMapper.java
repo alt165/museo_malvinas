@@ -14,11 +14,12 @@ public final class ObjetoDepositanteMapper {
         entity.setDepositante(MapperReferences.depositante(dto.depositanteId()));
         entity.setFechaDeposito(dto.fechaDeposito());
         entity.setTipoDeposito(dto.tipoDeposito());
+        entity.setFechaVencimiento(dto.fechaVencimiento());
         entity.setObservaciones(dto.observaciones());
         return entity;
     }
 
     public static ObjetoDepositanteResponseDTO toResponse(ObjetoDepositante entity) {
-        return new ObjetoDepositanteResponseDTO(entity.getId(), entity.getObjetoMuseo().getId(), entity.getObjetoMuseo().getDenominacionObjeto(), entity.getDepositante().getId(), entity.getDepositante().getNombre(), entity.getFechaDeposito(), entity.getTipoDeposito(), entity.getObservaciones());
+        return new ObjetoDepositanteResponseDTO(entity.getId(), entity.getObjetoMuseo().getId(), entity.getObjetoMuseo().getDenominacionObjeto(), entity.getDepositante().getId(), entity.getDepositante().getNombre(), entity.getFechaDeposito(), entity.getTipoDeposito(), entity.getFechaVencimiento(), entity.getObservaciones());
     }
 }

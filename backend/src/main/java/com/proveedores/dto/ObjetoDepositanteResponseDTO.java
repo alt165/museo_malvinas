@@ -9,7 +9,8 @@ public record ObjetoDepositanteResponseDTO(
         Long depositanteId,
         String depositanteNombre,
         LocalDate fechaDeposito,
-        String tipoDeposito,
+        com.proveedores.entity.CaracterRecepcionObjeto tipoDeposito,
+        LocalDate fechaVencimiento,
         String observaciones
 ) {
 }

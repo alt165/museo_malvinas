@@ -2,6 +2,7 @@ import type { CategoriaObjetoResponseDTO } from "@/features/categorias/types";
 
 export type EstadoConservacion = "EXCELENTE" | "BUENO" | "REGULAR" | "MALO" | "CRITICO";
 export type OrigenCargaObjeto = "RAPIDA" | "COMPLETA";
+export type CaracterRecepcionObjeto = "PRESTAMO" | "COMODATO" | "DONACION" | "COMPRA" | "ESTUDIO" | "OTRO" | "RECEPCION";
 
 export type ObjetoMuseoRequestDTO = {
   numeroInventario: string;
@@ -13,6 +14,9 @@ export type ObjetoMuseoRequestDTO = {
   estadoConservacion?: EstadoConservacion | null;
   categoriaIds?: number[];
   ubicacionId?: number | null;
+  depositanteId?: number | null;
+  caracterRecepcion?: CaracterRecepcionObjeto | null;
+  fechaVencimiento?: string | null;
 };
 
 export type ObjetoMuseoResponseDTO = {
@@ -33,6 +37,10 @@ export type ObjetoMuseoResponseDTO = {
   ubicacionNombre?: string | null;
   coleccionId?: number | null;
   coleccionNombre?: string | null;
+  depositanteId?: number | null;
+  depositanteNombre?: string | null;
+  caracterRecepcion?: CaracterRecepcionObjeto | null;
+  fechaVencimiento?: string | null;
   categorias?: CategoriaObjetoResponseDTO[];
   fotos?: FotoObjetoMuseoResponseDTO[];
   reciboEscaneado?: ReciboEscaneadoObjetoMuseoResponseDTO | null;
@@ -91,6 +99,8 @@ export type ObjetoPendienteCompletarResponseDTO = {
   descripcion?: string | null;
   depositanteId?: number | null;
   depositanteNombre?: string | null;
+  caracterRecepcion?: CaracterRecepcionObjeto | null;
+  fechaVencimiento?: string | null;
   fechaCargaRapida?: string | null;
   cargaRapidaPor?: string | null;
   reciboId?: number | null;

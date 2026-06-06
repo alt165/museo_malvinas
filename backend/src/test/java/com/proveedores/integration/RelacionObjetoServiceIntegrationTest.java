@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
+import com.proveedores.entity.CaracterRecepcionObjeto;
 import com.proveedores.dto.RelacionObjetoRequestDTO;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
@@ -205,6 +206,10 @@ class RelacionObjetoServiceIntegrationTest extends IntegrationTestBase {
                 null,
                 null,
                 null,
+                null,
+                null,
+                1L,
+                CaracterRecepcionObjeto.DONACION,
                 null
         ));
     }

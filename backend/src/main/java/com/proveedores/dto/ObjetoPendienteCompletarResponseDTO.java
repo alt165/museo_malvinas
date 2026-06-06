@@ -1,5 +1,7 @@
 package com.proveedores.dto;
 
+import com.proveedores.entity.CaracterRecepcionObjeto;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public record ObjetoPendienteCompletarResponseDTO(
@@ -9,6 +11,8 @@ public record ObjetoPendienteCompletarResponseDTO(
         String descripcion,
         Long depositanteId,
         String depositanteNombre,
+        CaracterRecepcionObjeto caracterRecepcion,
+        LocalDate fechaVencimiento,
         LocalDateTime fechaCargaRapida,
         String cargaRapidaPor,
         Long reciboId,

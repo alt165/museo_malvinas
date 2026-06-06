@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { Pencil, Search, Trash2 } from "lucide-react";
 import type { ObjetoVeteranoResponseDTO, VeteranoResponseDTO } from "../types";
+import { fuerzaLabel } from "../utils";
 
 type VeteranosTableProps = {
   veteranos: VeteranoResponseDTO[];
@@ -20,7 +21,7 @@ export function VeteranosTable({ canEdit, isDeleting = false, objetos, onDelete,
   const columns = useMemo<ColumnDef<VeteranoResponseDTO>[]>(() => [
     { accessorKey: "nombre", header: "Nombre" },
     { accessorKey: "apellido", header: "Apellido" },
-    { accessorKey: "fuerza", header: "Fuerza" },
+    { accessorKey: "fuerza", header: "Fuerza", cell: ({ row }) => fuerzaLabel(row.original.fuerza) },
     { id: "objetos", header: "Objetos", cell: ({ row }) => objetos.filter((objeto) => objeto.veteranoId === row.original.id).length },
     { id: "acciones", header: "Acciones", cell: ({ row }) => (
       <div className="flex justify-end gap-2">

@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.proveedores.dto.AgregarObjetosColeccionRequestDTO;
 import com.proveedores.dto.ColeccionObjetoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
+import com.proveedores.entity.CaracterRecepcionObjeto;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.repository.ColeccionObjetoRepository;
 import com.proveedores.repository.ObjetoMuseoRepository;
@@ -127,6 +128,10 @@ class ColeccionObjetoServiceIntegrationTest extends IntegrationTestBase {
                 null,
                 null,
                 null,
+                null,
+                null,
+                1L,
+                CaracterRecepcionObjeto.DONACION,
                 null
         ));
     }

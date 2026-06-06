@@ -9,7 +9,10 @@ import static org.mockito.Mockito.when;
 
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
+import com.proveedores.entity.CaracterRecepcionObjeto;
+import com.proveedores.entity.Depositante;
 import com.proveedores.entity.ObjetoMuseo;
+import com.proveedores.entity.ReciboIngresoObjeto;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.CategoriaObjetoRepository;
@@ -88,6 +91,11 @@ class ObjetoMuseoServiceTest {
     @Test
     void crearObjetoValidoDevuelveResponse() {
         when(objetoMuseoRepository.findByNumeroInventario("INV-2")).thenReturn(Optional.empty());
+        Depositante depositante = new Depositante();
+        depositante.setId(3L);
+        depositante.setNombre("Depositante test");
+        depositante.setEliminado(false);
+        when(depositanteRepository.findById(3L)).thenReturn(Optional.of(depositante));
         when(objetoMuseoRepository.save(any(ObjetoMuseo.class))).thenAnswer(invocation -> {
             ObjetoMuseo entity = invocation.getArgument(0);
             entity.setId(2L);
@@ -97,8 +105,14 @@ class ObjetoMuseoServiceTest {
         when(inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(2L)).thenReturn(Optional.empty());
         when(fotoObjetoMuseoRepository.findByObjetoMuseoIdAndEliminadoFalse(2L)).thenReturn(List.of());
         when(reciboEscaneadoObjetoMuseoRepository.findFirstByObjetoMuseoIdAndEliminadoFalseOrderByFechaCargaDesc(2L)).thenReturn(Optional.empty());
+        when(objetoDepositanteRepository.findFirstByObjetoMuseoIdAndEliminadoFalseOrderByIdAsc(2L)).thenReturn(Optional.empty());
+        when(reciboIngresoObjetoRepository.save(any(ReciboIngresoObjeto.class))).thenAnswer(invocation -> {
+            ReciboIngresoObjeto recibo = invocation.getArgument(0);
+            recibo.setId(5L);
+            return recibo;
+        });
 
-        ObjetoMuseoResponseDTO response = service.crear(new ObjetoMuseoRequestDTO("INV-2", "Carta", "Descripcion", null, null, null, null, null));
+        ObjetoMuseoResponseDTO response = service.crear(new ObjetoMuseoRequestDTO("INV-2", "Carta", "Descripcion", null, null, null, null, null, null, 3L, CaracterRecepcionObjeto.DONACION, null));
 
         assertThat(response.id()).isEqualTo(2L);
         assertThat(response.numeroInventario()).isEqualTo("INV-2");

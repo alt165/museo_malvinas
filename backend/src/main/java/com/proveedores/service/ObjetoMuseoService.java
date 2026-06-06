@@ -13,6 +13,7 @@ import com.proveedores.dto.ObjetoMuseoResponseDTO;
 import com.proveedores.dto.ObjetoPendienteCompletarResponseDTO;
 import com.proveedores.dto.ReciboEscaneadoObjetoMuseoResponseDTO;
 import com.proveedores.dto.ReciboIngresoObjetoResponseDTO;
+import com.proveedores.entity.CaracterRecepcionObjeto;
 import com.proveedores.entity.CategoriaObjeto;
 import com.proveedores.entity.Depositante;
 import com.proveedores.entity.EstadoInventario;
@@ -111,16 +112,24 @@ public class ObjetoMuseoService {
 
     @Transactional
     public ObjetoMuseoResponseDTO crear(ObjetoMuseoRequestDTO dto) {
+        return crear(dto, null);
+    }
+
+    @Transactional
+    public ObjetoMuseoResponseDTO crear(ObjetoMuseoRequestDTO dto, String operador) {
         validarNumeroInventarioDisponible(dto.numeroInventario(), null);
+        validarRecepcionObligatoria(dto);
         ObjetoMuseo entity = ObjetoMuseoMapper.toEntity(dto);
         entity.setOrigenCarga(OrigenCargaObjeto.COMPLETA);
         entity.setDatosCompletos(tieneDatosCompletos(dto));
         ObjetoMuseo saved = objetoMuseoRepository.save(entity);
         sincronizarCategorias(saved, dto.categoriaIds());
         if (dto.ubicacionId() != null) {
-            crearInventarioInicial(saved, buscarUbicacionActiva(dto.ubicacionId()), "Alta completa", null);
+            crearInventarioInicial(saved, buscarUbicacionActiva(dto.ubicacionId()), "Alta completa", operador);
         }
-        log.info("event=objeto_museo.created objetoMuseoId={} numeroInventario={}", saved.getId(), saved.getNumeroInventario());
+        Depositante depositante = sincronizarRecepcion(saved, dto, "Alta completa");
+        ReciboIngresoObjeto reciboSaved = reciboIngresoObjetoRepository.save(crearRecibo(saved, depositante, descripcionRecibo(dto), operador));
+        log.info("event=objeto_museo.created objetoMuseoId={} numeroInventario={} reciboId={}", saved.getId(), saved.getNumeroInventario(), reciboSaved.getId());
         return toResponse(saved);
     }
 
@@ -163,6 +172,7 @@ public class ObjetoMuseoService {
         boolean pendienteRapida = entity.getOrigenCarga() == OrigenCargaObjeto.RAPIDA && Boolean.FALSE.equals(entity.getDatosCompletos());
         if (pendienteRapida) {
             validarFichaCompleta(dto);
+            validarRecepcionObligatoria(dto);
         }
         ObjetoMuseoMapper.updateEntity(entity, dto);
         if (pendienteRapida || tieneDatosCompletos(dto)) {
@@ -170,6 +180,9 @@ public class ObjetoMuseoService {
         }
         ObjetoMuseo saved = objetoMuseoRepository.save(entity);
         sincronizarCategorias(saved, dto.categoriaIds());
+        if (dto.depositanteId() != null || dto.caracterRecepcion() != null || dto.fechaVencimiento() != null) {
+            sincronizarRecepcion(saved, dto, pendienteRapida ? "Completar carga" : "Actualizacion de objeto");
+        }
         log.info("event=objeto_museo.updated objetoMuseoId={} numeroInventario={}", saved.getId(), saved.getNumeroInventario());
         return toResponse(saved);
     }
@@ -225,7 +238,7 @@ public class ObjetoMuseoService {
         relacion.setObjetoMuseo(saved);
         relacion.setDepositante(depositante);
         relacion.setFechaDeposito(LocalDate.now());
-        relacion.setTipoDeposito("RECEPCION");
+        relacion.setTipoDeposito(CaracterRecepcionObjeto.RECEPCION);
         relacion.setObservaciones("Carga rapida");
         objetoDepositanteRepository.save(relacion);
 
@@ -457,6 +470,52 @@ public class ObjetoMuseoService {
         }
     }
 
+    private void validarRecepcionObligatoria(ObjetoMuseoRequestDTO dto) {
+        if (dto.depositanteId() == null) {
+            throw new BusinessException("El depositante es obligatorio");
+        }
+        if (dto.caracterRecepcion() == null || dto.caracterRecepcion() == CaracterRecepcionObjeto.RECEPCION) {
+            throw new BusinessException("El caracter de recepcion es obligatorio");
+        }
+        validarFechaVencimiento(dto, null);
+    }
+
+    private void validarFechaVencimiento(ObjetoMuseoRequestDTO dto, LocalDate fechaIngreso) {
+        boolean requiereVencimiento = requiereFechaVencimiento(dto.caracterRecepcion());
+        if (requiereVencimiento && dto.fechaVencimiento() == null) {
+            throw new BusinessException("La fecha de vencimiento es obligatoria para prestamo o comodato");
+        }
+        if (dto.fechaVencimiento() != null) {
+            LocalDate fechaBase = fechaIngreso == null ? LocalDate.now() : fechaIngreso;
+            if (dto.fechaVencimiento().isBefore(fechaBase)) {
+                throw new BusinessException("La fecha de vencimiento no puede ser anterior a la fecha de ingreso");
+            }
+        }
+    }
+
+    private boolean requiereFechaVencimiento(CaracterRecepcionObjeto caracter) {
+        return caracter == CaracterRecepcionObjeto.PRESTAMO || caracter == CaracterRecepcionObjeto.COMODATO;
+    }
+
+    private Depositante sincronizarRecepcion(ObjetoMuseo objeto, ObjetoMuseoRequestDTO dto, String observaciones) {
+        validarRecepcionObligatoria(dto);
+        Inventario inventario = inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(objeto.getId()).orElse(null);
+        LocalDate fechaIngreso = inventario == null ? LocalDate.now() : inventario.getFechaIngreso();
+        validarFechaVencimiento(dto, fechaIngreso);
+        Depositante depositante = buscarDepositanteActivo(dto.depositanteId());
+
+        ObjetoDepositante relacion = objetoDepositanteRepository.findFirstByObjetoMuseoIdAndEliminadoFalseOrderByIdAsc(objeto.getId())
+                .orElseGet(ObjetoDepositante::new);
+        relacion.setObjetoMuseo(objeto);
+        relacion.setDepositante(depositante);
+        relacion.setFechaDeposito(fechaIngreso);
+        relacion.setTipoDeposito(dto.caracterRecepcion());
+        relacion.setFechaVencimiento(requiereFechaVencimiento(dto.caracterRecepcion()) ? dto.fechaVencimiento() : null);
+        relacion.setObservaciones(observaciones);
+        objetoDepositanteRepository.save(relacion);
+        return depositante;
+    }
+
     private boolean tieneDatosCompletos(ObjetoMuseoRequestDTO dto) {
         return tieneTexto(dto.denominacionObjeto())
                 && tieneTexto(dto.descripcionTecnica())
@@ -562,7 +621,13 @@ public class ObjetoMuseoService {
                         recibo.getCargadoPor()
                 ))
                 .orElse(null);
-        return ObjetoMuseoMapper.toResponse(objeto, fechaIngreso, ubicacionId, ubicacionNombre, coleccionId, coleccionNombre, categorias, fotos, reciboEscaneado);
+        ObjetoDepositante objetoDepositante = objetoDepositanteRepository.findFirstByObjetoMuseoIdAndEliminadoFalseOrderByIdAsc(objeto.getId())
+                .orElse(null);
+        Long depositanteId = objetoDepositante == null ? null : objetoDepositante.getDepositante().getId();
+        String depositanteNombre = objetoDepositante == null ? null : objetoDepositante.getDepositante().getNombre();
+        CaracterRecepcionObjeto caracterRecepcion = objetoDepositante == null ? null : objetoDepositante.getTipoDeposito();
+        LocalDate fechaVencimiento = objetoDepositante == null ? null : objetoDepositante.getFechaVencimiento();
+        return ObjetoMuseoMapper.toResponse(objeto, fechaIngreso, ubicacionId, ubicacionNombre, coleccionId, coleccionNombre, depositanteId, depositanteNombre, caracterRecepcion, fechaVencimiento, categorias, fotos, reciboEscaneado);
     }
 
     private void crearInventarioInicial(ObjetoMuseo objeto, Ubicacion ubicacion, String observaciones, String usuarioMovimiento) {
@@ -675,11 +740,20 @@ public class ObjetoMuseoService {
                 objeto.getDescripcion(),
                 objetoDepositante == null ? null : objetoDepositante.getDepositante().getId(),
                 objetoDepositante == null ? null : objetoDepositante.getDepositante().getNombre(),
+                objetoDepositante == null ? null : objetoDepositante.getTipoDeposito(),
+                objetoDepositante == null ? null : objetoDepositante.getFechaVencimiento(),
                 objeto.getFechaCargaRapida(),
                 objeto.getCargaRapidaPor(),
                 reciboId,
                 reciboId == null ? null : "/api/recibos/" + reciboId + "/pdf"
         );
+    }
+
+    private String descripcionRecibo(ObjetoMuseoRequestDTO dto) {
+        if (tieneTexto(dto.descripcion())) {
+            return dto.descripcion();
+        }
+        return dto.denominacionObjeto();
     }
 
     private ReciboIngresoObjeto crearRecibo(ObjetoMuseo objeto, Depositante depositante, String descripcionBreve, String operador) {

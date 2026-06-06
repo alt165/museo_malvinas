@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.proveedores.dto.InventarioRequestDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
+import com.proveedores.entity.CaracterRecepcionObjeto;
 import com.proveedores.entity.EstadoConservacion;
 import com.proveedores.entity.EstadoInventario;
 import com.proveedores.entity.TipoMovimientoInventario;
@@ -35,7 +36,11 @@ class InventarioServiceIntegrationTest extends IntegrationTestBase {
                 "IT-INV-001",
                 "Linterna de campania",
                 null,
-                null, null, null, null, null
+                null, null, null, null, null,
+                null,
+                1L,
+                CaracterRecepcionObjeto.DONACION,
+                null
         ));
 
         var response = inventarioService.crear(new InventarioRequestDTO(

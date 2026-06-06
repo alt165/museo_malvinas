@@ -64,7 +64,7 @@ class ObjetoMuseoControllerTest {
     @Test
     void crearObjetoMuseoCorrectamenteDevuelveCreated() throws Exception {
         ObjetoMuseoResponseDTO response = new ObjetoMuseoResponseDTO(1L, "INV-1", "Casco", null, null, null, null, null, null, null, null, null, null, java.util.List.of(), java.util.List.of(), null);
-        when(objetoMuseoService.crear(any(ObjetoMuseoRequestDTO.class))).thenReturn(response);
+        when(objetoMuseoService.crear(any(ObjetoMuseoRequestDTO.class), any())).thenReturn(response);
 
         mockMvc.perform(post("/api/objetos")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -121,7 +121,7 @@ class ObjetoMuseoControllerTest {
 
     @Test
     void businessExceptionDevuelve400() throws Exception {
-        when(objetoMuseoService.crear(any(ObjetoMuseoRequestDTO.class))).thenThrow(new BusinessException("Ya existe un objeto con ese numero de inventario"));
+        when(objetoMuseoService.crear(any(ObjetoMuseoRequestDTO.class), any())).thenThrow(new BusinessException("Ya existe un objeto con ese numero de inventario"));
 
         mockMvc.perform(post("/api/objetos")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -133,7 +133,7 @@ class ObjetoMuseoControllerTest {
 
     @Test
     void dataIntegrityViolationDevuelve409() throws Exception {
-        when(objetoMuseoService.crear(any(ObjetoMuseoRequestDTO.class)))
+        when(objetoMuseoService.crear(any(ObjetoMuseoRequestDTO.class), any()))
                 .thenThrow(new DataIntegrityViolationException("unique constraint"));
 
         mockMvc.perform(post("/api/objetos")

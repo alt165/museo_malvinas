@@ -75,8 +75,8 @@ public class ObjetoMuseoController {
     @Operation(summary = "Crear recurso")
     @ApiResponse(responseCode = "201", description = "Recurso creado")
     @PostMapping
-    public ResponseEntity<ObjetoMuseoResponseDTO> crear(@RequestBody @Valid ObjetoMuseoRequestDTO dto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(objetoMuseoService.crear(dto));
+    public ResponseEntity<ObjetoMuseoResponseDTO> crear(@RequestBody @Valid ObjetoMuseoRequestDTO dto, Authentication authentication) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(objetoMuseoService.crear(dto, usuario(authentication)));
     }
 
     @Operation(summary = "Obtener recurso por id")

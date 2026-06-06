@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
+import com.proveedores.entity.CaracterRecepcionObjeto;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.repository.FotoObjetoMuseoRepository;
 import com.proveedores.service.FotoObjetoMuseoService;
@@ -90,7 +91,11 @@ class ObjetoArchivoServiceIntegrationTest extends IntegrationTestBase {
                 numeroInventario,
                 "Objeto archivos " + numeroInventario,
                 null,
-                null, null, null, null, null
+                null, null, null, null, null,
+                null,
+                1L,
+                CaracterRecepcionObjeto.DONACION,
+                null
         )).id();
     }
 }

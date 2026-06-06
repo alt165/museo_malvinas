@@ -9,7 +9,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { useBuscarDepositantePorIdentificacionMutation, useBuscarDepositantesPorNombreQuery } from "@/features/depositantes/queries";
 import type { DepositanteResponseDTO } from "@/features/depositantes/types";
 import { identificacionVisible, telefonoVisible } from "@/features/depositantes/utils";
-import { descargarReciboPdf } from "@/features/objetos/api";
+import { descargarReciboIngresoPdf } from "@/features/objetos/recibos";
 import { cargaRapidaObjetoSchema, type CargaRapidaObjetoFormValues } from "@/features/objetos/schemas";
 import type { CargaRapidaObjetoResponseDTO } from "@/features/objetos/types";
 import { getApiErrorMessage, getValidationErrors } from "@/features/objetos/utils";
@@ -18,21 +18,13 @@ import { routePermissions } from "@/lib/routes";
 import { useCargaRapidaObjetoMutation } from "@/features/objetos/queries";
 import { useEffect, useState } from "react";
 
-function abrirBlob(blob: Blob, nombre: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = nombre;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
 function tipoDepositanteLabel(depositante: DepositanteResponseDTO) {
   return depositante.tipo === "PERSONA" ? "Persona" : "Institucion";
 }
 
 export default function CargaRapidaObjetoPage() {
   const [resultado, setResultado] = useState<CargaRapidaObjetoResponseDTO | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const [identificacion, setIdentificacion] = useState("");
   const [nombreDepositante, setNombreDepositante] = useState("");
   const [nombreDepositanteDebounced, setNombreDepositanteDebounced] = useState("");
@@ -110,12 +102,20 @@ export default function CargaRapidaObjetoPage() {
               </Link>
               <button
                 className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
-                onClick={async () => abrirBlob(await descargarReciboPdf(resultado.recibo.id), `recibo-${resultado.recibo.id}.pdf`)}
+                onClick={async () => {
+                  setDownloadError(null);
+                  try {
+                    await descargarReciboIngresoPdf(resultado.recibo);
+                  } catch {
+                    setDownloadError("No se pudo descargar el recibo. Intentalo nuevamente.");
+                  }
+                }}
                 type="button"
               >
                 Descargar recibo
               </button>
             </div>
+            {downloadError ? <p className="mt-3 text-sm text-destructive">{downloadError}</p> : null}
           </div>
         ) : null}
         <form
@@ -128,7 +128,10 @@ export default function CargaRapidaObjetoPage() {
                 numeroInventario: values.numeroInventario.trim(),
                 descripcionBreve: values.descripcionBreve.trim()
               },
-              { onSuccess: setResultado }
+              { onSuccess: (data) => {
+                setDownloadError(null);
+                setResultado(data);
+              } }
             )
           )}
         >

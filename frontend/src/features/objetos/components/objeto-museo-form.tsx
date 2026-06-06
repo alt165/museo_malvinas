@@ -5,6 +5,9 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { useCategoriasQuery } from "@/features/categorias/queries";
+import { useBuscarDepositantePorIdentificacionMutation, useBuscarDepositantesPorNombreQuery } from "@/features/depositantes/queries";
+import type { DepositanteResponseDTO } from "@/features/depositantes/types";
+import { identificacionVisible, telefonoVisible } from "@/features/depositantes/utils";
 import { useUbicacionesQuery } from "@/features/ubicaciones/queries";
 import type { ObjetoMuseoRequestDTO, ObjetoMuseoResponseDTO } from "../types";
 import { objetoMuseoSchema, type ObjetoMuseoFormValues } from "../schemas";
@@ -28,6 +31,19 @@ const fotoContentTypesPermitidos = new Set(["image/jpeg", "image/png", "image/we
 const reciboContentTypesPermitidos = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
 const maxFotoBytes = 5 * 1024 * 1024;
 const maxReciboBytes = 10 * 1024 * 1024;
+const caracteresConVencimiento = new Set(["PRESTAMO", "COMODATO"]);
+const caracteresRecepcion = [
+  ["PRESTAMO", "Préstamo"],
+  ["COMODATO", "Comodato"],
+  ["DONACION", "Donación"],
+  ["COMPRA", "Compra"],
+  ["ESTUDIO", "Estudio"],
+  ["OTRO", "Otro"]
+] as const;
+
+function tipoDepositanteLabel(depositante: DepositanteResponseDTO) {
+  return depositante.tipo === "PERSONA" ? "Persona" : "Institucion";
+}
 
 export function ObjetoMuseoForm({
   allowFileUploads = false,
@@ -48,6 +64,22 @@ export function ObjetoMuseoForm({
   const [fotos, setFotos] = useState<File[]>([]);
   const [reciboEscaneado, setReciboEscaneado] = useState<File | null>(null);
   const [fileErrors, setFileErrors] = useState<string[]>([]);
+  const [identificacion, setIdentificacion] = useState("");
+  const [nombreDepositante, setNombreDepositante] = useState("");
+  const [nombreDepositanteDebounced, setNombreDepositanteDebounced] = useState("");
+  const [depositanteSeleccionado, setDepositanteSeleccionado] = useState<DepositanteResponseDTO | null>(() => {
+    if (!initialValue?.depositanteId || !initialValue.depositanteNombre) {
+      return null;
+    }
+    return {
+      id: initialValue.depositanteId,
+      nombre: initialValue.depositanteNombre,
+      tipo: "PERSONA",
+      activo: true
+    } as DepositanteResponseDTO;
+  });
+  const buscarDepositanteMutation = useBuscarDepositantePorIdentificacionMutation();
+  const depositantesPorNombreQuery = useBuscarDepositantesPorNombreQuery(nombreDepositanteDebounced);
   const {
     formState: { errors },
     handleSubmit,
@@ -66,10 +98,14 @@ export function ObjetoMuseoForm({
       dimensiones: initialValue?.dimensiones ?? "",
       estadoConservacion: initialValue?.estadoConservacion ?? "",
       categoriaIds: initialValue?.categorias?.map((categoria) => categoria.id) ?? [],
-      ubicacionId: initialValue?.ubicacionId ?? 0
+      ubicacionId: initialValue?.ubicacionId ?? 0,
+      depositanteId: initialValue?.depositanteId ?? 0,
+      caracterRecepcion: initialValue?.caracterRecepcion === "RECEPCION" ? "" : initialValue?.caracterRecepcion ?? "",
+      fechaVencimiento: initialValue?.fechaVencimiento ?? ""
     }
   });
   const watchedCategoriaIds = useWatch({ control, name: "categoriaIds", defaultValue: [] });
+  const caracterRecepcion = useWatch({ control, name: "caracterRecepcion", defaultValue: initialValue?.caracterRecepcion === "RECEPCION" ? "" : initialValue?.caracterRecepcion ?? "" });
   const categoriaIds = useMemo(() => watchedCategoriaIds ?? [], [watchedCategoriaIds]);
   const categoriasFiltradas = useMemo(() => {
     const busqueda = categoriaBusqueda.trim().toLowerCase();
@@ -86,6 +122,17 @@ export function ObjetoMuseoForm({
     () => fotos.map((foto) => ({ file: foto, url: URL.createObjectURL(foto) })),
     [fotos]
   );
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setNombreDepositanteDebounced(nombreDepositante.trim()), 300);
+    return () => window.clearTimeout(timeout);
+  }, [nombreDepositante]);
+
+  useEffect(() => {
+    if (!caracteresConVencimiento.has(caracterRecepcion)) {
+      setValue("fechaVencimiento", "", { shouldDirty: true, shouldValidate: true });
+    }
+  }, [caracterRecepcion, setValue]);
 
   useEffect(() => {
     return () => {
@@ -106,12 +153,30 @@ export function ObjetoMuseoForm({
         field === "dimensiones" ||
         field === "estadoConservacion" ||
         field === "categoriaIds" ||
-        field === "ubicacionId"
+        field === "ubicacionId" ||
+        field === "depositanteId" ||
+        field === "caracterRecepcion" ||
+        field === "fechaVencimiento"
       ) {
         setError(field, { message });
       }
     });
   }, [setError, submitError]);
+
+  function seleccionarDepositante(depositante: DepositanteResponseDTO) {
+    setDepositanteSeleccionado(depositante);
+    setValue("depositanteId", depositante.id, { shouldDirty: true, shouldValidate: true });
+  }
+
+  const resultadosNombre = depositantesPorNombreQuery.data ?? [];
+  const buscandoPorNombre = Boolean(nombreDepositante.trim()) && (nombreDepositante.trim() !== nombreDepositanteDebounced || depositantesPorNombreQuery.isFetching);
+  const mostrarFechaVencimiento = caracteresConVencimiento.has(caracterRecepcion);
+  const fechaMinimaVencimiento = initialValue?.fechaIngreso ?? new Date().toISOString().slice(0, 10);
+
+  function limpiarDepositante() {
+    setDepositanteSeleccionado(null);
+    setValue("depositanteId", 0, { shouldDirty: true, shouldValidate: true });
+  }
 
   function toggleCategoria(categoriaId: number) {
     const seleccionada = categoriaIds.includes(categoriaId);
@@ -171,7 +236,10 @@ export function ObjetoMuseoForm({
           dimensiones: values.dimensiones?.trim() || null,
           estadoConservacion: values.estadoConservacion || null,
           categoriaIds: values.categoriaIds ?? [],
-          ubicacionId: values.ubicacionId && values.ubicacionId > 0 ? Number(values.ubicacionId) : null
+          ubicacionId: values.ubicacionId && values.ubicacionId > 0 ? Number(values.ubicacionId) : null,
+          depositanteId: values.depositanteId,
+          caracterRecepcion: values.caracterRecepcion || null,
+          fechaVencimiento: caracteresConVencimiento.has(values.caracterRecepcion) ? values.fechaVencimiento || null : null
         }, { fotos, reciboEscaneado })
       )}
     >
@@ -183,6 +251,81 @@ export function ObjetoMuseoForm({
           </p>
         </div>
       ) : null}
+      <input type="hidden" {...register("depositanteId", { valueAsNumber: true })} />
+      <section className="space-y-3 rounded-md border bg-surface p-4">
+        <div>
+          <h2 className="text-base font-semibold">Depositante y recepción</h2>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="depositante-identificacion">DNI o CUIT del depositante</label>
+            <div className="flex gap-2">
+              <input
+                className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                id="depositante-identificacion"
+                onChange={(event) => { setIdentificacion(event.target.value); limpiarDepositante(); buscarDepositanteMutation.reset(); }}
+                value={identificacion}
+              />
+              <button
+                className="h-10 rounded-md border px-4 text-sm font-medium hover:bg-muted disabled:opacity-60"
+                disabled={buscarDepositanteMutation.isPending || !identificacion.trim()}
+                onClick={() => buscarDepositanteMutation.mutate(identificacion.trim(), { onSuccess: seleccionarDepositante, onError: limpiarDepositante })}
+                type="button"
+              >
+                {buscarDepositanteMutation.isPending ? "Buscando..." : "Buscar"}
+              </button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="depositante-nombre">Buscar depositante por nombre</label>
+            <input
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+              id="depositante-nombre"
+              onChange={(event) => { setNombreDepositante(event.target.value); limpiarDepositante(); }}
+              value={nombreDepositante}
+            />
+          </div>
+        </div>
+        {buscandoPorNombre ? <p className="text-sm text-muted-foreground">Buscando depositantes...</p> : null}
+        {resultadosNombre.length > 0 ? (
+          <div className="grid gap-2 md:grid-cols-2">
+            {resultadosNombre.map((depositante) => (
+              <button className="rounded-md border bg-background p-3 text-left text-sm hover:bg-muted" key={depositante.id} onClick={() => seleccionarDepositante(depositante)} type="button">
+                <span className="block font-medium">{depositante.nombre}</span>
+                <span className="mt-1 block text-muted-foreground">{identificacionVisible(depositante)}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+        {depositanteSeleccionado ? (
+          <div className="rounded-md border border-primary/20 bg-secondary/20 p-3 text-sm">
+            <p className="font-medium">{depositanteSeleccionado.nombre}</p>
+            <p className="mt-1 text-muted-foreground">{tipoDepositanteLabel(depositanteSeleccionado)} - {identificacionVisible(depositanteSeleccionado)}</p>
+            {[depositanteSeleccionado.contacto, telefonoVisible(depositanteSeleccionado)].filter(Boolean).length > 0 ? (
+              <p className="mt-1 text-muted-foreground">{[depositanteSeleccionado.contacto, telefonoVisible(depositanteSeleccionado)].filter(Boolean).join(" - ")}</p>
+            ) : null}
+          </div>
+        ) : null}
+        {buscarDepositanteMutation.isError ? <p className="text-sm text-destructive">No se encontró un depositante con esa identificación.</p> : null}
+        {errors.depositanteId ? <p className="text-sm text-destructive">{errors.depositanteId.message}</p> : null}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="caracterRecepcion">Carácter de recepción</label>
+            <select className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id="caracterRecepcion" {...register("caracterRecepcion")}>
+              <option value="">Seleccionar carácter</option>
+              {caracteresRecepcion.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+            {errors.caracterRecepcion ? <p className="text-sm text-destructive">{errors.caracterRecepcion.message}</p> : null}
+          </div>
+          {mostrarFechaVencimiento ? (
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="fechaVencimiento">Fecha de vencimiento</label>
+              <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id="fechaVencimiento" type="date" min={fechaMinimaVencimiento} {...register("fechaVencimiento")} />
+              {errors.fechaVencimiento ? <p className="text-sm text-destructive">{errors.fechaVencimiento.message}</p> : null}
+            </div>
+          ) : null}
+        </div>
+      </section>
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="numeroInventario">

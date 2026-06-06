@@ -1,5 +1,6 @@
 package com.proveedores.dto;
 
+import com.proveedores.entity.CaracterRecepcionObjeto;
 import com.proveedores.entity.EstadoConservacion;
 import com.proveedores.entity.OrigenCargaObjeto;
 import java.time.LocalDate;
@@ -24,6 +25,10 @@ public record ObjetoMuseoResponseDTO(
         String ubicacionNombre,
         Long coleccionId,
         String coleccionNombre,
+        Long depositanteId,
+        String depositanteNombre,
+        CaracterRecepcionObjeto caracterRecepcion,
+        LocalDate fechaVencimiento,
         List<CategoriaObjetoResponseDTO> categorias,
         List<FotoObjetoMuseoResponseDTO> fotos,
         ReciboEscaneadoObjetoMuseoResponseDTO reciboEscaneado
@@ -60,6 +65,10 @@ public record ObjetoMuseoResponseDTO(
                 datosCompletos,
                 fechaCargaRapida,
                 cargaRapidaPor,
+                null,
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,
