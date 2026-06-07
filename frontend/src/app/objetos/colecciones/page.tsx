@@ -11,13 +11,12 @@ import { AppShell } from "@/components/layout/app-shell";
 import { ColeccionesTable } from "@/features/colecciones/components/colecciones-table";
 import { useBajaLogicaColeccionMutation, useColeccionesQuery } from "@/features/colecciones/queries";
 import { getApiErrorMessage } from "@/features/colecciones/utils";
-import { canWrite, useAuth } from "@/lib/auth";
+import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
 import { routes } from "@/lib/routes";
 
 export default function ColeccionesPage() {
-  const { roles } = useAuth();
-  const puedeEscribir = canWrite(roles);
+  const { canEdit: puedeEscribir } = useEditingMode();
   const coleccionesQuery = useColeccionesQuery();
   const bajaMutation = useBajaLogicaColeccionMutation();
   const [busquedaNombre, setBusquedaNombre] = useState("");

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { ProtectedRoute } from "@/lib/auth";
+import { useEditingMode } from "@/lib/editing-mode";
 import type { UserRole } from "@/models/session";
 
 type AppShellProps = {
@@ -14,6 +15,7 @@ type AppShellProps = {
 
 export function AppShell({ children, requiredRoles }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { permitirEdicion } = useEditingMode();
 
   return (
     <ProtectedRoute requiredRoles={requiredRoles}>
@@ -34,7 +36,14 @@ export function AppShell({ children, requiredRoles }: AppShellProps) {
               <Topbar onOpenSidebar={() => setSidebarOpen(true)} />
             </div>
           </div>
-          <main className="min-h-[calc(100vh-68px)] bg-background p-6">{children}</main>
+          <main className="min-h-[calc(100vh-68px)] bg-background p-6">
+            {permitirEdicion ? (
+              <div className="mb-6 rounded-md border border-destructive bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive">
+                Modo edición activado: es posible modificar datos del sistema.
+              </div>
+            ) : null}
+            {children}
+          </main>
         </div>
       </div>
     </ProtectedRoute>

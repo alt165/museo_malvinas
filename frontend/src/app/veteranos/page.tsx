@@ -11,12 +11,11 @@ import { AppShell } from "@/components/layout/app-shell";
 import { VeteranosTable } from "@/features/veteranos/components/veteranos-table";
 import { useBajaLogicaVeteranoMutation, useRelacionesObjetoVeteranoQuery, useVeteranosQuery } from "@/features/veteranos/queries";
 import { getApiErrorMessage, veteranoCoincideConBusqueda } from "@/features/veteranos/utils";
-import { canWrite, useAuth } from "@/lib/auth";
+import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
 
 export default function VeteranosPage() {
-  const { roles } = useAuth();
-  const puedeEscribir = canWrite(roles);
+  const { canEdit: puedeEscribir } = useEditingMode();
   const veteranosQuery = useVeteranosQuery();
   const objetosQuery = useRelacionesObjetoVeteranoQuery();
   const bajaMutation = useBajaLogicaVeteranoMutation();

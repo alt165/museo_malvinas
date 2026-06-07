@@ -10,6 +10,7 @@ import { ResetPasswordForm } from "@/features/usuarios/components/reset-password
 import { useCambiarEstadoUsuarioMutation, useResetearPasswordUsuarioMutation, useUsuarioQuery } from "@/features/usuarios/queries";
 import { getApiErrorMessage, nombreCompleto } from "@/features/usuarios/utils";
 import { formatRoles } from "@/lib/auth/role-labels";
+import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
 import { routePermissions } from "@/lib/routes";
 
@@ -23,9 +24,10 @@ export default function DetalleUsuarioPage() {
   const { data, error, isError, isLoading } = useUsuarioQuery(id);
   const estadoMutation = useCambiarEstadoUsuarioMutation();
   const resetMutation = useResetearPasswordUsuarioMutation(id);
+  const { canAdminEdit } = useEditingMode();
 
   function handleToggleEnabled() {
-    if (!data) {
+    if (!canAdminEdit || !data) {
       return;
     }
 
@@ -40,7 +42,7 @@ export default function DetalleUsuarioPage() {
     <AppShell requiredRoles={[...routePermissions.admin]}>
       <div className="space-y-6">
         <PageHeader
-          actions={<div className="flex gap-2"><Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/usuarios">Volver</Link>{data ? <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href={`/usuarios/${data.id}/editar`}>Editar</Link> : null}{data ? <button className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-60" disabled={estadoMutation.isPending} onClick={handleToggleEnabled} type="button">{data.habilitado ? "Deshabilitar" : "Habilitar"}</button> : null}</div>}
+          actions={<div className="flex gap-2"><Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/usuarios">Volver</Link>{canAdminEdit && data ? <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href={`/usuarios/${data.id}/editar`}>Editar</Link> : null}{canAdminEdit && data ? <button className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-60" disabled={estadoMutation.isPending} onClick={handleToggleEnabled} type="button">{data.habilitado ? "Deshabilitar" : "Habilitar"}</button> : null}</div>}
           description="Datos del usuario en Keycloak."
           title="Detalle de usuario"
         />
@@ -83,11 +85,13 @@ export default function DetalleUsuarioPage() {
                 </div>
               </dl>
             </div>
-            <ResetPasswordForm
-              isSubmitting={resetMutation.isPending}
-              onSubmit={(values, onDone) => resetMutation.mutate({ contrasena: values.contrasena }, { onSuccess: onDone })}
-              submitError={resetMutation.error}
-            />
+            {canAdminEdit ? (
+              <ResetPasswordForm
+                isSubmitting={resetMutation.isPending}
+                onSubmit={(values, onDone) => resetMutation.mutate({ contrasena: values.contrasena }, { onSuccess: onDone })}
+                submitError={resetMutation.error}
+              />
+            ) : null}
           </>
         ) : null}
       </div>

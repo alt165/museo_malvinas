@@ -8,13 +8,12 @@ import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
 import { useBajaLogicaUbicacionMutation, useUbicacionesQuery } from "@/features/ubicaciones/queries";
 import { getApiErrorMessage } from "@/features/ubicaciones/utils";
-import { hasRole, useAuth } from "@/lib/auth";
+import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
 import { routePermissions } from "@/lib/routes";
 
 export default function UbicacionesPage() {
-  const { roles } = useAuth();
-  const esAdmin = hasRole(roles, "ADMIN");
+  const { canAdminEdit: esAdmin } = useEditingMode();
   const { data = [], error, isError, isLoading } = useUbicacionesQuery();
   const baja = useBajaLogicaUbicacionMutation();
 

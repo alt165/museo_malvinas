@@ -12,11 +12,12 @@ import { nombreCompleto } from "../utils";
 
 type UsuariosTableProps = {
   usuarios: UsuarioKeycloakResponseDTO[];
+  canEdit: boolean;
   isUpdating?: boolean;
   onToggleEnabled: (usuario: UsuarioKeycloakResponseDTO) => void;
 };
 
-export function UsuariosTable({ isUpdating = false, onToggleEnabled, usuarios }: UsuariosTableProps) {
+export function UsuariosTable({ canEdit, isUpdating = false, onToggleEnabled, usuarios }: UsuariosTableProps) {
   const columns = useMemo<ColumnDef<UsuarioKeycloakResponseDTO>[]>(
     () => [
       {
@@ -60,24 +61,28 @@ export function UsuariosTable({ isUpdating = false, onToggleEnabled, usuarios }:
               <Search className="h-3.5 w-3.5" />
               Ver
             </Link>
-            <Link className="inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs hover:bg-muted" href={`/usuarios/${row.original.id}/editar`}>
-              <Pencil className="h-3.5 w-3.5" />
-              Editar
-            </Link>
-            <button
-              className="inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isUpdating}
-              onClick={() => onToggleEnabled(row.original)}
-              type="button"
-            >
-              {row.original.habilitado ? <ShieldOff className="h-3.5 w-3.5" /> : <ShieldCheck className="h-3.5 w-3.5" />}
-              {row.original.habilitado ? "Deshabilitar" : "Habilitar"}
-            </button>
+            {canEdit ? (
+              <>
+                <Link className="inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs hover:bg-muted" href={`/usuarios/${row.original.id}/editar`}>
+                  <Pencil className="h-3.5 w-3.5" />
+                  Editar
+                </Link>
+                <button
+                  className="inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isUpdating}
+                  onClick={() => onToggleEnabled(row.original)}
+                  type="button"
+                >
+                  {row.original.habilitado ? <ShieldOff className="h-3.5 w-3.5" /> : <ShieldCheck className="h-3.5 w-3.5" />}
+                  {row.original.habilitado ? "Deshabilitar" : "Habilitar"}
+                </button>
+              </>
+            ) : null}
           </div>
         )
       }
     ],
-    [isUpdating, onToggleEnabled]
+    [canEdit, isUpdating, onToggleEnabled]
   );
 
   const table = useReactTable({ data: usuarios, columns, getCoreRowModel: getCoreRowModel() });

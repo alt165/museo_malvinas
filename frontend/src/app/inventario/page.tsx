@@ -9,12 +9,11 @@ import { AppShell } from "@/components/layout/app-shell";
 import { InventarioTable } from "@/features/inventario/components/inventario-table";
 import { useInventariosQuery } from "@/features/inventario/queries";
 import { getApiErrorMessage } from "@/features/inventario/utils";
-import { canWrite, useAuth } from "@/lib/auth";
+import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
 
 export default function InventarioPage() {
-  const { roles } = useAuth();
-  const puedeEscribir = canWrite(roles);
+  const { canEdit: puedeEscribir } = useEditingMode();
   const { data = [], error, isError, isLoading } = useInventariosQuery();
 
   return (

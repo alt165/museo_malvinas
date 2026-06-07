@@ -9,12 +9,11 @@ import { AppShell } from "@/components/layout/app-shell";
 import { CategoriasTable } from "@/features/categorias/components/categorias-table";
 import { useBajaLogicaCategoriaMutation, useCategoriasQuery } from "@/features/categorias/queries";
 import { getApiErrorMessage } from "@/features/categorias/utils";
-import { canWrite, useAuth } from "@/lib/auth";
+import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
 
 export default function CategoriasPage() {
-  const { roles } = useAuth();
-  const puedeEscribir = canWrite(roles);
+  const { canEdit: puedeEscribir } = useEditingMode();
   const categoriasQuery = useCategoriasQuery();
   const bajaMutation = useBajaLogicaCategoriaMutation();
 

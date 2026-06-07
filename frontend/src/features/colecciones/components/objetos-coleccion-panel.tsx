@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
-import { canWrite, useAuth } from "@/lib/auth";
+import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
 import {
   useAgregarObjetosColeccionMutation,
@@ -20,8 +20,7 @@ type ObjetosColeccionPanelProps = {
 };
 
 export function ObjetosColeccionPanel({ coleccionId }: ObjetosColeccionPanelProps) {
-  const { roles } = useAuth();
-  const puedeEscribir = canWrite(roles);
+  const { canEdit: puedeEscribir } = useEditingMode();
   const objetosQuery = useObjetosColeccionQuery(coleccionId);
   const disponiblesQuery = useObjetosSinColeccionQuery();
   const agregarMutation = useAgregarObjetosColeccionMutation(coleccionId);

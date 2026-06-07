@@ -1,5 +1,6 @@
 import { ApiClientError, isApiErrorResponse } from "@/lib/errors/api-error";
 import { getAccessToken, redirectToLogin } from "@/lib/auth/session";
+import { isEditingModeEnabled, isMutationMethod } from "@/lib/editing-mode/store";
 import type { ApiErrorResponse } from "@/models/api-error";
 
 type RequestOptions = RequestInit & {
@@ -8,6 +9,18 @@ type RequestOptions = RequestInit & {
 };
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+
+function assertEditingAllowed(method?: string) {
+  if (!isMutationMethod(method) || isEditingModeEnabled()) {
+    return;
+  }
+
+  throw new ApiClientError({
+    status: 403,
+    error: "Edicion desactivada",
+    message: "La edición está desactivada. Active ‘Permitir edición’ para modificar datos."
+  });
+}
 
 async function parseErrorResponse(response: Response): Promise<ApiErrorResponse> {
   const requestId = response.headers.get("X-Request-Id") ?? undefined;
@@ -37,6 +50,8 @@ export async function apiRequest<TResponse>(
   path: string,
   options: RequestOptions = {}
 ): Promise<TResponse> {
+  assertEditingAllowed(options.method);
+
   const headers = new Headers(options.headers);
   const { auth = true, token, ...requestOptions } = options;
   headers.set("Accept", "application/json");
@@ -72,6 +87,8 @@ export async function apiRequest<TResponse>(
 }
 
 export async function apiBlobRequest(path: string, options: RequestOptions = {}): Promise<Blob> {
+  assertEditingAllowed(options.method);
+
   const headers = new Headers(options.headers);
   const { auth = true, token, ...requestOptions } = options;
   const accessToken = token ?? (auth ? await getAccessToken() : null);

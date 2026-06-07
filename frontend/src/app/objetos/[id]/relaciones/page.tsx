@@ -13,7 +13,7 @@ import { getApiErrorMessage as getObjetoApiErrorMessage } from "@/features/objet
 import { ObjetoRelacionesGraph } from "@/features/relaciones-objetos/components/ObjetoRelacionesGraph";
 import { useRelacionesPorObjetoQuery } from "@/features/relaciones-objetos/queries";
 import { getApiErrorMessage } from "@/features/relaciones-objetos/utils";
-import { canWrite, useAuth } from "@/lib/auth";
+import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
 
 function getParamId(value: string | string[] | undefined) {
@@ -25,8 +25,7 @@ function getParamId(value: string | string[] | undefined) {
 export default function RelacionesObjetoPage() {
   const params = useParams<{ id: string }>();
   const id = getParamId(params.id);
-  const { roles } = useAuth();
-  const puedeEscribir = canWrite(roles);
+  const { canEdit: puedeEscribir } = useEditingMode();
   const [vista, setVista] = useState<"tabla" | "grafo">(() => {
     if (typeof window === "undefined") {
       return "grafo";

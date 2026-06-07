@@ -10,12 +10,11 @@ import { AppShell } from "@/components/layout/app-shell";
 import { ExhibicionesTable } from "@/features/exhibiciones/components/exhibiciones-table";
 import { useExhibicionesQuery, useFinalizarExhibicionPorIdMutation } from "@/features/exhibiciones/queries";
 import { getApiErrorMessage } from "@/features/exhibiciones/utils";
-import { canWrite, useAuth } from "@/lib/auth";
+import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
 
 export default function ExhibicionesPage() {
-  const { roles } = useAuth();
-  const puedeEscribir = canWrite(roles);
+  const { canEdit: puedeEscribir } = useEditingMode();
   const { data = [], error, isError, isLoading } = useExhibicionesQuery();
   const [finalizandoId, setFinalizandoId] = useState<number>();
   const finalizarMutation = useFinalizarExhibicionPorIdMutation();

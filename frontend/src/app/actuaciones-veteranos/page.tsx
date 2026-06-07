@@ -9,12 +9,11 @@ import { AppShell } from "@/components/layout/app-shell";
 import { ActuacionesVeteranosTable } from "@/features/veteranos/components/actuaciones-veteranos-table";
 import { useActuacionesVeteranosQuery, useBajaLogicaActuacionVeteranoMutation } from "@/features/veteranos/queries";
 import { getApiErrorMessage } from "@/features/veteranos/utils";
-import { canWrite, useAuth } from "@/lib/auth";
+import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
 
 export default function ActuacionesVeteranosPage() {
-  const { roles } = useAuth();
-  const puedeEscribir = canWrite(roles);
+  const { canEdit: puedeEscribir } = useEditingMode();
   const { data = [], error, isError, isLoading } = useActuacionesVeteranosQuery();
   const bajaMutation = useBajaLogicaActuacionVeteranoMutation();
 

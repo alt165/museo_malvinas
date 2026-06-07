@@ -2,7 +2,7 @@ import type { UserRole } from "@/models/session";
 
 const roleLabels: Record<UserRole, string> = {
   ADMIN: "Administrador",
-  OPERATOR: "Operador",
+  OPERATOR: "Museólogo",
   VIEWER: "Consulta"
 };
 

@@ -10,6 +10,7 @@ import { useActualizarUsuarioMutation, useAsignarRolUsuarioMutation, useUsuarioQ
 import { getApiErrorMessage, getRolPrincipal } from "@/features/usuarios/utils";
 import { useAuth } from "@/lib/auth";
 import { getRoleLabel } from "@/lib/auth/role-labels";
+import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
 import { routePermissions } from "@/lib/routes";
 
@@ -25,6 +26,7 @@ export default function EditarUsuarioPage() {
   const { data, error, isError, isLoading } = useUsuarioQuery(id);
   const actualizarMutation = useActualizarUsuarioMutation(id);
   const rolMutation = useAsignarRolUsuarioMutation(id);
+  const { canAdminEdit } = useEditingMode();
 
   return (
     <AppShell requiredRoles={[...routePermissions.admin]}>
@@ -34,7 +36,12 @@ export default function EditarUsuarioPage() {
         {isError ? <ErrorState message={getApiErrorMessage(error)} requestId={error instanceof ApiClientError ? error.requestId : undefined} /> : null}
         {actualizarMutation.isError ? <ErrorState message={getApiErrorMessage(actualizarMutation.error)} requestId={actualizarMutation.error instanceof ApiClientError ? actualizarMutation.error.requestId : undefined} /> : null}
         {rolMutation.isError ? <ErrorState message={getApiErrorMessage(rolMutation.error)} requestId={rolMutation.error instanceof ApiClientError ? rolMutation.error.requestId : undefined} /> : null}
-        {data ? (
+        {data && !canAdminEdit ? (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">
+            Active ‘Permitir edición’ para modificar datos.
+          </div>
+        ) : null}
+        {data && canAdminEdit ? (
           <UsuarioForm
             initialValue={data}
             isSubmitting={actualizarMutation.isPending || rolMutation.isPending}

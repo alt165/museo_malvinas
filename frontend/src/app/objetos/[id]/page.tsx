@@ -6,7 +6,7 @@ import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
-import { canWrite, useAuth } from "@/lib/auth";
+import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
 import {
   descargarCopiaFirmadaRecibo,
@@ -37,8 +37,7 @@ function descargarBlob(blob: Blob, nombre: string) {
 export default function DetalleObjetoPage() {
   const params = useParams<{ id: string }>();
   const id = getParamId(params.id);
-  const { roles } = useAuth();
-  const puedeEscribir = canWrite(roles);
+  const { canEdit: puedeEscribir } = useEditingMode();
   const { data, error, isError, isLoading } = useObjetoQuery(id);
   const { data: recibos = [] } = useRecibosObjetoQuery(id);
 

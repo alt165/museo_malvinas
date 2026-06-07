@@ -5,11 +5,10 @@ import Link from "next/link";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
 import { ObjetoSearchSelector } from "@/features/objetos/components/objeto-search-selector";
-import { canWrite, useAuth } from "@/lib/auth";
+import { useEditingMode } from "@/lib/editing-mode";
 
 export default function RelacionesObjetosPage() {
-  const { roles } = useAuth();
-  const puedeEscribir = canWrite(roles);
+  const { canEdit: puedeEscribir } = useEditingMode();
 
   return (
     <AppShell>

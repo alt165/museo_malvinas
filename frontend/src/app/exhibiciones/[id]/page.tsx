@@ -9,7 +9,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { ObjetosExhibicionPanel } from "@/features/exhibiciones/components/objetos-exhibicion-panel";
 import { useExhibicionQuery, useFinalizarExhibicionMutation } from "@/features/exhibiciones/queries";
 import { formatDate, getApiErrorMessage } from "@/features/exhibiciones/utils";
-import { canWrite, useAuth } from "@/lib/auth";
+import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
 
 function getParamId(value: string | string[] | undefined) {
@@ -21,8 +21,7 @@ function getParamId(value: string | string[] | undefined) {
 export default function DetalleExhibicionPage() {
   const params = useParams<{ id: string }>();
   const id = getParamId(params.id);
-  const { roles } = useAuth();
-  const puedeEscribir = canWrite(roles);
+  const { canEdit: puedeEscribir } = useEditingMode();
   const { data, error, isError, isLoading } = useExhibicionQuery(id);
   const finalizarMutation = useFinalizarExhibicionMutation(id);
 

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { ChevronDown, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { hasAnyRole, useAuth } from "@/lib/auth";
+import { useEditingMode } from "@/lib/editing-mode";
 import { navigationGroups, type NavigationGroup, type NavigationItem } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/models/session";
@@ -31,20 +32,21 @@ function groupHasRoute(pathname: string, group: NavigationGroup) {
   return group.items.some((item) => !item.disabled && isRouteActive(pathname, item.href));
 }
 
-function visibleItems(items: NavigationItem[], roles: UserRole[]) {
-  return items.filter((item) => hasAnyRole(roles, item.roles));
+function visibleItems(items: NavigationItem[], roles: UserRole[], permitirEdicion: boolean) {
+  return items.filter((item) => hasAnyRole(roles, item.roles) && (!item.requiresEditing || permitirEdicion));
 }
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { roles } = useAuth();
+  const { permitirEdicion } = useEditingMode();
   const visibleGroups = useMemo(
     () =>
       navigationGroups
         .filter((group) => hasAnyRole(roles, group.roles))
-        .map((group) => ({ ...group, items: visibleItems(group.items, roles) }))
+        .map((group) => ({ ...group, items: visibleItems(group.items, roles, permitirEdicion) }))
         .filter((group) => group.items.length > 0),
-    [roles]
+    [permitirEdicion, roles]
   );
   const currentActiveHref = activeHref(pathname, visibleGroups);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);

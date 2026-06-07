@@ -9,15 +9,14 @@ import { AppShell } from "@/components/layout/app-shell";
 import { ObjetosColeccionPanel } from "@/features/colecciones/components/objetos-coleccion-panel";
 import { useColeccionQuery } from "@/features/colecciones/queries";
 import { getApiErrorMessage, resumenDescripcion } from "@/features/colecciones/utils";
-import { canWrite, useAuth } from "@/lib/auth";
+import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
 import { routes } from "@/lib/routes";
 
 export default function ColeccionDetallePage() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
-  const { roles } = useAuth();
-  const puedeEscribir = canWrite(roles);
+  const { canEdit: puedeEscribir } = useEditingMode();
   const coleccionQuery = useColeccionQuery(id);
 
   return (

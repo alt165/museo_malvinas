@@ -7,7 +7,7 @@ import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
-import { canWrite, useAuth } from "@/lib/auth";
+import { useEditingMode } from "@/lib/editing-mode";
 import { useBajaLogicaObjetoMutation, useBuscarObjetosQuery } from "@/features/objetos/queries";
 import { MoverObjetoModal } from "@/features/objetos/components/mover-objeto-modal";
 import { ObjetosTable } from "@/features/objetos/components/objetos-table";
@@ -29,8 +29,7 @@ const filtrosIniciales: FiltrosObjetos = {
 };
 
 export default function ObjetosPage() {
-  const { roles } = useAuth();
-  const puedeEscribir = canWrite(roles);
+  const { canEdit: puedeEscribir } = useEditingMode();
   const [filtrosFormulario, setFiltrosFormulario] = useState<FiltrosObjetos>(filtrosIniciales);
   const [filtrosAplicados, setFiltrosAplicados] = useState<FiltrosObjetos>(filtrosIniciales);
   const [categoriaBusqueda, setCategoriaBusqueda] = useState("");
