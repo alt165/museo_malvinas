@@ -10,9 +10,11 @@ import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
 import com.proveedores.dto.ObjetoGrafoResponseDTO;
 import com.proveedores.dto.ObjetoPendienteCompletarResponseDTO;
+import com.proveedores.dto.ObjetoVencimientoProximoResponseDTO;
 import com.proveedores.dto.ReciboEscaneadoObjetoMuseoResponseDTO;
 import com.proveedores.dto.ReciboIngresoObjetoResponseDTO;
 import com.proveedores.dto.RelacionObjetoPorObjetoResponseDTO;
+import com.proveedores.service.ComodatoPrestamoService;
 import com.proveedores.service.FotoObjetoMuseoService;
 import com.proveedores.service.ObjetoMuseoService;
 import com.proveedores.service.ReciboEscaneadoObjetoMuseoService;
@@ -53,6 +55,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class ObjetoMuseoController {
 
     private final ObjetoMuseoService objetoMuseoService;
+    private final ComodatoPrestamoService comodatoPrestamoService;
     private final FotoObjetoMuseoService fotoObjetoMuseoService;
     private final ReciboEscaneadoObjetoMuseoService reciboEscaneadoObjetoMuseoService;
     private final ReciboIngresoObjetoService reciboIngresoObjetoService;
@@ -60,12 +63,14 @@ public class ObjetoMuseoController {
 
     public ObjetoMuseoController(
             ObjetoMuseoService objetoMuseoService,
+            ComodatoPrestamoService comodatoPrestamoService,
             FotoObjetoMuseoService fotoObjetoMuseoService,
             ReciboEscaneadoObjetoMuseoService reciboEscaneadoObjetoMuseoService,
             ReciboIngresoObjetoService reciboIngresoObjetoService,
             RelacionObjetoService relacionObjetoService
     ) {
         this.objetoMuseoService = objetoMuseoService;
+        this.comodatoPrestamoService = comodatoPrestamoService;
         this.fotoObjetoMuseoService = fotoObjetoMuseoService;
         this.reciboEscaneadoObjetoMuseoService = reciboEscaneadoObjetoMuseoService;
         this.reciboIngresoObjetoService = reciboIngresoObjetoService;
@@ -122,6 +127,13 @@ public class ObjetoMuseoController {
             @ParameterObject @PageableDefault(size = 20, sort = "fechaCargaRapida") Pageable pageable
     ) {
         return ResponseEntity.ok(objetoMuseoService.listarPendientesCompletar(pageable));
+    }
+
+    @Operation(summary = "Listar objetos con prestamo o comodato proximos a vencer")
+    @ApiResponse(responseCode = "200", description = "Vencimientos obtenidos")
+    @GetMapping("/vencimientos-proximos")
+    public ResponseEntity<List<ObjetoVencimientoProximoResponseDTO>> vencimientosProximos(@RequestParam(required = false) Integer dias) {
+        return ResponseEntity.ok(comodatoPrestamoService.listarVencimientosProximos(dias));
     }
 
     @Operation(summary = "Actualizar recurso")

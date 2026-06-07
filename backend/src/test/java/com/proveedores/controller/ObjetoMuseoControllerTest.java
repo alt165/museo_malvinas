@@ -15,6 +15,7 @@ import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.GlobalExceptionHandler;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.security.KeycloakJwtAuthenticationConverter;
+import com.proveedores.service.ComodatoPrestamoService;
 import com.proveedores.service.FotoObjetoMuseoService;
 import com.proveedores.service.ObjetoMuseoService;
 import com.proveedores.service.ReciboEscaneadoObjetoMuseoService;
@@ -45,6 +46,9 @@ class ObjetoMuseoControllerTest {
 
     @MockBean
     private ObjetoMuseoService objetoMuseoService;
+
+    @MockBean
+    private ComodatoPrestamoService comodatoPrestamoService;
 
     @MockBean
     private FotoObjetoMuseoService fotoObjetoMuseoService;

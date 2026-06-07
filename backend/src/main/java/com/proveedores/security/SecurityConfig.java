@@ -52,6 +52,7 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/objetos/vencimientos-proximos").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/objetos/pendientes-completar").hasAnyRole("ADMIN", "OPERATOR")
                         .requestMatchers(HttpMethod.GET, "/api/objetos/*/movimientos").hasAnyRole("ADMIN", "OPERATOR")
                         .requestMatchers(HttpMethod.GET, "/api/ubicaciones/**").hasAnyRole("ADMIN", "OPERATOR")

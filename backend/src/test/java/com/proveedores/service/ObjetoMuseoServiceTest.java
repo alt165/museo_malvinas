@@ -131,6 +131,7 @@ class ObjetoMuseoServiceTest {
         objeto.setId(id);
         objeto.setNumeroInventario(numeroInventario);
         objeto.setDenominacionObjeto("Objeto");
+        objeto.setActivo(true);
         objeto.setEliminado(false);
         return objeto;
     }

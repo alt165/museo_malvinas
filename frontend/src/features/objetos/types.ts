@@ -46,6 +46,36 @@ export type ObjetoMuseoResponseDTO = {
   reciboEscaneado?: ReciboEscaneadoObjetoMuseoResponseDTO | null;
 };
 
+export type ObjetoVencimientoProximoResponseDTO = {
+  id: number;
+  numeroInventario: string;
+  denominacionObjeto: string;
+  depositanteId: number;
+  depositanteNombre: string;
+  caracterRecepcion: CaracterRecepcionObjeto;
+  fechaVencimiento: string;
+  diasRestantes: number;
+};
+
+export type EstadoVencimientoComodatoPrestamo = "VIGENTE" | "PROXIMO_A_VENCER" | "VENCIDO";
+
+export type ComodatoPrestamoResponseDTO = {
+  id: number;
+  numeroInventario: string;
+  denominacionObjeto: string;
+  depositanteId: number;
+  depositanteNombre: string;
+  caracterRecepcion: Extract<CaracterRecepcionObjeto, "PRESTAMO" | "COMODATO">;
+  fechaIngreso: string;
+  fechaVencimiento?: string | null;
+  diasRestantes?: number | null;
+  estadoVencimiento: EstadoVencimientoComodatoPrestamo;
+};
+
+export type ConfigAlertasVencimientoDTO = {
+  diasAnticipacion: number;
+};
+
 export type ObjetoMuseoEliminadoResponseDTO = {
   id: number;
   numeroInventario: string;

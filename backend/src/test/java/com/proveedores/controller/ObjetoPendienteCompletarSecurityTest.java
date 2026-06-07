@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.proveedores.security.KeycloakJwtAuthenticationConverter;
 import com.proveedores.security.SecurityConfig;
+import com.proveedores.service.ComodatoPrestamoService;
 import com.proveedores.service.FotoObjetoMuseoService;
 import com.proveedores.service.ObjetoMuseoService;
 import com.proveedores.service.ReciboEscaneadoObjetoMuseoService;
@@ -35,6 +36,9 @@ class ObjetoPendienteCompletarSecurityTest {
 
     @MockBean
     private ObjetoMuseoService objetoMuseoService;
+
+    @MockBean
+    private ComodatoPrestamoService comodatoPrestamoService;
 
     @MockBean
     private FotoObjetoMuseoService fotoObjetoMuseoService;
@@ -73,6 +77,26 @@ class ObjetoPendienteCompletarSecurityTest {
     @Test
     void viewerNoPuedeListarPendientes() throws Exception {
         mockMvc.perform(get("/api/objetos/pendientes-completar").with(user("viewer").roles("VIEWER")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminPuedeListarVencimientosProximos() throws Exception {
+        when(comodatoPrestamoService.listarVencimientosProximos(null)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/objetos/vencimientos-proximos").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void operatorNoPuedeListarVencimientosProximos() throws Exception {
+        mockMvc.perform(get("/api/objetos/vencimientos-proximos").with(user("operator").roles("OPERATOR")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void viewerNoPuedeListarVencimientosProximos() throws Exception {
+        mockMvc.perform(get("/api/objetos/vencimientos-proximos").with(user("viewer").roles("VIEWER")))
                 .andExpect(status().isForbidden());
     }
 

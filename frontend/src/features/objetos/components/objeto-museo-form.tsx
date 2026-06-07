@@ -9,6 +9,7 @@ import { useBuscarDepositantePorIdentificacionMutation, useBuscarDepositantesPor
 import type { DepositanteResponseDTO } from "@/features/depositantes/types";
 import { identificacionVisible, telefonoVisible } from "@/features/depositantes/utils";
 import { useUbicacionesQuery } from "@/features/ubicaciones/queries";
+import { ApiClientError } from "@/lib/errors/api-error";
 import type { ObjetoMuseoRequestDTO, ObjetoMuseoResponseDTO } from "../types";
 import { objetoMuseoSchema, type ObjetoMuseoFormValues } from "../schemas";
 import { getValidationErrors } from "../utils";
@@ -171,6 +172,7 @@ export function ObjetoMuseoForm({
   const resultadosNombre = depositantesPorNombreQuery.data ?? [];
   const buscandoPorNombre = Boolean(nombreDepositante.trim()) && (nombreDepositante.trim() !== nombreDepositanteDebounced || depositantesPorNombreQuery.isFetching);
   const mostrarFechaVencimiento = caracteresConVencimiento.has(caracterRecepcion);
+  const depositanteNoEncontrado = buscarDepositanteMutation.error instanceof ApiClientError && buscarDepositanteMutation.error.status === 404;
   const fechaMinimaVencimiento = initialValue?.fechaIngreso ?? new Date().toISOString().slice(0, 10);
 
   function limpiarDepositante() {
@@ -306,7 +308,18 @@ export function ObjetoMuseoForm({
             ) : null}
           </div>
         ) : null}
-        {buscarDepositanteMutation.isError ? <p className="text-sm text-destructive">No se encontró un depositante con esa identificación.</p> : null}
+        {depositanteNoEncontrado ? (
+          <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm">
+            <p className="text-destructive">No se encontró un depositante con ese DNI/CUIT.</p>
+            <Link
+              className="mt-3 inline-flex h-10 items-center justify-center rounded-md border bg-background px-4 text-sm font-medium hover:bg-muted"
+              href={`/depositantes/nuevo?identificacion=${encodeURIComponent(identificacion.trim())}`}
+            >
+              Dar de alta depositante
+            </Link>
+          </div>
+        ) : null}
+        {buscarDepositanteMutation.isError && !depositanteNoEncontrado ? <p className="text-sm text-destructive">No se pudo buscar el depositante.</p> : null}
         {errors.depositanteId ? <p className="text-sm text-destructive">{errors.depositanteId.message}</p> : null}
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">

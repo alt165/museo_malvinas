@@ -1,18 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  actualizarConfigAlertasComodatosPrestamos,
+  actualizarFechaVencimientoComodatoPrestamo,
   actualizarObjeto,
   bajaLogicaObjeto,
   buscarObjetos,
   cargaRapidaObjeto,
   crearObjeto,
   eliminarFotoObjeto,
+  listarComodatosPrestamos,
   listarFotosObjeto,
   listarMovimientosObjeto,
   listarObjetos,
   listarObjetosEliminados,
   listarObjetosPendientesCompletar,
+  listarObjetosVencimientosProximos,
   listarRecibosObjeto,
   moverObjeto,
+  obtenerConfigAlertasComodatosPrestamos,
   obtenerObjetoPorId,
   obtenerReciboEscaneadoObjeto,
   restaurarObjeto
@@ -25,6 +30,9 @@ export const objetosQueryKeys = {
   search: (params: BuscarObjetosParams) => [...objetosQueryKeys.all, "search", params] as const,
   deleted: (params: { page?: number; size?: number; sort?: string }) => [...objetosQueryKeys.all, "deleted", params] as const,
   pending: (params: { page?: number; size?: number; sort?: string }) => [...objetosQueryKeys.all, "pending", params] as const,
+  vencimientosProximos: (dias?: number) => [...objetosQueryKeys.all, "vencimientos-proximos", dias ?? "config"] as const,
+  comodatosPrestamos: () => [...objetosQueryKeys.all, "comodatos-prestamos"] as const,
+  configAlertasComodatosPrestamos: () => [...objetosQueryKeys.all, "comodatos-prestamos", "config-alertas"] as const,
   detail: (id: number) => [...objetosQueryKeys.all, "detail", id] as const,
   fotos: (id: number) => [...objetosQueryKeys.all, "detail", id, "fotos"] as const,
   movimientos: (id: number) => [...objetosQueryKeys.all, "detail", id, "movimientos"] as const,
@@ -50,6 +58,56 @@ export function useObjetosEliminadosQuery(params: { page?: number; size?: number
   return useQuery({
     queryKey: objetosQueryKeys.deleted(params),
     queryFn: () => listarObjetosEliminados(params)
+  });
+}
+
+export function useObjetosVencimientosProximosQuery(dias: number | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: objetosQueryKeys.vencimientosProximos(dias),
+    queryFn: () => listarObjetosVencimientosProximos(dias),
+    enabled
+  });
+}
+
+export function useComodatosPrestamosQuery() {
+  return useQuery({
+    queryKey: objetosQueryKeys.comodatosPrestamos(),
+    queryFn: listarComodatosPrestamos
+  });
+}
+
+export function useConfigAlertasComodatosPrestamosQuery(enabled = true) {
+  return useQuery({
+    queryKey: objetosQueryKeys.configAlertasComodatosPrestamos(),
+    queryFn: obtenerConfigAlertasComodatosPrestamos,
+    enabled
+  });
+}
+
+export function useActualizarFechaVencimientoComodatoPrestamoMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ fechaVencimiento, objetoId }: { objetoId: number; fechaVencimiento: string }) =>
+      actualizarFechaVencimientoComodatoPrestamo(objetoId, fechaVencimiento),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.comodatosPrestamos() });
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.vencimientosProximos() });
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.lists() });
+    }
+  });
+}
+
+export function useActualizarConfigAlertasComodatosPrestamosMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: actualizarConfigAlertasComodatosPrestamos,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.configAlertasComodatosPrestamos() });
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.comodatosPrestamos() });
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.vencimientosProximos() });
+    }
   });
 }
 

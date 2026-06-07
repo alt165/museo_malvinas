@@ -2,12 +2,15 @@ import { apiBlobRequest, apiRequest } from "@/lib/api";
 import type {
   CargaRapidaObjetoRequestDTO,
   CargaRapidaObjetoResponseDTO,
+  ComodatoPrestamoResponseDTO,
+  ConfigAlertasVencimientoDTO,
   FotoObjetoMuseoResponseDTO,
   BuscarObjetosParams,
   MoverObjetoRequestDTO,
   MovimientoObjetoResponseDTO,
   ObjetoPendienteCompletarResponseDTO,
   ObjetoMuseoEliminadoResponseDTO,
+  ObjetoVencimientoProximoResponseDTO,
   ObjetoMuseoRequestDTO,
   ObjetoMuseoResponseDTO,
   PageResponse,
@@ -16,6 +19,7 @@ import type {
 } from "../types";
 
 const basePath = "/api/objetos";
+const adminComodatosPrestamosPath = "/api/admin/comodatos-prestamos";
 
 export function listarObjetos() {
   return apiRequest<ObjetoMuseoResponseDTO[]>(basePath);
@@ -52,6 +56,33 @@ export function buscarObjetos(params: BuscarObjetosParams) {
 
 export function obtenerObjetoPorId(id: number) {
   return apiRequest<ObjetoMuseoResponseDTO>(`${basePath}/${id}`);
+}
+
+export function listarObjetosVencimientosProximos(dias?: number) {
+  const query = dias ? `?dias=${dias}` : "";
+  return apiRequest<ObjetoVencimientoProximoResponseDTO[]>(`${basePath}/vencimientos-proximos${query}`);
+}
+
+export function listarComodatosPrestamos() {
+  return apiRequest<ComodatoPrestamoResponseDTO[]>(adminComodatosPrestamosPath);
+}
+
+export function actualizarFechaVencimientoComodatoPrestamo(objetoId: number, fechaVencimiento: string) {
+  return apiRequest<ComodatoPrestamoResponseDTO>(`${adminComodatosPrestamosPath}/${objetoId}/fecha-vencimiento`, {
+    method: "PATCH",
+    body: JSON.stringify({ fechaVencimiento })
+  });
+}
+
+export function obtenerConfigAlertasComodatosPrestamos() {
+  return apiRequest<ConfigAlertasVencimientoDTO>(`${adminComodatosPrestamosPath}/config-alertas`);
+}
+
+export function actualizarConfigAlertasComodatosPrestamos(diasAnticipacion: number) {
+  return apiRequest<ConfigAlertasVencimientoDTO>(`${adminComodatosPrestamosPath}/config-alertas`, {
+    method: "PUT",
+    body: JSON.stringify({ diasAnticipacion })
+  });
 }
 
 export function listarObjetosPendientesCompletar(params: { page?: number; size?: number; sort?: string }) {

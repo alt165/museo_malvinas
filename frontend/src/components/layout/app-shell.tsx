@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
+import { VencimientosProximosAlert } from "@/features/objetos/components/vencimientos-proximos-alert";
 import { ProtectedRoute } from "@/lib/auth";
 import { useEditingMode } from "@/lib/editing-mode";
 import type { UserRole } from "@/models/session";
@@ -37,6 +38,7 @@ export function AppShell({ children, requiredRoles }: AppShellProps) {
             </div>
           </div>
           <main className="min-h-[calc(100vh-68px)] bg-background p-6">
+            <VencimientosProximosAlert />
             {permitirEdicion ? (
               <div className="mb-6 rounded-md border border-destructive bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive">
                 Modo edición activado: es posible modificar datos del sistema.
