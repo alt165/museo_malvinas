@@ -10,13 +10,14 @@ import {
 } from "@tanstack/react-table";
 import Link from "next/link";
 import { useMemo } from "react";
-import { ArrowDown, ArrowUp, ChevronsUpDown, MoveRight, Pencil, Search, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsUpDown, History, MoveRight, Pencil, Search, Trash2 } from "lucide-react";
 import type { ObjetoMuseoResponseDTO, ObjetoSortField, ObjetosSort } from "../types";
 import { resumenDescripcion } from "../utils";
 
 type ObjetosTableProps = {
   objetos: ObjetoMuseoResponseDTO[];
   canEdit: boolean;
+  canViewHistory?: boolean;
   deletingId?: number | null;
   onDelete?: (objeto: ObjetoMuseoResponseDTO) => void;
   onMove?: (objeto: ObjetoMuseoResponseDTO) => void;
@@ -24,7 +25,7 @@ type ObjetosTableProps = {
   onSortChange: (field: ObjetoSortField) => void;
 };
 
-export function ObjetosTable({ canEdit, deletingId, objetos, onDelete, onMove, onSortChange, sort }: ObjetosTableProps) {
+export function ObjetosTable({ canEdit, canViewHistory = false, deletingId, objetos, onDelete, onMove, onSortChange, sort }: ObjetosTableProps) {
   const columns = useMemo<ColumnDef<ObjetoMuseoResponseDTO>[]>(
     () => [
       {
@@ -69,6 +70,15 @@ export function ObjetosTable({ canEdit, deletingId, objetos, onDelete, onMove, o
               <Search className="h-3.5 w-3.5" />
               Ver
             </Link>
+            {canViewHistory ? (
+              <Link
+                className="inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs hover:bg-muted"
+                href={`/objetos/${row.original.id}/historial`}
+              >
+                <History className="h-3.5 w-3.5" />
+                Historial
+              </Link>
+            ) : null}
             {canEdit ? (
               <>
                 <Link
@@ -105,7 +115,7 @@ export function ObjetosTable({ canEdit, deletingId, objetos, onDelete, onMove, o
         )
       }
     ],
-    [canEdit, deletingId, onDelete, onMove, onSortChange, sort]
+    [canEdit, canViewHistory, deletingId, onDelete, onMove, onSortChange, sort]
   );
 
   const table = useReactTable({

@@ -7,6 +7,7 @@ import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
+import { hasRole, useAuth } from "@/lib/auth";
 import { useEditingMode } from "@/lib/editing-mode";
 import { useBajaLogicaObjetoMutation, useBuscarObjetosQuery } from "@/features/objetos/queries";
 import { MoverObjetoModal } from "@/features/objetos/components/mover-objeto-modal";
@@ -30,6 +31,8 @@ const filtrosIniciales: FiltrosObjetos = {
 
 export default function ObjetosPage() {
   const { canEdit: puedeEscribir } = useEditingMode();
+  const { roles } = useAuth();
+  const esAdmin = hasRole(roles, "ADMIN");
   const [filtrosFormulario, setFiltrosFormulario] = useState<FiltrosObjetos>(filtrosIniciales);
   const [filtrosAplicados, setFiltrosAplicados] = useState<FiltrosObjetos>(filtrosIniciales);
   const [categoriaBusqueda, setCategoriaBusqueda] = useState("");
@@ -244,6 +247,7 @@ export default function ObjetosPage() {
           <div className="space-y-3">
             <ObjetosTable
               canEdit={puedeEscribir}
+              canViewHistory={esAdmin}
               deletingId={bajaLogica.variables ?? null}
               objetos={objetos}
               onDelete={puedeEscribir ? handleBajaLogica : undefined}
