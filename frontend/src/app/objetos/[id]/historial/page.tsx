@@ -38,6 +38,27 @@ function formatValor(value?: string | null) {
   }
 }
 
+function ValoresAuditoria({ label, value }: { label: string; value?: string | null }) {
+  if (!value) {
+    return (
+      <div>
+        <div className="mb-1 text-xs font-semibold text-muted-foreground">{label}</div>
+        <div className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">Sin datos</div>
+      </div>
+    );
+  }
+
+  return (
+    <details className="group rounded-md border bg-muted/40">
+      <summary className="cursor-pointer list-none px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground">
+        <span className="group-open:hidden">Ver {label.toLowerCase()}</span>
+        <span className="hidden group-open:inline">Ocultar {label.toLowerCase()}</span>
+      </summary>
+      <pre className="max-h-80 overflow-auto border-t bg-muted p-3 text-xs leading-relaxed">{formatValor(value)}</pre>
+    </details>
+  );
+}
+
 export default function HistorialObjetoPage() {
   const params = useParams<{ id: string }>();
   const id = getParamId(params.id);
@@ -101,14 +122,8 @@ export default function HistorialObjetoPage() {
                       <td className="whitespace-nowrap px-4 py-3 align-top">{evento.origen || "Sin origen"}</td>
                       <td className="min-w-80 px-4 py-3 align-top">
                         <div className="grid gap-3 md:grid-cols-2">
-                          <div>
-                            <div className="mb-1 text-xs font-semibold text-muted-foreground">Anteriores</div>
-                            <pre className="max-h-64 overflow-auto rounded-md bg-muted p-3 text-xs leading-relaxed">{formatValor(evento.valoresAnteriores)}</pre>
-                          </div>
-                          <div>
-                            <div className="mb-1 text-xs font-semibold text-muted-foreground">Nuevos</div>
-                            <pre className="max-h-64 overflow-auto rounded-md bg-muted p-3 text-xs leading-relaxed">{formatValor(evento.valoresNuevos)}</pre>
-                          </div>
+                          <ValoresAuditoria label="Anteriores" value={evento.valoresAnteriores} />
+                          <ValoresAuditoria label="Nuevos" value={evento.valoresNuevos} />
                         </div>
                       </td>
                     </tr>
