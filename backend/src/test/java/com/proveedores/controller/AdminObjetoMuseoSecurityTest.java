@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.proveedores.security.KeycloakJwtAuthenticationConverter;
+import com.proveedores.service.AuditoriaObjetoService;
 import com.proveedores.service.ObjetoMuseoService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,9 @@ class AdminObjetoMuseoSecurityTest {
     private ObjetoMuseoService objetoMuseoService;
 
     @MockBean
+    private AuditoriaObjetoService auditoriaObjetoService;
+
+    @MockBean
     private KeycloakJwtAuthenticationConverter keycloakJwtAuthenticationConverter;
 
     @MockBean
@@ -50,6 +54,20 @@ class AdminObjetoMuseoSecurityTest {
     @Test
     void operatorNoPuedeListarEliminados() throws Exception {
         mockMvc.perform(get("/api/admin/objetos/eliminados").with(user("operator").roles("OPERATOR")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminPuedeConsultarHistorial() throws Exception {
+        when(auditoriaObjetoService.listarHistorial(1L)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/admin/objetos/1/historial").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void operatorNoPuedeConsultarHistorial() throws Exception {
+        mockMvc.perform(get("/api/admin/objetos/1/historial").with(user("operator").roles("OPERATOR")))
                 .andExpect(status().isForbidden());
     }
 

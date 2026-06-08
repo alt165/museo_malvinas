@@ -39,6 +39,9 @@ class ExhibicionObjetoServiceTest {
     @Mock
     private UsuarioRepository usuarioRepository;
 
+    @Mock
+    private AuditoriaObjetoService auditoriaObjetoService;
+
     @InjectMocks
     private ExhibicionObjetoService service;
 

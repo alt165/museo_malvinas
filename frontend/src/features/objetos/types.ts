@@ -76,6 +76,19 @@ export type ConfigAlertasVencimientoDTO = {
   diasAnticipacion: number;
 };
 
+export type HistorialObjetoResponseDTO = {
+  id: number;
+  fechaHora: string;
+  tipoOperacion: string;
+  accion?: string | null;
+  descripcion?: string | null;
+  usuario?: string | null;
+  rol?: string | null;
+  origen?: string | null;
+  valoresAnteriores?: string | null;
+  valoresNuevos?: string | null;
+};
+
 export type ObjetoMuseoEliminadoResponseDTO = {
   id: number;
   numeroInventario: string;

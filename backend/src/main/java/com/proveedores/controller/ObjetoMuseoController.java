@@ -139,8 +139,12 @@ public class ObjetoMuseoController {
     @Operation(summary = "Actualizar recurso")
     @ApiResponse(responseCode = "200", description = "Recurso actualizado")
     @PutMapping("/{id}")
-    public ResponseEntity<ObjetoMuseoResponseDTO> actualizar(@PathVariable Long id, @RequestBody @Valid ObjetoMuseoRequestDTO dto) {
-        return ResponseEntity.ok(objetoMuseoService.actualizar(id, dto));
+    public ResponseEntity<ObjetoMuseoResponseDTO> actualizar(
+            @PathVariable Long id,
+            @RequestBody @Valid ObjetoMuseoRequestDTO dto,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(objetoMuseoService.actualizar(id, dto, usuario(authentication)));
     }
 
     @Operation(summary = "Mover objeto a otra ubicacion")

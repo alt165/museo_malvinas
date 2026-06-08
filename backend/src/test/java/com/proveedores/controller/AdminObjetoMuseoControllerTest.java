@@ -9,10 +9,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.proveedores.dto.HistorialObjetoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoEliminadoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
 import com.proveedores.exception.GlobalExceptionHandler;
 import com.proveedores.security.KeycloakJwtAuthenticationConverter;
+import com.proveedores.service.AuditoriaObjetoService;
 import com.proveedores.service.ObjetoMuseoService;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,6 +41,9 @@ class AdminObjetoMuseoControllerTest {
     private ObjetoMuseoService objetoMuseoService;
 
     @MockBean
+    private AuditoriaObjetoService auditoriaObjetoService;
+
+    @MockBean
     private KeycloakJwtAuthenticationConverter keycloakJwtAuthenticationConverter;
 
     @Test
@@ -60,6 +65,29 @@ class AdminObjetoMuseoControllerTest {
                 .andExpect(jsonPath("$.content[0].id").value(1L))
                 .andExpect(jsonPath("$.content[0].eliminadoPor").value("admin"))
                 .andExpect(jsonPath("$.content[0].fechaEliminacion").exists());
+    }
+
+
+    @Test
+    void historialDevuelveEventosDelObjeto() throws Exception {
+        when(auditoriaObjetoService.listarHistorial(1L)).thenReturn(List.of(new HistorialObjetoResponseDTO(
+                10L,
+                LocalDateTime.of(2026, 6, 8, 10, 30),
+                "CREACION",
+                "ALTA_RAPIDA",
+                "Alta rápida de objeto",
+                "admin",
+                "ADMIN",
+                "ALTA_RAPIDA",
+                null,
+                "{}"
+        )));
+
+        mockMvc.perform(get("/api/admin/objetos/1/historial"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(10L))
+                .andExpect(jsonPath("$[0].accion").value("ALTA_RAPIDA"))
+                .andExpect(jsonPath("$[0].usuario").value("admin"));
     }
 
     @Test

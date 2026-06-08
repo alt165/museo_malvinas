@@ -10,6 +10,7 @@ import com.proveedores.entity.Depositante;
 import com.proveedores.entity.Inventario;
 import com.proveedores.entity.ObjetoDepositante;
 import com.proveedores.entity.ObjetoMuseo;
+import com.proveedores.entity.TipoOperacionAuditoria;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.ConfiguracionSistemaRepository;
@@ -34,15 +35,18 @@ public class ComodatoPrestamoService {
     private final ObjetoDepositanteRepository objetoDepositanteRepository;
     private final InventarioRepository inventarioRepository;
     private final ConfiguracionSistemaRepository configuracionSistemaRepository;
+    private final AuditoriaObjetoService auditoriaObjetoService;
 
     public ComodatoPrestamoService(
             ObjetoDepositanteRepository objetoDepositanteRepository,
             InventarioRepository inventarioRepository,
-            ConfiguracionSistemaRepository configuracionSistemaRepository
+            ConfiguracionSistemaRepository configuracionSistemaRepository,
+            AuditoriaObjetoService auditoriaObjetoService
     ) {
         this.objetoDepositanteRepository = objetoDepositanteRepository;
         this.inventarioRepository = inventarioRepository;
         this.configuracionSistemaRepository = configuracionSistemaRepository;
+        this.auditoriaObjetoService = auditoriaObjetoService;
     }
 
     @Transactional(readOnly = true)
@@ -72,6 +76,11 @@ public class ComodatoPrestamoService {
 
     @Transactional
     public ComodatoPrestamoResponseDTO actualizarFechaVencimiento(Long objetoId, LocalDate fechaVencimiento) {
+        return actualizarFechaVencimiento(objetoId, fechaVencimiento, null);
+    }
+
+    @Transactional
+    public ComodatoPrestamoResponseDTO actualizarFechaVencimiento(Long objetoId, LocalDate fechaVencimiento, String operador) {
         ObjetoDepositante relacion = objetoDepositanteRepository.findRelacionActivaPorObjeto(objetoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Objeto de museo no encontrado"));
         if (!esCaracterGestionado(relacion.getTipoDeposito())) {
@@ -81,8 +90,19 @@ public class ComodatoPrestamoService {
         if (fechaVencimiento.isBefore(fechaIngreso)) {
             throw new BusinessException("La fecha de vencimiento no puede ser anterior a la fecha de ingreso");
         }
+        LocalDate fechaAnterior = relacion.getFechaVencimiento();
         relacion.setFechaVencimiento(fechaVencimiento);
         ObjetoDepositante saved = objetoDepositanteRepository.save(relacion);
+        auditoriaObjetoService.registrar(
+                saved.getObjetoMuseo(),
+                TipoOperacionAuditoria.MODIFICACION,
+                "CAMBIO_FECHA_VENCIMIENTO",
+                "Cambio de fecha de vencimiento de préstamo/comodato",
+                "COMODATO_PRESTAMO",
+                auditoriaObjetoService.mapOf("fechaVencimiento", fechaAnterior),
+                auditoriaObjetoService.mapOf("fechaVencimiento", fechaVencimiento),
+                operador
+        );
         return toComodatoPrestamoResponse(saved, LocalDate.now(), obtenerDiasAlerta());
     }
 

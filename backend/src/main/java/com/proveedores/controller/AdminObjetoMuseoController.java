@@ -1,11 +1,14 @@
 package com.proveedores.controller;
 
+import com.proveedores.dto.HistorialObjetoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoEliminadoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
+import com.proveedores.service.AuditoriaObjetoService;
 import com.proveedores.service.ObjetoMuseoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,9 +31,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminObjetoMuseoController {
 
     private final ObjetoMuseoService objetoMuseoService;
+    private final AuditoriaObjetoService auditoriaObjetoService;
 
-    public AdminObjetoMuseoController(ObjetoMuseoService objetoMuseoService) {
+    public AdminObjetoMuseoController(ObjetoMuseoService objetoMuseoService, AuditoriaObjetoService auditoriaObjetoService) {
         this.objetoMuseoService = objetoMuseoService;
+        this.auditoriaObjetoService = auditoriaObjetoService;
     }
 
     @Operation(summary = "Listar objetos eliminados logicamente")
@@ -40,6 +45,15 @@ public class AdminObjetoMuseoController {
             @ParameterObject @PageableDefault(size = 20) Pageable pageable
     ) {
         return ResponseEntity.ok(objetoMuseoService.listarEliminados(pageable));
+    }
+
+
+    @Operation(summary = "Consultar historial del objeto")
+    @ApiResponse(responseCode = "200", description = "Historial obtenido")
+    @GetMapping("/{id}/historial")
+    public ResponseEntity<List<HistorialObjetoResponseDTO>> historial(@PathVariable Long id) {
+        objetoMuseoService.obtenerPorId(id);
+        return ResponseEntity.ok(auditoriaObjetoService.listarHistorial(id));
     }
 
     @Operation(summary = "Restaurar objeto eliminado logicamente")

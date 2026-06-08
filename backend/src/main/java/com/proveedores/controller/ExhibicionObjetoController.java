@@ -8,6 +8,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.util.StringUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -34,8 +37,8 @@ public class ExhibicionObjetoController {
     @Operation(summary = "Crear recurso")
     @ApiResponse(responseCode = "201", description = "Recurso creado")
     @PostMapping
-    public ResponseEntity<ExhibicionObjetoResponseDTO> crear(@RequestBody @Valid ExhibicionObjetoRequestDTO dto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(exhibicionObjetoService.crear(dto));
+    public ResponseEntity<ExhibicionObjetoResponseDTO> crear(@RequestBody @Valid ExhibicionObjetoRequestDTO dto, Authentication authentication) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(exhibicionObjetoService.crear(dto, usuario(authentication)));
     }
 
     @Operation(summary = "Obtener recurso por id")
@@ -65,23 +68,37 @@ public class ExhibicionObjetoController {
     public ResponseEntity<ExhibicionObjetoResponseDTO> verificarDevolucion(
             @PathVariable Long id,
             @RequestParam(required = false) Long usuarioId,
-            @RequestParam(required = false) String observaciones
+            @RequestParam(required = false) String observaciones,
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(exhibicionObjetoService.verificarDevolucion(id, usuarioId, observaciones));
+        return ResponseEntity.ok(exhibicionObjetoService.verificarDevolucion(id, usuarioId, observaciones, usuario(authentication)));
     }
 
     @Operation(summary = "Revertir verificacion de devolucion de objeto")
     @ApiResponse(responseCode = "200", description = "Devolucion revertida")
     @PostMapping("/{id}/revertir-devolucion")
-    public ResponseEntity<ExhibicionObjetoResponseDTO> revertirDevolucion(@PathVariable Long id) {
-        return ResponseEntity.ok(exhibicionObjetoService.revertirDevolucion(id));
+    public ResponseEntity<ExhibicionObjetoResponseDTO> revertirDevolucion(@PathVariable Long id, Authentication authentication) {
+        return ResponseEntity.ok(exhibicionObjetoService.revertirDevolucion(id, usuario(authentication)));
     }
 
     @Operation(summary = "Dar de baja recurso")
     @ApiResponse(responseCode = "204", description = "Recurso dado de baja")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> bajaLogica(@PathVariable Long id) {
-        exhibicionObjetoService.bajaLogica(id);
+    public ResponseEntity<Void> bajaLogica(@PathVariable Long id, Authentication authentication) {
+        exhibicionObjetoService.bajaLogica(id, usuario(authentication));
         return ResponseEntity.noContent().build();
+    }
+
+    private String usuario(Authentication authentication) {
+        if (authentication == null) {
+            return null;
+        }
+        if (authentication instanceof JwtAuthenticationToken jwtAuthentication) {
+            String username = jwtAuthentication.getToken().getClaimAsString("preferred_username");
+            if (StringUtils.hasText(username)) {
+                return username;
+            }
+        }
+        return authentication.getName();
     }
 }

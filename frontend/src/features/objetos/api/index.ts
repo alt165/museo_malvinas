@@ -14,6 +14,7 @@ export {
   eliminarReciboEscaneadoObjeto,
   listarComodatosPrestamos,
   listarFotosObjeto,
+  listarHistorialObjeto,
   listarMovimientosObjeto,
   listarObjetos,
   listarObjetosEliminados,

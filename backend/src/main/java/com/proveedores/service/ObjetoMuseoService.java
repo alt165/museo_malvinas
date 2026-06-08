@@ -25,6 +25,7 @@ import com.proveedores.entity.ObjetoDepositante;
 import com.proveedores.entity.OrigenCargaObjeto;
 import com.proveedores.entity.ReciboIngresoObjeto;
 import com.proveedores.entity.TipoMovimientoInventario;
+import com.proveedores.entity.TipoOperacionAuditoria;
 import com.proveedores.entity.Ubicacion;
 import com.proveedores.entity.Usuario;
 import com.proveedores.exception.BusinessException;
@@ -52,6 +53,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -81,6 +83,7 @@ public class ObjetoMuseoService {
     private final MovimientoInventarioRepository movimientoInventarioRepository;
     private final UbicacionRepository ubicacionRepository;
     private final UsuarioRepository usuarioRepository;
+    private final AuditoriaObjetoService auditoriaObjetoService;
 
     public ObjetoMuseoService(
             ObjetoMuseoRepository objetoMuseoRepository,
@@ -94,7 +97,8 @@ public class ObjetoMuseoService {
             InventarioRepository inventarioRepository,
             MovimientoInventarioRepository movimientoInventarioRepository,
             UbicacionRepository ubicacionRepository,
-            UsuarioRepository usuarioRepository
+            UsuarioRepository usuarioRepository,
+            AuditoriaObjetoService auditoriaObjetoService
     ) {
         this.objetoMuseoRepository = objetoMuseoRepository;
         this.categoriaObjetoRepository = categoriaObjetoRepository;
@@ -108,6 +112,7 @@ public class ObjetoMuseoService {
         this.movimientoInventarioRepository = movimientoInventarioRepository;
         this.ubicacionRepository = ubicacionRepository;
         this.usuarioRepository = usuarioRepository;
+        this.auditoriaObjetoService = auditoriaObjetoService;
     }
 
     @Transactional
@@ -129,6 +134,16 @@ public class ObjetoMuseoService {
         }
         Depositante depositante = sincronizarRecepcion(saved, dto, "Alta completa");
         ReciboIngresoObjeto reciboSaved = reciboIngresoObjetoRepository.save(crearRecibo(saved, depositante, descripcionRecibo(dto), operador));
+        auditoriaObjetoService.registrar(
+                saved,
+                TipoOperacionAuditoria.CREACION,
+                "ALTA_COMPLETA",
+                "Alta completa de objeto",
+                "ALTA_COMPLETA",
+                null,
+                snapshotObjeto(saved),
+                operador
+        );
         log.info("event=objeto_museo.created objetoMuseoId={} numeroInventario={} reciboId={}", saved.getId(), saved.getNumeroInventario(), reciboSaved.getId());
         return toResponse(saved);
     }
@@ -167,7 +182,13 @@ public class ObjetoMuseoService {
 
     @Transactional
     public ObjetoMuseoResponseDTO actualizar(Long id, ObjetoMuseoRequestDTO dto) {
+        return actualizar(id, dto, null);
+    }
+
+    @Transactional
+    public ObjetoMuseoResponseDTO actualizar(Long id, ObjetoMuseoRequestDTO dto, String operador) {
         ObjetoMuseo entity = buscarActivo(id);
+        Map<String, Object> anteriores = snapshotObjeto(entity);
         validarNumeroInventarioDisponible(dto.numeroInventario(), id);
         boolean pendienteRapida = entity.getOrigenCarga() == OrigenCargaObjeto.RAPIDA && Boolean.FALSE.equals(entity.getDatosCompletos());
         if (pendienteRapida) {
@@ -183,6 +204,20 @@ public class ObjetoMuseoService {
         if (dto.depositanteId() != null || dto.caracterRecepcion() != null || dto.fechaVencimiento() != null) {
             sincronizarRecepcion(saved, dto, pendienteRapida ? "Completar carga" : "Actualizacion de objeto");
         }
+        String accion = pendienteRapida ? "COMPLETAR_CARGA" : "EDICION";
+        String descripcion = pendienteRapida
+                ? "Completar carga de objeto creado por alta rápida"
+                : "Edición de datos generales del objeto";
+        auditoriaObjetoService.registrar(
+                saved,
+                TipoOperacionAuditoria.MODIFICACION,
+                accion,
+                descripcion,
+                accion,
+                anteriores,
+                snapshotObjeto(saved),
+                operador
+        );
         log.info("event=objeto_museo.updated objetoMuseoId={} numeroInventario={}", saved.getId(), saved.getNumeroInventario());
         return toResponse(saved);
     }
@@ -244,6 +279,16 @@ public class ObjetoMuseoService {
 
         ReciboIngresoObjeto recibo = crearRecibo(saved, depositante, dto.descripcionBreve(), operador);
         ReciboIngresoObjeto reciboSaved = reciboIngresoObjetoRepository.save(recibo);
+        auditoriaObjetoService.registrar(
+                saved,
+                TipoOperacionAuditoria.CREACION,
+                "ALTA_RAPIDA",
+                "Alta rápida de objeto",
+                "ALTA_RAPIDA",
+                null,
+                snapshotObjeto(saved),
+                operador
+        );
 
         log.info("event=objeto_museo.quick_created objetoMuseoId={} reciboId={}", saved.getId(), reciboSaved.getId());
         return new CargaRapidaObjetoResponseDTO(toResponse(saved), toReciboResponse(reciboSaved), "/api/recibos/" + reciboSaved.getId() + "/pdf");
@@ -280,6 +325,23 @@ public class ObjetoMuseoService {
                 usuarioMovimiento,
                 fecha
         );
+        auditoriaObjetoService.registrar(
+                objeto,
+                TipoOperacionAuditoria.MODIFICACION,
+                "CAMBIO_UBICACION",
+                "Cambio de ubicación del objeto",
+                "MOVIMIENTO",
+                auditoriaObjetoService.mapOf(
+                        "ubicacionId", origen == null ? null : origen.getId(),
+                        "ubicacion", origen == null ? null : origen.getNombre()
+                ),
+                auditoriaObjetoService.mapOf(
+                        "ubicacionId", destino.getId(),
+                        "ubicacion", destino.getNombre(),
+                        "descripcion", dto.descripcion()
+                ),
+                usuarioMovimiento
+        );
         log.info("event=objeto_museo.moved objetoMuseoId={} ubicacionOrigenId={} ubicacionDestinoId={}", id, origen == null ? null : origen.getId(), destino.getId());
         return toMovimientoObjetoResponse(movimiento, usuarioMovimiento);
     }
@@ -295,11 +357,22 @@ public class ObjetoMuseoService {
     @Transactional
     public void bajaLogica(Long id, String eliminadoPor) {
         ObjetoMuseo entity = buscarActivo(id);
+        Map<String, Object> anteriores = snapshotObjeto(entity);
         entity.setActivo(false);
         entity.setEliminado(true);
         entity.setFechaEliminacion(LocalDateTime.now());
         entity.setEliminadoPor(eliminadoPor);
         objetoMuseoRepository.save(entity);
+        auditoriaObjetoService.registrar(
+                entity,
+                TipoOperacionAuditoria.ELIMINACION,
+                "BAJA_LOGICA",
+                "Baja lógica de objeto",
+                "EDICION",
+                anteriores,
+                auditoriaObjetoService.mapOf("eliminado", true, "eliminadoPor", eliminadoPor),
+                eliminadoPor
+        );
         log.info("event=objeto_museo.deleted objetoMuseoId={} numeroInventario={} eliminadoPor={}", entity.getId(), entity.getNumeroInventario(), eliminadoPor);
     }
 
@@ -514,6 +587,32 @@ public class ObjetoMuseoService {
         relacion.setObservaciones(observaciones);
         objetoDepositanteRepository.save(relacion);
         return depositante;
+    }
+
+
+    private Map<String, Object> snapshotObjeto(ObjetoMuseo objeto) {
+        Inventario inventario = inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(objeto.getId()).orElse(null);
+        ObjetoDepositante relacion = objetoDepositanteRepository
+                .findFirstByObjetoMuseoIdAndEliminadoFalseOrderByIdAsc(objeto.getId())
+                .orElse(null);
+        return auditoriaObjetoService.mapOf(
+                "numeroInventario", objeto.getNumeroInventario(),
+                "denominacionObjeto", objeto.getDenominacionObjeto(),
+                "descripcion", objeto.getDescripcion(),
+                "descripcionTecnica", objeto.getDescripcionTecnica(),
+                "materiales", objeto.getMateriales(),
+                "dimensiones", objeto.getDimensiones(),
+                "estadoConservacion", objeto.getEstadoConservacion(),
+                "origenCarga", objeto.getOrigenCarga(),
+                "datosCompletos", objeto.getDatosCompletos(),
+                "ubicacionId", inventario == null || inventario.getUbicacion() == null ? null : inventario.getUbicacion().getId(),
+                "ubicacion", inventario == null || inventario.getUbicacion() == null ? null : inventario.getUbicacion().getNombre(),
+                "fechaIngreso", inventario == null ? null : inventario.getFechaIngreso(),
+                "depositanteId", relacion == null || relacion.getDepositante() == null ? null : relacion.getDepositante().getId(),
+                "depositante", relacion == null || relacion.getDepositante() == null ? null : relacion.getDepositante().getNombre(),
+                "caracterRecepcion", relacion == null ? null : relacion.getTipoDeposito(),
+                "fechaVencimiento", relacion == null ? null : relacion.getFechaVencimiento()
+        );
     }
 
     private boolean tieneDatosCompletos(ObjetoMuseoRequestDTO dto) {

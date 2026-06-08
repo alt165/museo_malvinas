@@ -8,6 +8,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.util.StringUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -38,9 +41,10 @@ public class ComodatoPrestamoAdminController {
     @PatchMapping("/{objetoId}/fecha-vencimiento")
     public ResponseEntity<ComodatoPrestamoResponseDTO> actualizarFechaVencimiento(
             @PathVariable Long objetoId,
-            @RequestBody @Valid ActualizarFechaVencimientoRequestDTO dto
+            @RequestBody @Valid ActualizarFechaVencimientoRequestDTO dto,
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(comodatoPrestamoService.actualizarFechaVencimiento(objetoId, dto.fechaVencimiento()));
+        return ResponseEntity.ok(comodatoPrestamoService.actualizarFechaVencimiento(objetoId, dto.fechaVencimiento(), usuario(authentication)));
     }
 
     @Operation(summary = "Obtener configuracion de alertas")
@@ -53,5 +57,18 @@ public class ComodatoPrestamoAdminController {
     @PutMapping("/config-alertas")
     public ResponseEntity<ConfigAlertasVencimientoDTO> actualizarConfigAlertas(@RequestBody @Valid ConfigAlertasVencimientoDTO dto) {
         return ResponseEntity.ok(comodatoPrestamoService.actualizarConfigAlertas(dto));
+    }
+
+    private String usuario(Authentication authentication) {
+        if (authentication == null) {
+            return null;
+        }
+        if (authentication instanceof JwtAuthenticationToken jwtAuthentication) {
+            String username = jwtAuthentication.getToken().getClaimAsString("preferred_username");
+            if (StringUtils.hasText(username)) {
+                return username;
+            }
+        }
+        return authentication.getName();
     }
 }

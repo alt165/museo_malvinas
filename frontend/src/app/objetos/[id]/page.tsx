@@ -6,6 +6,7 @@ import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
+import { hasRole, useAuth } from "@/lib/auth";
 import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
 import {
@@ -38,6 +39,8 @@ export default function DetalleObjetoPage() {
   const params = useParams<{ id: string }>();
   const id = getParamId(params.id);
   const { canEdit: puedeEscribir } = useEditingMode();
+  const { roles } = useAuth();
+  const esAdmin = hasRole(roles, "ADMIN");
   const { data, error, isError, isLoading } = useObjetoQuery(id);
   const { data: recibos = [] } = useRecibosObjetoQuery(id);
 
@@ -64,6 +67,14 @@ export default function DetalleObjetoPage() {
                   href={`/objetos/${data.id}/movimientos`}
                 >
                   Ver movimientos
+                </Link>
+              ) : null}
+              {esAdmin && data ? (
+                <Link
+                  className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
+                  href={`/objetos/${data.id}/historial`}
+                >
+                  Historial
                 </Link>
               ) : null}
               {data ? (

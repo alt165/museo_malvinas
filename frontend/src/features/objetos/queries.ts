@@ -10,6 +10,7 @@ import {
   eliminarFotoObjeto,
   listarComodatosPrestamos,
   listarFotosObjeto,
+  listarHistorialObjeto,
   listarMovimientosObjeto,
   listarObjetos,
   listarObjetosEliminados,
@@ -36,6 +37,7 @@ export const objetosQueryKeys = {
   detail: (id: number) => [...objetosQueryKeys.all, "detail", id] as const,
   fotos: (id: number) => [...objetosQueryKeys.all, "detail", id, "fotos"] as const,
   movimientos: (id: number) => [...objetosQueryKeys.all, "detail", id, "movimientos"] as const,
+  historial: (id: number) => [...objetosQueryKeys.all, "detail", id, "historial"] as const,
   reciboEscaneado: (id: number) => [...objetosQueryKeys.all, "detail", id, "recibo-escaneado"] as const,
   recibos: (id: number) => [...objetosQueryKeys.all, "detail", id, "recibos"] as const
 };
@@ -192,6 +194,14 @@ export function useMoverObjetoMutation(id: number) {
       void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.all });
       void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.movimientos(id) });
     }
+  });
+}
+
+export function useHistorialObjetoQuery(id: number) {
+  return useQuery({
+    queryKey: objetosQueryKeys.historial(id),
+    queryFn: () => listarHistorialObjeto(id),
+    enabled: Number.isFinite(id)
   });
 }
 

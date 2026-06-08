@@ -74,6 +74,9 @@ class ObjetoMuseoServiceTest {
     @Mock
     private UsuarioRepository usuarioRepository;
 
+    @Mock
+    private AuditoriaObjetoService auditoriaObjetoService;
+
     @InjectMocks
     private ObjetoMuseoService service;
 

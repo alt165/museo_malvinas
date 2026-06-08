@@ -5,6 +5,7 @@ import type {
   ComodatoPrestamoResponseDTO,
   ConfigAlertasVencimientoDTO,
   FotoObjetoMuseoResponseDTO,
+  HistorialObjetoResponseDTO,
   BuscarObjetosParams,
   MoverObjetoRequestDTO,
   MovimientoObjetoResponseDTO,
@@ -113,6 +114,10 @@ export function bajaLogicaObjeto(id: number) {
   return apiRequest<void>(`${basePath}/${id}`, {
     method: "DELETE"
   });
+}
+
+export function listarHistorialObjeto(id: number) {
+  return apiRequest<HistorialObjetoResponseDTO[]>(`/api/admin/objetos/${id}/historial`);
 }
 
 export function listarObjetosEliminados(params: { page?: number; size?: number; sort?: string }) {
