@@ -71,10 +71,16 @@ public class KeycloakAdminService {
         try (Response response = usersResource().create(usuario)) {
             if (response.getStatus() == Response.Status.CREATED.getStatusCode()) {
                 String id = extraerIdCreado(response.getLocation());
-                if (dto.roles() != null && !dto.roles().isEmpty()) {
-                    asignarRoles(id, new AsignarRolRequestDTO(dto.roles(), true), null);
+                try {
+                    actualizarDniUsuarioCreado(id, dto);
+                    if (dto.roles() != null && !dto.roles().isEmpty()) {
+                        return asignarRoles(id, new AsignarRolRequestDTO(dto.roles(), true), null);
+                    }
+                    return obtenerUsuario(id);
+                } catch (RuntimeException exception) {
+                    eliminarUsuarioCreado(id);
+                    throw exception;
                 }
-                return obtenerUsuario(id);
             }
             if (response.getStatus() == Response.Status.CONFLICT.getStatusCode()) {
                 throw new BusinessException("Ya existe un usuario con ese username o email");
@@ -126,14 +132,37 @@ public class KeycloakAdminService {
             ejecutarOperacionKeycloak(() -> realmRoles.remove(rolesActualesGestionados));
         }
 
-        List<RoleRepresentation> rolesNuevos = rolesSolicitados.stream()
-                .map(role -> realmResource().roles().get(role).toRepresentation())
-                .toList();
+        List<RoleRepresentation> rolesNuevos = obtenerRepresentacionesRolesRealm(rolesSolicitados);
         if (!rolesNuevos.isEmpty()) {
             ejecutarOperacionKeycloak(() -> realmRoles.add(rolesNuevos));
         }
 
         return obtenerUsuario(id);
+    }
+
+    private void actualizarDniUsuarioCreado(String id, UsuarioKeycloakRequestDTO dto) {
+        UserResource userResource = userResource(id);
+        UserRepresentation usuario = obtenerRepresentacion(id);
+        setDniAttribute(usuario, dto.dni());
+        ejecutarOperacionKeycloak(() -> userResource.update(usuario));
+    }
+
+    private void eliminarUsuarioCreado(String id) {
+        try {
+            userResource(id).remove();
+        } catch (WebApplicationException exception) {
+            // La operacion original es mas relevante para el cliente que una limpieza fallida.
+        }
+    }
+
+    private List<RoleRepresentation> obtenerRepresentacionesRolesRealm(Set<String> rolesSolicitados) {
+        try {
+            return rolesSolicitados.stream()
+                    .map(role -> realmResource().roles().get(role).toRepresentation())
+                    .toList();
+        } catch (WebApplicationException exception) {
+            throw new BusinessException("No se pudieron consultar los roles en Keycloak");
+        }
     }
 
     private UserRepresentation obtenerRepresentacion(String id) {
