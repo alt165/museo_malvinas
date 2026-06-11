@@ -16,6 +16,7 @@ import com.proveedores.dto.ReciboIngresoObjetoResponseDTO;
 import com.proveedores.dto.RelacionObjetoPorObjetoResponseDTO;
 import com.proveedores.service.ComodatoPrestamoService;
 import com.proveedores.service.FotoObjetoMuseoService;
+import com.proveedores.service.ObjetoMuseoExportService;
 import com.proveedores.service.ObjetoMuseoService;
 import com.proveedores.service.ReciboEscaneadoObjetoMuseoService;
 import com.proveedores.service.ReciboIngresoObjetoService;
@@ -24,6 +25,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import org.springdoc.core.annotations.ParameterObject;
@@ -55,6 +58,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class ObjetoMuseoController {
 
     private final ObjetoMuseoService objetoMuseoService;
+    private final ObjetoMuseoExportService objetoMuseoExportService;
     private final ComodatoPrestamoService comodatoPrestamoService;
     private final FotoObjetoMuseoService fotoObjetoMuseoService;
     private final ReciboEscaneadoObjetoMuseoService reciboEscaneadoObjetoMuseoService;
@@ -63,6 +67,7 @@ public class ObjetoMuseoController {
 
     public ObjetoMuseoController(
             ObjetoMuseoService objetoMuseoService,
+            ObjetoMuseoExportService objetoMuseoExportService,
             ComodatoPrestamoService comodatoPrestamoService,
             FotoObjetoMuseoService fotoObjetoMuseoService,
             ReciboEscaneadoObjetoMuseoService reciboEscaneadoObjetoMuseoService,
@@ -70,6 +75,7 @@ public class ObjetoMuseoController {
             RelacionObjetoService relacionObjetoService
     ) {
         this.objetoMuseoService = objetoMuseoService;
+        this.objetoMuseoExportService = objetoMuseoExportService;
         this.comodatoPrestamoService = comodatoPrestamoService;
         this.fotoObjetoMuseoService = fotoObjetoMuseoService;
         this.reciboEscaneadoObjetoMuseoService = reciboEscaneadoObjetoMuseoService;
@@ -111,6 +117,29 @@ public class ObjetoMuseoController {
             @ParameterObject @PageableDefault(size = 20) Pageable pageable
     ) {
         return ResponseEntity.ok(objetoMuseoService.buscar(nombre, numeroInventario, categoriaIds, pageable));
+    }
+
+    @Operation(summary = "Exportar listado de objetos de museo en PDF")
+    @ApiResponse(responseCode = "200", description = "PDF generado")
+    @GetMapping(value = "/export/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> exportarPdf(
+            @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) String numeroInventario,
+            @RequestParam(required = false) List<Long> categoriaIds,
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable,
+            Authentication authentication
+    ) {
+        byte[] pdf = objetoMuseoExportService.exportarListadoPdf(
+                nombre,
+                numeroInventario,
+                categoriaIds,
+                pageable.getSort(),
+                usuario(authentication)
+        );
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombreArchivoObjetosPdf() + "\"")
+                .body(pdf);
     }
 
     @Operation(summary = "Listar objetos sin coleccion")
@@ -301,6 +330,10 @@ public class ObjetoMuseoController {
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(objetoMuseoService.cargaRapida(dto, usuario(authentication)));
+    }
+
+    private String nombreArchivoObjetosPdf() {
+        return "objetos_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm")) + ".pdf";
     }
 
     private String usuario(Authentication authentication) {

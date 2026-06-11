@@ -30,7 +30,7 @@ export function listarObjetosSinColeccion() {
   return apiRequest<ObjetoMuseoResponseDTO[]>(`${basePath}/sin-coleccion`);
 }
 
-export function buscarObjetos(params: BuscarObjetosParams) {
+function buildBuscarObjetosSearchParams(params: BuscarObjetosParams, includePagination: boolean) {
   const searchParams = new URLSearchParams();
 
   if (params.nombre?.trim()) {
@@ -45,14 +45,24 @@ export function buscarObjetos(params: BuscarObjetosParams) {
     searchParams.append("categoriaIds", String(categoriaId));
   });
 
-  searchParams.set("page", String(params.page ?? 0));
-  searchParams.set("size", String(params.size ?? 20));
+  if (includePagination) {
+    searchParams.set("page", String(params.page ?? 0));
+    searchParams.set("size", String(params.size ?? 20));
+  }
 
   if (params.sort) {
     searchParams.set("sort", params.sort);
   }
 
-  return apiRequest<PageResponse<ObjetoMuseoResponseDTO>>(`${basePath}/buscar?${searchParams.toString()}`);
+  return searchParams;
+}
+
+export function buscarObjetos(params: BuscarObjetosParams) {
+  return apiRequest<PageResponse<ObjetoMuseoResponseDTO>>(`${basePath}/buscar?${buildBuscarObjetosSearchParams(params, true).toString()}`);
+}
+
+export function exportarObjetosPdf(params: BuscarObjetosParams) {
+  return apiBlobRequest(`${basePath}/export/pdf?${buildBuscarObjetosSearchParams(params, false).toString()}`);
 }
 
 export function obtenerObjetoPorId(id: number) {

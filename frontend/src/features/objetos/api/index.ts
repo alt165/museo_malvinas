@@ -12,6 +12,7 @@ export {
   descargarReciboPdf,
   eliminarFotoObjeto,
   eliminarReciboEscaneadoObjeto,
+  exportarObjetosPdf,
   listarComodatosPrestamos,
   listarFotosObjeto,
   listarHistorialObjeto,

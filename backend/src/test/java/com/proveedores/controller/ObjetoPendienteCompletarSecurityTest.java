@@ -10,6 +10,7 @@ import com.proveedores.security.KeycloakJwtAuthenticationConverter;
 import com.proveedores.security.SecurityConfig;
 import com.proveedores.service.ComodatoPrestamoService;
 import com.proveedores.service.FotoObjetoMuseoService;
+import com.proveedores.service.ObjetoMuseoExportService;
 import com.proveedores.service.ObjetoMuseoService;
 import com.proveedores.service.ReciboEscaneadoObjetoMuseoService;
 import com.proveedores.service.ReciboIngresoObjetoService;
@@ -38,6 +39,9 @@ class ObjetoPendienteCompletarSecurityTest {
     private ObjetoMuseoService objetoMuseoService;
 
     @MockBean
+    private ObjetoMuseoExportService objetoMuseoExportService;
+
+    @MockBean
     private ComodatoPrestamoService comodatoPrestamoService;
 
     @MockBean
@@ -57,6 +61,14 @@ class ObjetoPendienteCompletarSecurityTest {
 
     @MockBean
     private JwtDecoder jwtDecoder;
+
+    @Test
+    void viewerPuedeExportarPdfObjetos() throws Exception {
+        when(objetoMuseoExportService.exportarListadoPdf(any(), any(), any(), any(), any())).thenReturn(new byte[] { 1, 2, 3 });
+
+        mockMvc.perform(get("/api/objetos/export/pdf").with(user("viewer").roles("VIEWER")))
+                .andExpect(status().isOk());
+    }
 
     @Test
     void adminPuedeListarPendientes() throws Exception {

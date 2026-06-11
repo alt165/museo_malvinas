@@ -170,14 +170,22 @@ public class ObjetoMuseoService {
 
     @Transactional(readOnly = true)
     public Page<ObjetoMuseoResponseDTO> buscar(String nombre, String numeroInventario, List<Long> categoriaIds, Pageable pageable) {
-        List<Long> categorias = categoriaIds == null
-                ? List.of()
-                : categoriaIds.stream().filter(java.util.Objects::nonNull).distinct().toList();
         return objetoMuseoRepository.findAll(busquedaSpecification(
                         normalizarFiltro(nombre),
                         normalizarFiltro(numeroInventario),
-                        categorias
+                        normalizarCategoriaIds(categoriaIds)
                 ), normalizarPageableBusqueda(pageable)).map(this::toResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ObjetoMuseoResponseDTO> buscarParaExportacion(String nombre, String numeroInventario, List<Long> categoriaIds, Sort sort) {
+        return objetoMuseoRepository.findAll(busquedaSpecification(
+                        normalizarFiltro(nombre),
+                        normalizarFiltro(numeroInventario),
+                        normalizarCategoriaIds(categoriaIds)
+                ), normalizarSortBusqueda(sort)).stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     @Transactional
@@ -449,6 +457,12 @@ public class ObjetoMuseoService {
         return valor.trim();
     }
 
+    private List<Long> normalizarCategoriaIds(List<Long> categoriaIds) {
+        return categoriaIds == null
+                ? List.of()
+                : categoriaIds.stream().filter(java.util.Objects::nonNull).distinct().toList();
+    }
+
     private Specification<ObjetoMuseo> busquedaSpecification(String nombre, String numeroInventario, List<Long> categoriaIds) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -486,12 +500,16 @@ public class ObjetoMuseoService {
     }
 
     private Pageable normalizarPageableBusqueda(Pageable pageable) {
-        if (pageable.getSort().isUnsorted()) {
-            return pageable;
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), normalizarSortBusqueda(pageable.getSort()));
+    }
+
+    private Sort normalizarSortBusqueda(Sort sort) {
+        if (sort.isUnsorted()) {
+            return Sort.unsorted();
         }
 
         List<Sort.Order> ordenes = new ArrayList<>();
-        for (Sort.Order order : pageable.getSort()) {
+        for (Sort.Order order : sort) {
             String property = sortPropertyPermitida(order.getProperty());
             if (property != null) {
                 ordenes.add(new Sort.Order(order.getDirection(), property, order.getNullHandling()));
@@ -500,8 +518,7 @@ public class ObjetoMuseoService {
             }
         }
 
-        Sort sort = ordenes.isEmpty() ? Sort.unsorted() : Sort.by(ordenes);
-        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
+        return ordenes.isEmpty() ? Sort.unsorted() : Sort.by(ordenes);
     }
 
     private String sortPropertyPermitida(String property) {

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Download } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
@@ -8,7 +9,9 @@ import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
 import { hasRole, useAuth } from "@/lib/auth";
+import { descargarBlob } from "@/lib/download";
 import { useEditingMode } from "@/lib/editing-mode";
+import { exportarObjetosPdf } from "@/features/objetos/api";
 import { useBajaLogicaObjetoMutation, useBuscarObjetosQuery } from "@/features/objetos/queries";
 import { MoverObjetoModal } from "@/features/objetos/components/mover-objeto-modal";
 import { ObjetosTable } from "@/features/objetos/components/objetos-table";
@@ -40,6 +43,9 @@ export default function ObjetosPage() {
   const [size, setSize] = useState(20);
   const [sort, setSort] = useState<ObjetosSort>({ field: "numeroInventario", direction: "asc" });
   const [objetoParaMover, setObjetoParaMover] = useState<ObjetoMuseoResponseDTO | null>(null);
+  const [descargandoPdf, setDescargandoPdf] = useState(false);
+  const [descargaPdfError, setDescargaPdfError] = useState<string | null>(null);
+  const [descargaPdfOk, setDescargaPdfOk] = useState(false);
   const categoriasQuery = useCategoriasQuery();
   const categorias = useMemo(() => categoriasQuery.data ?? [], [categoriasQuery.data]);
   const categoriasFiltradas = useMemo(() => {
@@ -93,13 +99,21 @@ export default function ObjetosPage() {
   }
 
   function toggleCategoria(categoriaId: number) {
+    setPage(0);
     setFiltrosFormulario((current) => {
       const seleccionada = current.categoriaIds.includes(categoriaId);
+      const categoriaIds = seleccionada
+        ? current.categoriaIds.filter((id) => id !== categoriaId)
+        : [...current.categoriaIds, categoriaId];
+
+      setFiltrosAplicados((aplicados) => ({
+        ...aplicados,
+        categoriaIds
+      }));
+
       return {
         ...current,
-        categoriaIds: seleccionada
-          ? current.categoriaIds.filter((id) => id !== categoriaId)
-          : [...current.categoriaIds, categoriaId]
+        categoriaIds
       };
     });
   }
@@ -112,21 +126,51 @@ export default function ObjetosPage() {
     }));
   }
 
+  async function handleDescargarPdf() {
+    setDescargandoPdf(true);
+    setDescargaPdfError(null);
+    setDescargaPdfOk(false);
+
+    try {
+      const blob = await exportarObjetosPdf({
+        ...filtrosAplicados,
+        sort: `${sort.field},${sort.direction}`
+      });
+      descargarBlob(blob, nombreArchivoObjetosPdf());
+      setDescargaPdfOk(true);
+    } catch (error) {
+      setDescargaPdfError(getApiErrorMessage(error));
+    } finally {
+      setDescargandoPdf(false);
+    }
+  }
+
   return (
     <AppShell>
       <div className="space-y-6">
         <PageHeader
           actions={
-            puedeEscribir ? (
-              <div className="flex flex-wrap gap-2">
-                <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/objetos/carga-rapida">
-                  Carga rapida
-                </Link>
-                <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/objetos/nuevo">
-                  Nuevo objeto
-                </Link>
-              </div>
-            ) : null
+            <div className="flex flex-wrap gap-2">
+              <button
+                className="inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={descargandoPdf || isLoading}
+                onClick={handleDescargarPdf}
+                type="button"
+              >
+                <Download className="h-4 w-4" />
+                {descargandoPdf ? "Generando PDF..." : "Descargar PDF"}
+              </button>
+              {puedeEscribir ? (
+                <>
+                  <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/objetos/carga-rapida">
+                    Carga rapida
+                  </Link>
+                  <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/objetos/nuevo">
+                    Nuevo objeto
+                  </Link>
+                </>
+              ) : null}
+            </div>
           }
           description="Catalogo de objetos patrimoniales registrados en el museo."
           title="Objetos del museo"
@@ -223,6 +267,12 @@ export default function ObjetosPage() {
             </section>
           </div>
         </form>
+        {descargaPdfError ? <ErrorState message={descargaPdfError} title="No se pudo descargar el PDF" /> : null}
+        {descargaPdfOk ? (
+          <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-900">
+            PDF generado correctamente.
+          </div>
+        ) : null}
         {isLoading ? <LoadingState label="Cargando objetos..." /> : null}
         {isError ? (
           <ErrorState
@@ -302,4 +352,10 @@ export default function ObjetosPage() {
       </div>
     </AppShell>
   );
+}
+
+function nombreArchivoObjetosPdf() {
+  const now = new Date();
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `objetos_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}.pdf`;
 }

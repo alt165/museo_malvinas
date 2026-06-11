@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -17,6 +18,7 @@ import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.security.KeycloakJwtAuthenticationConverter;
 import com.proveedores.service.ComodatoPrestamoService;
 import com.proveedores.service.FotoObjetoMuseoService;
+import com.proveedores.service.ObjetoMuseoExportService;
 import com.proveedores.service.ObjetoMuseoService;
 import com.proveedores.service.ReciboEscaneadoObjetoMuseoService;
 import com.proveedores.service.ReciboIngresoObjetoService;
@@ -48,6 +50,9 @@ class ObjetoMuseoControllerTest {
     private ObjetoMuseoService objetoMuseoService;
 
     @MockBean
+    private ObjetoMuseoExportService objetoMuseoExportService;
+
+    @MockBean
     private ComodatoPrestamoService comodatoPrestamoService;
 
     @MockBean
@@ -76,6 +81,21 @@ class ObjetoMuseoControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1L))
                 .andExpect(jsonPath("$.numeroInventario").value("INV-1"));
+    }
+
+    @Test
+    void exportarPdfDevuelveArchivo() throws Exception {
+        when(objetoMuseoExportService.exportarListadoPdf(eq("Casco"), eq("INV"), eq(java.util.List.of(2L)), any(), any()))
+                .thenReturn("%PDF-1.7".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+        mockMvc.perform(get("/api/objetos/export/pdf")
+                        .param("nombre", "Casco")
+                        .param("numeroInventario", "INV")
+                        .param("categoriaIds", "2")
+                        .param("sort", "numeroInventario,asc"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", org.hamcrest.Matchers.containsString(MediaType.APPLICATION_PDF_VALUE)))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("objetos_")));
     }
 
     @Test
