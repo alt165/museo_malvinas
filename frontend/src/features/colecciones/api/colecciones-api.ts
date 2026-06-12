@@ -1,4 +1,4 @@
-import { apiRequest } from "@/lib/api";
+import { apiBlobRequest, apiRequest } from "@/lib/api";
 import type { ObjetoMuseoResponseDTO } from "@/features/objetos/types";
 import type {
   AgregarObjetosColeccionRequestDTO,
@@ -38,6 +38,10 @@ export function bajaLogicaColeccion(id: number) {
 
 export function listarObjetosColeccion(id: number) {
   return apiRequest<ObjetoMuseoResponseDTO[]>(`${basePath}/${id}/objetos`);
+}
+
+export function exportarColeccionPdf(id: number) {
+  return apiBlobRequest(`${basePath}/${id}/export/pdf`);
 }
 
 export function agregarObjetosColeccion(id: number, payload: AgregarObjetosColeccionRequestDTO) {

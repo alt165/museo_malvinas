@@ -6,6 +6,7 @@ import {
   buscarDepositantesPorNombre,
   crearDepositante,
   listarDepositantes,
+  listarObjetosDepositante,
   obtenerDepositantePorId
 } from "./api";
 import type { DepositanteRequestDTO } from "./types";
@@ -15,7 +16,8 @@ export const depositantesQueryKeys = {
   lists: () => [...depositantesQueryKeys.all, "list"] as const,
   identificacion: (valor: string) => [...depositantesQueryKeys.all, "identificacion", valor] as const,
   nombre: (valor: string) => [...depositantesQueryKeys.all, "nombre", valor] as const,
-  detail: (id: number) => [...depositantesQueryKeys.all, "detail", id] as const
+  detail: (id: number) => [...depositantesQueryKeys.all, "detail", id] as const,
+  objetos: (id: number) => [...depositantesQueryKeys.all, "detail", id, "objetos"] as const
 };
 
 export function useDepositantesQuery() {
@@ -46,6 +48,14 @@ export function useBuscarDepositantesPorNombreQuery(valor: string) {
     queryKey: depositantesQueryKeys.nombre(valorNormalizado),
     queryFn: () => buscarDepositantesPorNombre(valorNormalizado),
     enabled: valorNormalizado.length > 0
+  });
+}
+
+export function useObjetosDepositanteQuery(id: number) {
+  return useQuery({
+    queryKey: depositantesQueryKeys.objetos(id),
+    queryFn: () => listarObjetosDepositante(id),
+    enabled: Number.isFinite(id)
   });
 }
 

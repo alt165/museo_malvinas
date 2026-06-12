@@ -2,11 +2,13 @@ package com.proveedores.service;
 
 import com.proveedores.dto.DepositanteRequestDTO;
 import com.proveedores.dto.DepositanteResponseDTO;
+import com.proveedores.dto.ObjetoMuseoResponseDTO;
 import com.proveedores.entity.Depositante;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.mapper.DepositanteMapper;
 import com.proveedores.repository.DepositanteRepository;
+import com.proveedores.repository.ObjetoDepositanteRepository;
 import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -18,9 +20,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class DepositanteService {
 
     private final DepositanteRepository depositanteRepository;
+    private final ObjetoDepositanteRepository objetoDepositanteRepository;
+    private final ObjetoMuseoService objetoMuseoService;
 
-    public DepositanteService(DepositanteRepository depositanteRepository) {
+    public DepositanteService(
+            DepositanteRepository depositanteRepository,
+            ObjetoDepositanteRepository objetoDepositanteRepository,
+            ObjetoMuseoService objetoMuseoService
+    ) {
         this.depositanteRepository = depositanteRepository;
+        this.objetoDepositanteRepository = objetoDepositanteRepository;
+        this.objetoMuseoService = objetoMuseoService;
     }
 
     @Transactional
@@ -75,6 +85,14 @@ public class DepositanteService {
         return resultados.values().stream().map(DepositanteMapper::toResponse).toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<ObjetoMuseoResponseDTO> listarObjetos(Long id) {
+        buscarActivo(id);
+        return objetoDepositanteRepository.findObjetosActivosPorDepositante(id).stream()
+                .map(relacion -> objetoMuseoService.toResponseForRelations(relacion.getObjetoMuseo()))
+                .toList();
+    }
+
     @Transactional
     public void bajaLogica(Long id) {
         Depositante entity = buscarActivo(id);
@@ -84,7 +102,7 @@ public class DepositanteService {
         depositanteRepository.save(entity);
     }
 
-    private Depositante buscarActivo(Long id) {
+    Depositante buscarActivo(Long id) {
         Depositante entity = depositanteRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Depositante no encontrado"));
         if (entity.getEliminado()) {
             throw new ResourceNotFoundException("Depositante no encontrado");

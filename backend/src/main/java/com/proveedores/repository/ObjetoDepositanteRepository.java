@@ -17,6 +17,20 @@ public interface ObjetoDepositanteRepository extends JpaRepository<ObjetoDeposit
 
     List<ObjetoDepositante> findByDepositanteIdAndEliminadoFalse(Long depositanteId);
 
+    @Query("""
+            select relacion
+            from ObjetoDepositante relacion
+            join fetch relacion.objetoMuseo objeto
+            join fetch relacion.depositante depositante
+            where depositante.id = :depositanteId
+              and relacion.activo = true
+              and relacion.eliminado = false
+              and objeto.activo = true
+              and objeto.eliminado = false
+            order by objeto.numeroInventario asc
+            """)
+    List<ObjetoDepositante> findObjetosActivosPorDepositante(Long depositanteId);
+
     boolean existsByObjetoMuseoIdAndDepositanteIdAndEliminadoFalse(Long objetoMuseoId, Long depositanteId);
 
     List<ObjetoDepositante> findByTipoDepositoInAndFechaVencimientoBetweenAndActivoTrueAndEliminadoFalseAndObjetoMuseoActivoTrueAndObjetoMuseoEliminadoFalseOrderByFechaVencimientoAsc(

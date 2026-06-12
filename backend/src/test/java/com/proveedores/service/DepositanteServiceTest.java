@@ -9,6 +9,7 @@ import com.proveedores.entity.Depositante;
 import com.proveedores.entity.TipoDepositante;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.DepositanteRepository;
+import com.proveedores.repository.ObjetoDepositanteRepository;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Optional;
@@ -23,6 +24,12 @@ class DepositanteServiceTest {
 
     @Mock
     private DepositanteRepository depositanteRepository;
+
+    @Mock
+    private ObjetoDepositanteRepository objetoDepositanteRepository;
+
+    @Mock
+    private ObjetoMuseoService objetoMuseoService;
 
     @InjectMocks
     private DepositanteService service;

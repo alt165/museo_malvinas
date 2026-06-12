@@ -66,7 +66,7 @@ public class PdfReportService {
         document.add(new Paragraph("Usuario: " + text(metadata.generatedBy()))
                 .setFontSize(9)
                 .setMarginBottom(8));
-        document.add(new Paragraph("Filtros aplicados")
+        document.add(new Paragraph(report.summaryTitle())
                 .setFont(bold)
                 .setFontSize(10)
                 .setMarginBottom(3));
@@ -111,7 +111,7 @@ public class PdfReportService {
 
         if (report.rows().isEmpty()) {
             table.addCell(new Cell(1, report.columns().size())
-                    .add(new Paragraph("No hay registros para los filtros aplicados."))
+                    .add(new Paragraph(text(report.emptyMessage())))
                     .setPadding(8)
                     .setBorder(new SolidBorder(BORDER, 0.5f)));
             return table;

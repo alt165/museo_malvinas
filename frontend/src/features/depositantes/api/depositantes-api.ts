@@ -1,4 +1,5 @@
-import { apiRequest } from "@/lib/api";
+import { apiBlobRequest, apiRequest } from "@/lib/api";
+import type { ObjetoMuseoResponseDTO } from "@/features/objetos/types";
 import type { DepositanteRequestDTO, DepositanteResponseDTO } from "../types";
 
 const basePath = "/api/depositantes";
@@ -17,6 +18,14 @@ export function buscarDepositantePorIdentificacion(valor: string) {
 
 export function buscarDepositantesPorNombre(valor: string) {
   return apiRequest<DepositanteResponseDTO[]>(`${basePath}/buscar-nombre?valor=${encodeURIComponent(valor)}`);
+}
+
+export function listarObjetosDepositante(id: number) {
+  return apiRequest<ObjetoMuseoResponseDTO[]>(`${basePath}/${id}/objetos`);
+}
+
+export function exportarObjetosDepositantePdf(id: number) {
+  return apiBlobRequest(`${basePath}/${id}/objetos/export/pdf`);
 }
 
 export function crearDepositante(payload: DepositanteRequestDTO) {

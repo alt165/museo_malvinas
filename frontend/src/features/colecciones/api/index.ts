@@ -3,6 +3,7 @@ export {
   agregarObjetosColeccion,
   bajaLogicaColeccion,
   crearColeccion,
+  exportarColeccionPdf,
   listarColecciones,
   listarObjetosColeccion,
   obtenerColeccionPorId,

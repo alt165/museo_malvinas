@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.proveedores.dto.ColeccionObjetoResponseDTO;
 import com.proveedores.security.KeycloakJwtAuthenticationConverter;
 import com.proveedores.security.SecurityConfig;
+import com.proveedores.service.ColeccionObjetoExportService;
 import com.proveedores.service.ColeccionObjetoService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,9 @@ class ColeccionObjetoSecurityTest {
     private ColeccionObjetoService coleccionObjetoService;
 
     @MockBean
+    private ColeccionObjetoExportService coleccionObjetoExportService;
+
+    @MockBean
     private KeycloakJwtAuthenticationConverter keycloakJwtAuthenticationConverter;
 
     @MockBean
@@ -45,10 +49,13 @@ class ColeccionObjetoSecurityTest {
     void viewerPuedeConsultarColeccionesYObjetosAsociados() throws Exception {
         when(coleccionObjetoService.listar()).thenReturn(List.of());
         when(coleccionObjetoService.listarObjetos(1L)).thenReturn(List.of());
+        when(coleccionObjetoExportService.exportarPdf(any(), any())).thenReturn("%PDF-1.7".getBytes(java.nio.charset.StandardCharsets.UTF_8));
 
         mockMvc.perform(get("/api/colecciones").with(user("viewer").roles("VIEWER")))
                 .andExpect(status().isOk());
         mockMvc.perform(get("/api/colecciones/1/objetos").with(user("viewer").roles("VIEWER")))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/colecciones/1/export/pdf").with(user("viewer").roles("VIEWER")))
                 .andExpect(status().isOk());
     }
 
