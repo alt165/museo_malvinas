@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Download } from "lucide-react";
 import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
+import { exportarComodatosPrestamosPdf } from "@/features/objetos/api";
 import {
   useActualizarConfigAlertasComodatosPrestamosMutation,
   useActualizarFechaVencimientoComodatoPrestamoMutation,
@@ -14,6 +16,7 @@ import {
 } from "@/features/objetos/queries";
 import type { CaracterRecepcionObjeto, ComodatoPrestamoResponseDTO, EstadoVencimientoComodatoPrestamo } from "@/features/objetos/types";
 import { getApiErrorMessage } from "@/features/objetos/utils";
+import { descargarBlob } from "@/lib/download";
 import { useEditingMode } from "@/lib/editing-mode";
 import { routePermissions } from "@/lib/routes";
 
@@ -76,6 +79,9 @@ export default function ComodatosPrestamosPage() {
   const [fechasEditadas, setFechasEditadas] = useState<Record<number, string>>({});
   const [diasAnticipacionInput, setDiasAnticipacionInput] = useState("");
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [descargandoPdf, setDescargandoPdf] = useState(false);
+  const [descargaPdfError, setDescargaPdfError] = useState<string | null>(null);
+  const [descargaPdfOk, setDescargaPdfOk] = useState(false);
   const comodatosQuery = useComodatosPrestamosQuery();
   const configQuery = useConfigAlertasComodatosPrestamosQuery();
   const actualizarFecha = useActualizarFechaVencimientoComodatoPrestamoMutation();
@@ -128,10 +134,37 @@ export default function ComodatosPrestamosPage() {
     });
   }
 
+  async function handleDescargarPdf() {
+    setDescargandoPdf(true);
+    setDescargaPdfError(null);
+    setDescargaPdfOk(false);
+
+    try {
+      const blob = await exportarComodatosPrestamosPdf();
+      descargarBlob(blob, nombreArchivoComodatosPdf());
+      setDescargaPdfOk(true);
+    } catch (downloadError) {
+      setDescargaPdfError(getApiErrorMessage(downloadError));
+    } finally {
+      setDescargandoPdf(false);
+    }
+  }
+
   return (
     <AppShell requiredRoles={[...routePermissions.admin]}>
       <div className="space-y-6">
         <PageHeader
+          actions={
+            <button
+              className="inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={descargandoPdf || comodatosQuery.isLoading}
+              onClick={handleDescargarPdf}
+              type="button"
+            >
+              <Download className="h-4 w-4" />
+              {descargandoPdf ? "Generando PDF..." : "Descargar PDF"}
+            </button>
+          }
           description="Administración de objetos recibidos como préstamo o comodato, ordenados por vencimiento más próximo."
           title="Comodatos y préstamos"
         />
@@ -143,6 +176,12 @@ export default function ComodatosPrestamosPage() {
         ) : null}
 
         {mensaje ? <div className="rounded-md border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-medium text-primary">{mensaje}</div> : null}
+        {descargaPdfError ? <ErrorState message={descargaPdfError} title="No se pudo descargar el PDF" /> : null}
+        {descargaPdfOk ? (
+          <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-900">
+            PDF generado correctamente.
+          </div>
+        ) : null}
         {actualizarFecha.isError ? <ErrorState message={getApiErrorMessage(actualizarFecha.error)} title="No se pudo actualizar la fecha" /> : null}
         {actualizarConfig.isError ? <ErrorState message={getApiErrorMessage(actualizarConfig.error)} title="No se pudo actualizar la configuración" /> : null}
 
@@ -252,4 +291,10 @@ export default function ComodatosPrestamosPage() {
       </div>
     </AppShell>
   );
+}
+
+function nombreArchivoComodatosPdf() {
+  const now = new Date();
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `comodatos_prestamos_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}.pdf`;
 }

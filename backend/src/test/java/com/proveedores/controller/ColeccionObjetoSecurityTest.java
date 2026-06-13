@@ -91,4 +91,13 @@ class ColeccionObjetoSecurityTest {
         mockMvc.perform(post("/api/colecciones").contentType(MediaType.APPLICATION_JSON).content(body).with(user("operator").roles("OPERATOR")))
                 .andExpect(status().isCreated());
     }
+
+    @Test
+    void soloAdminPuedeEliminarColecciones() throws Exception {
+        mockMvc.perform(delete("/api/colecciones/1").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(delete("/api/colecciones/1").with(user("operator").roles("OPERATOR")))
+                .andExpect(status().isForbidden());
+    }
 }

@@ -4,7 +4,7 @@ import { useId, useMemo, useState, type FormEvent, type ReactNode } from "react"
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { useCategoriasQuery } from "@/features/categorias/queries";
-import { useBuscarObjetosQuery } from "@/features/objetos/queries";
+import { useBuscarObjetosDisponiblesParaColeccionQuery, useBuscarObjetosQuery } from "@/features/objetos/queries";
 import type { ObjetoMuseoResponseDTO, ObjetoSortField, ObjetosSort } from "@/features/objetos/types";
 import { getApiErrorMessage, resumenDescripcion } from "@/features/objetos/utils";
 import { ApiClientError } from "@/lib/errors/api-error";
@@ -20,6 +20,10 @@ type ObjetoSearchSelectorProps = {
   description?: string;
   selectedObjeto?: ObjetoMuseoResponseDTO | null;
   excludeObjetoId?: number;
+  excludeObjetoIds?: number[];
+  coleccionId?: number;
+  soloDisponiblesParaColeccion?: boolean;
+  requireFilters?: boolean;
   selectLabel?: string;
   emptyLabel?: string;
   renderActions?: (objeto: ObjetoMuseoResponseDTO) => ReactNode;
@@ -36,10 +40,14 @@ export function ObjetoSearchSelector({
   description,
   emptyLabel = "No hay objetos que coincidan con los filtros aplicados.",
   excludeObjetoId,
+  excludeObjetoIds = [],
+  coleccionId,
   onSelect,
   renderActions,
   selectedObjeto,
   selectLabel = "Seleccionar",
+  soloDisponiblesParaColeccion = false,
+  requireFilters = false,
   title = "Buscar objeto"
 }: ObjetoSearchSelectorProps) {
   const categoriaBusquedaId = useId();
@@ -62,22 +70,27 @@ export function ObjetoSearchSelector({
     () => categorias.filter((categoria) => filtrosFormulario.categoriaIds.includes(categoria.id)),
     [categorias, filtrosFormulario.categoriaIds]
   );
+  const hayFiltros = Boolean(
+    filtrosAplicados.nombre || filtrosAplicados.numeroInventario || filtrosAplicados.categoriaIds.length > 0
+  );
   const buscarParams = useMemo(
     () => ({
       ...filtrosAplicados,
+      coleccionId,
       page,
       size,
       sort: `${sort.field},${sort.direction}`
     }),
-    [filtrosAplicados, page, size, sort]
+    [coleccionId, filtrosAplicados, page, size, sort]
   );
-  const { data, error, isError, isFetching, isLoading } = useBuscarObjetosQuery(buscarParams);
+  const busquedaHabilitada = !requireFilters || hayFiltros;
+  const objetosQuery = useBuscarObjetosQuery(buscarParams, busquedaHabilitada && !soloDisponiblesParaColeccion);
+  const disponiblesQuery = useBuscarObjetosDisponiblesParaColeccionQuery(buscarParams, busquedaHabilitada && soloDisponiblesParaColeccion);
+  const { data, error, isError, isFetching, isLoading } = soloDisponiblesParaColeccion ? disponiblesQuery : objetosQuery;
+  const objetosExcluidos = useMemo(() => new Set([excludeObjetoId, ...excludeObjetoIds].filter((id): id is number => Number.isFinite(id))), [excludeObjetoId, excludeObjetoIds]);
   const objetos = useMemo(
-    () => (data?.content ?? []).filter((objeto) => objeto.id !== excludeObjetoId),
-    [data?.content, excludeObjetoId]
-  );
-  const hayFiltros = Boolean(
-    filtrosAplicados.nombre || filtrosAplicados.numeroInventario || filtrosAplicados.categoriaIds.length > 0
+    () => (data?.content ?? []).filter((objeto) => !objetosExcluidos.has(objeto.id)),
+    [data?.content, objetosExcluidos]
   );
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {

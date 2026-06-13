@@ -8,7 +8,6 @@ import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
 import { useHistorialObjetoQuery, useObjetoQuery } from "@/features/objetos/queries";
 import { getApiErrorMessage } from "@/features/objetos/utils";
-import { ApiClientError } from "@/lib/errors/api-error";
 import { routePermissions } from "@/lib/routes";
 
 function getParamId(value: string | string[] | undefined) {
@@ -25,6 +24,21 @@ function formatFecha(value?: string | null) {
     dateStyle: "short",
     timeStyle: "short"
   }).format(new Date(value));
+}
+
+function etiquetaAuditoria(value?: string | null) {
+  const labels: Record<string, string> = {
+    COLECCION: "Colección",
+    ELIMINACION_COLECCION: "Eliminación de colección",
+    INCORPORACION_COLECCION: "Incorporación a colección",
+    DESVINCULACION_COLECCION: "Desvinculación de colección",
+    DESVINCULACION_POR_ELIMINACION_COLECCION: "Desvinculación por eliminación de colección",
+    CREACION: "Creación",
+    MODIFICACION: "Modificación",
+    ELIMINACION: "Eliminación"
+  };
+
+  return value ? labels[value] ?? value : "Sin origen";
 }
 
 function formatValor(value?: string | null) {
@@ -82,10 +96,7 @@ export default function HistorialObjetoPage() {
 
         {isLoading ? <LoadingState label="Cargando historial..." /> : null}
         {isError ? (
-          <ErrorState
-            message={getApiErrorMessage(error)}
-            requestId={error instanceof ApiClientError ? error.requestId : undefined}
-          />
+          <ErrorState message={getApiErrorMessage(error)} />
         ) : null}
 
         {!isLoading && !isError && data.length === 0 ? (
@@ -111,15 +122,15 @@ export default function HistorialObjetoPage() {
                     <tr key={evento.id}>
                       <td className="whitespace-nowrap px-4 py-3 align-top">{formatFecha(evento.fechaHora)}</td>
                       <td className="px-4 py-3 align-top">
-                        <div className="font-medium">{evento.accion || evento.tipoOperacion}</div>
-                        <div className="text-xs text-muted-foreground">{evento.tipoOperacion}</div>
+                        <div className="font-medium">{etiquetaAuditoria(evento.accion || evento.tipoOperacion)}</div>
+                        <div className="text-xs text-muted-foreground">{etiquetaAuditoria(evento.tipoOperacion)}</div>
                       </td>
                       <td className="min-w-64 px-4 py-3 align-top">{evento.descripcion || "Sin descripcion"}</td>
                       <td className="px-4 py-3 align-top">
                         <div>{evento.usuario || "Usuario no identificado"}</div>
                         {evento.rol ? <div className="text-xs text-muted-foreground">{evento.rol}</div> : null}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 align-top">{evento.origen || "Sin origen"}</td>
+                      <td className="whitespace-nowrap px-4 py-3 align-top">{etiquetaAuditoria(evento.origen)}</td>
                       <td className="min-w-80 px-4 py-3 align-top">
                         <div className="grid gap-3 md:grid-cols-2">
                           <ValoresAuditoria label="Anteriores" value={evento.valoresAnteriores} />

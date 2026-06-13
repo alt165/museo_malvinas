@@ -1,6 +1,7 @@
 export type ColeccionObjetoRequestDTO = {
   nombre: string;
   descripcion?: string | null;
+  objetoIds?: number[];
 };
 
 export type ColeccionObjetoResponseDTO = {

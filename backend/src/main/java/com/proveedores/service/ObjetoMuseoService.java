@@ -162,6 +162,25 @@ public class ObjetoMuseoService {
     }
 
     @Transactional(readOnly = true)
+    public Page<ObjetoMuseoResponseDTO> buscarDisponiblesParaColeccion(
+            String nombre,
+            String numeroInventario,
+            List<Long> categoriaIds,
+            Long coleccionId,
+            Pageable pageable
+    ) {
+        return objetoMuseoRepository.findAll(
+                busquedaDisponiblesParaColeccionSpecification(
+                        normalizarFiltro(nombre),
+                        normalizarFiltro(numeroInventario),
+                        normalizarCategoriaIds(categoriaIds),
+                        coleccionId
+                ),
+                normalizarPageableBusquedaColeccion(pageable)
+        ).map(this::toResponse);
+    }
+
+    @Transactional(readOnly = true)
     public List<ObjetoMuseoResponseDTO> listarSinColeccion() {
         return objetoMuseoRepository.findByColeccionObjetoIsNullAndEliminadoFalseOrderByNumeroInventarioAsc().stream()
                 .map(this::toResponse)
@@ -308,6 +327,14 @@ public class ObjetoMuseoService {
                 OrigenCargaObjeto.RAPIDA,
                 normalizarPageablePendientes(pageable)
         ).map(this::toPendienteResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ObjetoMuseoResponseDTO> listarPendientesCompletarParaExportacion(Sort sort) {
+        return objetoMuseoRepository.findByOrigenCargaAndDatosCompletosFalseAndEliminadoFalse(
+                OrigenCargaObjeto.RAPIDA,
+                normalizarSortPendientes(sort)
+        ).stream().map(this::toResponseForRelations).toList();
     }
 
     @Transactional
@@ -469,9 +496,11 @@ public class ObjetoMuseoService {
             predicates.add(criteriaBuilder.isFalse(root.get("eliminado")));
 
             if (nombre != null) {
-                predicates.add(criteriaBuilder.like(
-                        criteriaBuilder.lower(root.get("denominacionObjeto")),
-                        "%" + nombre.toLowerCase(Locale.ROOT) + "%"
+                String texto = "%" + nombre.toLowerCase(Locale.ROOT) + "%";
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("denominacionObjeto")), texto),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("descripcion")), texto),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("descripcionTecnica")), texto)
                 ));
             }
 
@@ -497,6 +526,23 @@ public class ObjetoMuseoService {
 
             return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
         };
+    }
+
+    private Specification<ObjetoMuseo> busquedaDisponiblesParaColeccionSpecification(String nombre, String numeroInventario, List<Long> categoriaIds, Long coleccionId) {
+        return (root, query, criteriaBuilder) -> {
+            Predicate base = busquedaSpecification(nombre, numeroInventario, categoriaIds).toPredicate(root, query, criteriaBuilder);
+            Predicate activos = criteriaBuilder.isTrue(root.get("activo"));
+            Predicate sinColeccion = criteriaBuilder.isNull(root.get("coleccionObjeto"));
+            Predicate disponibles = coleccionId == null
+                    ? sinColeccion
+                    : criteriaBuilder.or(sinColeccion, criteriaBuilder.equal(root.get("coleccionObjeto").get("id"), coleccionId));
+            return criteriaBuilder.and(base, activos, disponibles);
+        };
+    }
+
+    private Pageable normalizarPageableBusquedaColeccion(Pageable pageable) {
+        int size = Math.min(Math.max(pageable.getPageSize(), 1), 50);
+        return PageRequest.of(pageable.getPageNumber(), size, normalizarSortBusqueda(pageable.getSort()));
     }
 
     private Pageable normalizarPageableBusqueda(Pageable pageable) {
@@ -552,6 +598,11 @@ public class ObjetoMuseoService {
 
         Sort sort = ordenes.isEmpty() ? Sort.by(Sort.Direction.ASC, "fechaCargaRapida") : Sort.by(ordenes);
         return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
+    }
+
+    private Sort normalizarSortPendientes(Sort sort) {
+        Pageable pageable = PageRequest.of(0, 1, sort == null ? Sort.unsorted() : sort);
+        return normalizarPageablePendientes(pageable).getSort();
     }
 
     private void validarFichaCompleta(ObjetoMuseoRequestDTO dto) {

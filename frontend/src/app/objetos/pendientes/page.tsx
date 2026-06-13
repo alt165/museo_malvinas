@@ -8,14 +8,14 @@ import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
-import { descargarReciboPdf } from "@/features/objetos/api";
+import { descargarReciboPdf, exportarObjetosPendientesCompletarPdf } from "@/features/objetos/api";
 import { useObjetosPendientesCompletarQuery } from "@/features/objetos/queries";
 import type {
   ObjetoPendienteSortField,
   ObjetosPendientesSort
 } from "@/features/objetos/types";
 import { getApiErrorMessage } from "@/features/objetos/utils";
-import { ApiClientError } from "@/lib/errors/api-error";
+import { descargarBlob } from "@/lib/download";
 import { routePermissions } from "@/lib/routes";
 
 function abrirBlob(blob: Blob, nombre: string) {
@@ -34,6 +34,9 @@ export default function ObjetosPendientesPage() {
   const params = useMemo(() => ({ page, size, sort: `${sort.field},${sort.direction}` }), [page, size, sort]);
   const { data, error, isError, isFetching, isLoading } = useObjetosPendientesCompletarQuery(params);
   const objetos = data?.content ?? [];
+  const [descargandoPdf, setDescargandoPdf] = useState(false);
+  const [descargaPdfError, setDescargaPdfError] = useState<string | null>(null);
+  const [descargaPdfOk, setDescargaPdfOk] = useState(false);
 
   function handleSortChange(field: ObjetoPendienteSortField) {
     setPage(0);
@@ -43,24 +46,52 @@ export default function ObjetosPendientesPage() {
     }));
   }
 
+  async function handleDescargarPdf() {
+    setDescargandoPdf(true);
+    setDescargaPdfError(null);
+    setDescargaPdfOk(false);
+
+    try {
+      const blob = await exportarObjetosPendientesCompletarPdf({ sort: `${sort.field},${sort.direction}` });
+      descargarBlob(blob, nombreArchivoPendientesPdf());
+      setDescargaPdfOk(true);
+    } catch (downloadError) {
+      setDescargaPdfError(getApiErrorMessage(downloadError));
+    } finally {
+      setDescargandoPdf(false);
+    }
+  }
+
   return (
     <AppShell requiredRoles={[...routePermissions.write]}>
       <div className="space-y-6">
         <PageHeader
           actions={
-            <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/objetos/carga-rapida">
-              Alta rapida
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              <button
+                className="inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={descargandoPdf || isLoading}
+                onClick={handleDescargarPdf}
+                type="button"
+              >
+                <Download className="h-4 w-4" />
+                {descargandoPdf ? "Generando PDF..." : "Descargar PDF"}
+              </button>
+              <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/objetos/carga-rapida">
+                Alta rapida
+              </Link>
+            </div>
           }
           description="Objetos ingresados con datos minimos que requieren completar la ficha patrimonial."
           title="Pendientes de completar"
         />
         {isLoading ? <LoadingState label="Cargando pendientes..." /> : null}
-        {isError ? (
-          <ErrorState
-            message={getApiErrorMessage(error)}
-            requestId={error instanceof ApiClientError ? error.requestId : undefined}
-          />
+        {isError ? <ErrorState message={getApiErrorMessage(error)} /> : null}
+        {descargaPdfError ? <ErrorState message={descargaPdfError} title="No se pudo descargar el PDF" /> : null}
+        {descargaPdfOk ? (
+          <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-900">
+            PDF generado correctamente.
+          </div>
         ) : null}
         {!isLoading && !isError && objetos.length === 0 ? (
           <EmptyState
@@ -176,6 +207,12 @@ export default function ObjetosPendientesPage() {
       </div>
     </AppShell>
   );
+}
+
+function nombreArchivoPendientesPdf() {
+  const now = new Date();
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `objetos_pendientes_completar_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}.pdf`;
 }
 
 function SortHeader({

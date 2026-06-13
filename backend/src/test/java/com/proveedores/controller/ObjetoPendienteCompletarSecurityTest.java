@@ -87,8 +87,24 @@ class ObjetoPendienteCompletarSecurityTest {
     }
 
     @Test
+    void adminYOperatorPuedenExportarPendientes() throws Exception {
+        when(objetoMuseoExportService.exportarPendientesCompletarPdf(any(), any())).thenReturn(new byte[] { 1, 2, 3 });
+
+        mockMvc.perform(get("/api/objetos/pendientes-completar/export/pdf").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/objetos/pendientes-completar/export/pdf").with(user("operator").roles("OPERATOR")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void viewerNoPuedeListarPendientes() throws Exception {
         mockMvc.perform(get("/api/objetos/pendientes-completar").with(user("viewer").roles("VIEWER")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void viewerNoPuedeExportarPendientes() throws Exception {
+        mockMvc.perform(get("/api/objetos/pendientes-completar/export/pdf").with(user("viewer").roles("VIEWER")))
                 .andExpect(status().isForbidden());
     }
 

@@ -7,6 +7,7 @@ import type {
   FotoObjetoMuseoResponseDTO,
   HistorialObjetoResponseDTO,
   BuscarObjetosParams,
+  BuscarObjetosDisponiblesColeccionParams,
   MoverObjetoRequestDTO,
   MovimientoObjetoResponseDTO,
   ObjetoPendienteCompletarResponseDTO,
@@ -61,6 +62,14 @@ export function buscarObjetos(params: BuscarObjetosParams) {
   return apiRequest<PageResponse<ObjetoMuseoResponseDTO>>(`${basePath}/buscar?${buildBuscarObjetosSearchParams(params, true).toString()}`);
 }
 
+export function buscarObjetosDisponiblesParaColeccion(params: BuscarObjetosDisponiblesColeccionParams) {
+  const searchParams = buildBuscarObjetosSearchParams(params, true);
+  if (params.coleccionId) {
+    searchParams.set("coleccionId", String(params.coleccionId));
+  }
+  return apiRequest<PageResponse<ObjetoMuseoResponseDTO>>(`${basePath}/buscar-disponibles-para-coleccion?${searchParams.toString()}`);
+}
+
 export function exportarObjetosPdf(params: BuscarObjetosParams) {
   return apiBlobRequest(`${basePath}/export/pdf?${buildBuscarObjetosSearchParams(params, false).toString()}`);
 }
@@ -76,6 +85,10 @@ export function listarObjetosVencimientosProximos(dias?: number) {
 
 export function listarComodatosPrestamos() {
   return apiRequest<ComodatoPrestamoResponseDTO[]>(adminComodatosPrestamosPath);
+}
+
+export function exportarComodatosPrestamosPdf() {
+  return apiBlobRequest(`${adminComodatosPrestamosPath}/export/pdf`);
 }
 
 export function actualizarFechaVencimientoComodatoPrestamo(objetoId: number, fechaVencimiento: string) {
@@ -104,6 +117,14 @@ export function listarObjetosPendientesCompletar(params: { page?: number; size?:
     searchParams.set("sort", params.sort);
   }
   return apiRequest<PageResponse<ObjetoPendienteCompletarResponseDTO>>(`${basePath}/pendientes-completar?${searchParams.toString()}`);
+}
+
+export function exportarObjetosPendientesCompletarPdf(params: { sort?: string }) {
+  const searchParams = new URLSearchParams();
+  if (params.sort) {
+    searchParams.set("sort", params.sort);
+  }
+  return apiBlobRequest(`${basePath}/pendientes-completar/export/pdf?${searchParams.toString()}`);
 }
 
 export function crearObjeto(payload: ObjetoMuseoRequestDTO) {

@@ -5,6 +5,7 @@ import {
   actualizarObjeto,
   bajaLogicaObjeto,
   buscarObjetos,
+  buscarObjetosDisponiblesParaColeccion,
   cargaRapidaObjeto,
   crearObjeto,
   eliminarFotoObjeto,
@@ -23,12 +24,13 @@ import {
   obtenerReciboEscaneadoObjeto,
   restaurarObjeto
 } from "./api";
-import type { BuscarObjetosParams, CargaRapidaObjetoRequestDTO, MoverObjetoRequestDTO, ObjetoMuseoRequestDTO } from "./types";
+import type { BuscarObjetosDisponiblesColeccionParams, BuscarObjetosParams, CargaRapidaObjetoRequestDTO, MoverObjetoRequestDTO, ObjetoMuseoRequestDTO } from "./types";
 
 export const objetosQueryKeys = {
   all: ["objetos"] as const,
   lists: () => [...objetosQueryKeys.all, "list"] as const,
   search: (params: BuscarObjetosParams) => [...objetosQueryKeys.all, "search", params] as const,
+  collectionAvailableSearch: (params: BuscarObjetosDisponiblesColeccionParams) => [...objetosQueryKeys.all, "collection-available-search", params] as const,
   deleted: (params: { page?: number; size?: number; sort?: string }) => [...objetosQueryKeys.all, "deleted", params] as const,
   pending: (params: { page?: number; size?: number; sort?: string }) => [...objetosQueryKeys.all, "pending", params] as const,
   vencimientosProximos: (dias?: number) => [...objetosQueryKeys.all, "vencimientos-proximos", dias ?? "config"] as const,
@@ -49,10 +51,19 @@ export function useObjetosQuery() {
   });
 }
 
-export function useBuscarObjetosQuery(params: BuscarObjetosParams) {
+export function useBuscarObjetosQuery(params: BuscarObjetosParams, enabled = true) {
   return useQuery({
     queryKey: objetosQueryKeys.search(params),
-    queryFn: () => buscarObjetos(params)
+    queryFn: () => buscarObjetos(params),
+    enabled
+  });
+}
+
+export function useBuscarObjetosDisponiblesParaColeccionQuery(params: BuscarObjetosDisponiblesColeccionParams, enabled = true) {
+  return useQuery({
+    queryKey: objetosQueryKeys.collectionAvailableSearch(params),
+    queryFn: () => buscarObjetosDisponiblesParaColeccion(params),
+    enabled
   });
 }
 

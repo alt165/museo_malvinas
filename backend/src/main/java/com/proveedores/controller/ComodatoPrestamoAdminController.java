@@ -3,11 +3,16 @@ package com.proveedores.controller;
 import com.proveedores.dto.ActualizarFechaVencimientoRequestDTO;
 import com.proveedores.dto.ComodatoPrestamoResponseDTO;
 import com.proveedores.dto.ConfigAlertasVencimientoDTO;
+import com.proveedores.service.ComodatoPrestamoExportService;
 import com.proveedores.service.ComodatoPrestamoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.util.StringUtils;
@@ -26,15 +31,27 @@ import org.springframework.web.bind.annotation.RestController;
 public class ComodatoPrestamoAdminController {
 
     private final ComodatoPrestamoService comodatoPrestamoService;
+    private final ComodatoPrestamoExportService comodatoPrestamoExportService;
 
-    public ComodatoPrestamoAdminController(ComodatoPrestamoService comodatoPrestamoService) {
+    public ComodatoPrestamoAdminController(ComodatoPrestamoService comodatoPrestamoService, ComodatoPrestamoExportService comodatoPrestamoExportService) {
         this.comodatoPrestamoService = comodatoPrestamoService;
+        this.comodatoPrestamoExportService = comodatoPrestamoExportService;
     }
 
     @Operation(summary = "Listar comodatos y prestamos")
     @GetMapping
     public ResponseEntity<List<ComodatoPrestamoResponseDTO>> listar() {
         return ResponseEntity.ok(comodatoPrestamoService.listar());
+    }
+
+    @Operation(summary = "Exportar comodatos y prestamos en PDF")
+    @GetMapping(value = "/export/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> exportarPdf(Authentication authentication) {
+        byte[] pdf = comodatoPrestamoExportService.exportarPdf(usuario(authentication));
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombreArchivoPdf() + "\"")
+                .body(pdf);
     }
 
     @Operation(summary = "Actualizar fecha de vencimiento")
@@ -57,6 +74,10 @@ public class ComodatoPrestamoAdminController {
     @PutMapping("/config-alertas")
     public ResponseEntity<ConfigAlertasVencimientoDTO> actualizarConfigAlertas(@RequestBody @Valid ConfigAlertasVencimientoDTO dto) {
         return ResponseEntity.ok(comodatoPrestamoService.actualizarConfigAlertas(dto));
+    }
+
+    private String nombreArchivoPdf() {
+        return "comodatos_prestamos_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm")) + ".pdf";
     }
 
     private String usuario(Authentication authentication) {

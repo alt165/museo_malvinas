@@ -120,6 +120,10 @@ export type BuscarObjetosParams = {
   sort?: string;
 };
 
+export type BuscarObjetosDisponiblesColeccionParams = BuscarObjetosParams & {
+  coleccionId?: number;
+};
+
 export type ObjetoSortField = "numeroInventario" | "denominacionObjeto" | "descripcion" | "fechaIngreso" | "estadoConservacion";
 export type ObjetoPendienteSortField = "fechaCargaRapida" | "numeroInventario" | "denominacionObjeto";
 

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { Download } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { Download, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
@@ -10,21 +10,32 @@ import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
 import { exportarColeccionPdf } from "@/features/colecciones/api";
 import { ObjetosColeccionPanel } from "@/features/colecciones/components/objetos-coleccion-panel";
-import { useColeccionQuery } from "@/features/colecciones/queries";
+import { useBajaLogicaColeccionMutation, useColeccionQuery } from "@/features/colecciones/queries";
 import { getApiErrorMessage, resumenDescripcion } from "@/features/colecciones/utils";
 import { descargarBlob } from "@/lib/download";
 import { useEditingMode } from "@/lib/editing-mode";
-import { ApiClientError } from "@/lib/errors/api-error";
 import { routes } from "@/lib/routes";
 
 export default function ColeccionDetallePage() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
-  const { canEdit: puedeEscribir } = useEditingMode();
+  const router = useRouter();
+  const { canAdminEdit: puedeEliminar, canEdit: puedeEscribir } = useEditingMode();
   const coleccionQuery = useColeccionQuery(id);
+  const bajaMutation = useBajaLogicaColeccionMutation();
   const [descargandoPdf, setDescargandoPdf] = useState(false);
   const [descargaPdfError, setDescargaPdfError] = useState<string | null>(null);
   const [descargaPdfOk, setDescargaPdfOk] = useState(false);
+
+  function handleEliminar() {
+    if (!puedeEliminar || !coleccionQuery.data) {
+      return;
+    }
+
+    if (window.confirm("Al eliminar esta colección, los objetos asociados quedarán sin colección. ¿Desea continuar?")) {
+      bajaMutation.mutate(id, { onSuccess: () => router.push(routes.objetosColecciones) });
+    }
+  }
 
   async function handleDescargarPdf() {
     if (!coleccionQuery.data) {
@@ -69,6 +80,17 @@ export default function ColeccionDetallePage() {
                   Editar
                 </Link>
               ) : null}
+              {puedeEliminar ? (
+                <button
+                  className="inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-medium text-destructive hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={bajaMutation.isPending || !coleccionQuery.data}
+                  onClick={handleEliminar}
+                  type="button"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {bajaMutation.isPending ? "Eliminando..." : "Eliminar"}
+                </button>
+              ) : null}
             </div>
           }
           description="Detalle y objetos asociados a la coleccion."
@@ -76,12 +98,10 @@ export default function ColeccionDetallePage() {
         />
         {coleccionQuery.isLoading ? <LoadingState label="Cargando coleccion..." /> : null}
         {coleccionQuery.isError ? (
-          <ErrorState
-            message={getApiErrorMessage(coleccionQuery.error)}
-            requestId={coleccionQuery.error instanceof ApiClientError ? coleccionQuery.error.requestId : undefined}
-          />
+          <ErrorState message={getApiErrorMessage(coleccionQuery.error)} />
         ) : null}
         {descargaPdfError ? <ErrorState message={descargaPdfError} title="No se pudo descargar el PDF" /> : null}
+        {bajaMutation.isError ? <ErrorState message={getApiErrorMessage(bajaMutation.error)} title="No se pudo eliminar la colección" /> : null}
         {descargaPdfOk ? (
           <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-900">
             PDF generado correctamente.

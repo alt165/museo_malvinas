@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.proveedores.dto.ConfigAlertasVencimientoDTO;
 import com.proveedores.security.KeycloakJwtAuthenticationConverter;
 import com.proveedores.security.SecurityConfig;
+import com.proveedores.service.ComodatoPrestamoExportService;
 import com.proveedores.service.ComodatoPrestamoService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,9 @@ class ComodatoPrestamoAdminControllerSecurityTest {
     private ComodatoPrestamoService comodatoPrestamoService;
 
     @MockBean
+    private ComodatoPrestamoExportService comodatoPrestamoExportService;
+
+    @MockBean
     private KeycloakJwtAuthenticationConverter keycloakJwtAuthenticationConverter;
 
     @MockBean
@@ -56,6 +60,20 @@ class ComodatoPrestamoAdminControllerSecurityTest {
     @Test
     void viewerNoPuedeListarComodatosYPrestamos() throws Exception {
         mockMvc.perform(get("/api/admin/comodatos-prestamos").with(user("viewer").roles("VIEWER")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminPuedeExportarPdfComodatosYPrestamos() throws Exception {
+        when(comodatoPrestamoExportService.exportarPdf(org.mockito.ArgumentMatchers.any())).thenReturn(new byte[] { 1, 2, 3 });
+
+        mockMvc.perform(get("/api/admin/comodatos-prestamos/export/pdf").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void operatorNoPuedeExportarPdfComodatosYPrestamos() throws Exception {
+        mockMvc.perform(get("/api/admin/comodatos-prestamos/export/pdf").with(user("operator").roles("OPERATOR")))
                 .andExpect(status().isForbidden());
     }
 

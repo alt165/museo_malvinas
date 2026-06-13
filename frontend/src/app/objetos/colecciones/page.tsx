@@ -12,11 +12,10 @@ import { ColeccionesTable } from "@/features/colecciones/components/colecciones-
 import { useBajaLogicaColeccionMutation, useColeccionesQuery } from "@/features/colecciones/queries";
 import { getApiErrorMessage } from "@/features/colecciones/utils";
 import { useEditingMode } from "@/lib/editing-mode";
-import { ApiClientError } from "@/lib/errors/api-error";
 import { routes } from "@/lib/routes";
 
 export default function ColeccionesPage() {
-  const { canEdit: puedeEscribir } = useEditingMode();
+  const { canAdminEdit: puedeEliminar, canEdit: puedeEscribir } = useEditingMode();
   const coleccionesQuery = useColeccionesQuery();
   const bajaMutation = useBajaLogicaColeccionMutation();
   const [busquedaNombre, setBusquedaNombre] = useState("");
@@ -33,7 +32,11 @@ export default function ColeccionesPage() {
   }, [colecciones, hayBusqueda, valorBusqueda]);
 
   function handleDelete(id: number) {
-    if (window.confirm("Dar de baja esta coleccion? Los objetos asociados quedaran sin coleccion.")) {
+    if (!puedeEliminar) {
+      return;
+    }
+
+    if (window.confirm("Al eliminar esta colección, los objetos asociados quedarán sin colección. ¿Desea continuar?")) {
       bajaMutation.mutate(id);
     }
   }
@@ -83,16 +86,10 @@ export default function ColeccionesPage() {
         </div>
         {coleccionesQuery.isLoading ? <LoadingState label="Cargando colecciones..." /> : null}
         {coleccionesQuery.isError ? (
-          <ErrorState
-            message={getApiErrorMessage(coleccionesQuery.error)}
-            requestId={coleccionesQuery.error instanceof ApiClientError ? coleccionesQuery.error.requestId : undefined}
-          />
+          <ErrorState message={getApiErrorMessage(coleccionesQuery.error)} />
         ) : null}
         {bajaMutation.isError ? (
-          <ErrorState
-            message={getApiErrorMessage(bajaMutation.error)}
-            requestId={bajaMutation.error instanceof ApiClientError ? bajaMutation.error.requestId : undefined}
-          />
+          <ErrorState message={getApiErrorMessage(bajaMutation.error)} title="No se pudo eliminar la colección" />
         ) : null}
         {!coleccionesQuery.isLoading && !coleccionesQuery.isError && colecciones.length === 0 && !hayBusqueda ? (
           <EmptyState
@@ -112,6 +109,7 @@ export default function ColeccionesPage() {
         ) : null}
         {!coleccionesQuery.isLoading && !coleccionesQuery.isError && coleccionesFiltradas.length > 0 ? (
           <ColeccionesTable
+            canDelete={puedeEliminar}
             canEdit={puedeEscribir}
             colecciones={coleccionesFiltradas}
             isDeleting={bajaMutation.isPending}

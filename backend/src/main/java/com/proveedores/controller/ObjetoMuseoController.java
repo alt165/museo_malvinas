@@ -119,6 +119,19 @@ public class ObjetoMuseoController {
         return ResponseEntity.ok(objetoMuseoService.buscar(nombre, numeroInventario, categoriaIds, pageable));
     }
 
+    @Operation(summary = "Buscar objetos disponibles para coleccion")
+    @ApiResponse(responseCode = "200", description = "Busqueda obtenida")
+    @GetMapping("/buscar-disponibles-para-coleccion")
+    public ResponseEntity<Page<ObjetoMuseoResponseDTO>> buscarDisponiblesParaColeccion(
+            @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) String numeroInventario,
+            @RequestParam(required = false) List<Long> categoriaIds,
+            @RequestParam(required = false) Long coleccionId,
+            @ParameterObject @PageableDefault(size = 10) Pageable pageable
+    ) {
+        return ResponseEntity.ok(objetoMuseoService.buscarDisponiblesParaColeccion(nombre, numeroInventario, categoriaIds, coleccionId, pageable));
+    }
+
     @Operation(summary = "Exportar listado de objetos de museo en PDF")
     @ApiResponse(responseCode = "200", description = "PDF generado")
     @GetMapping(value = "/export/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
@@ -156,6 +169,20 @@ public class ObjetoMuseoController {
             @ParameterObject @PageableDefault(size = 20, sort = "fechaCargaRapida") Pageable pageable
     ) {
         return ResponseEntity.ok(objetoMuseoService.listarPendientesCompletar(pageable));
+    }
+
+    @Operation(summary = "Exportar objetos pendientes de completar en PDF")
+    @ApiResponse(responseCode = "200", description = "PDF generado")
+    @GetMapping(value = "/pendientes-completar/export/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> exportarPendientesCompletarPdf(
+            @ParameterObject @PageableDefault(size = 20, sort = "fechaCargaRapida") Pageable pageable,
+            Authentication authentication
+    ) {
+        byte[] pdf = objetoMuseoExportService.exportarPendientesCompletarPdf(pageable.getSort(), usuario(authentication));
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombreArchivoPendientesCompletarPdf() + "\"")
+                .body(pdf);
     }
 
     @Operation(summary = "Listar objetos con prestamo o comodato proximos a vencer")
@@ -334,6 +361,10 @@ public class ObjetoMuseoController {
 
     private String nombreArchivoObjetosPdf() {
         return "objetos_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm")) + ".pdf";
+    }
+
+    private String nombreArchivoPendientesCompletarPdf() {
+        return "objetos_pendientes_completar_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm")) + ".pdf";
     }
 
     private String usuario(Authentication authentication) {

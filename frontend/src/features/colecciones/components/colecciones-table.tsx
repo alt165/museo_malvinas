@@ -10,13 +10,14 @@ import type { ColeccionObjetoResponseDTO } from "../types";
 import { resumenDescripcion } from "../utils";
 
 type ColeccionesTableProps = {
+  canDelete: boolean;
   canEdit: boolean;
   colecciones: ColeccionObjetoResponseDTO[];
   isDeleting?: boolean;
   onDelete: (id: number) => void;
 };
 
-export function ColeccionesTable({ canEdit, colecciones, isDeleting = false, onDelete }: ColeccionesTableProps) {
+export function ColeccionesTable({ canDelete, canEdit, colecciones, isDeleting = false, onDelete }: ColeccionesTableProps) {
   const columns = useMemo<ColumnDef<ColeccionObjetoResponseDTO>[]>(
     () => [
       {
@@ -49,22 +50,24 @@ export function ColeccionesTable({ canEdit, colecciones, isDeleting = false, onD
                   <Pencil className="h-3.5 w-3.5" />
                   Editar
                 </Link>
-                <button
-                  className="inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs text-destructive hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={isDeleting}
-                  onClick={() => onDelete(row.original.id)}
-                  type="button"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Baja
-                </button>
+                {canDelete ? (
+                  <button
+                    className="inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs text-destructive hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={isDeleting}
+                    onClick={() => onDelete(row.original.id)}
+                    type="button"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Eliminar
+                  </button>
+                ) : null}
               </>
             ) : null}
           </div>
         )
       }
     ],
-    [canEdit, isDeleting, onDelete]
+    [canDelete, canEdit, isDeleting, onDelete]
   );
 
   const table = useReactTable({ data: colecciones, columns, getCoreRowModel: getCoreRowModel() });

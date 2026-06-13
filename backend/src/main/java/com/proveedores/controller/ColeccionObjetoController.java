@@ -45,8 +45,8 @@ public class ColeccionObjetoController {
     @Operation(summary = "Crear coleccion")
     @ApiResponse(responseCode = "201", description = "Coleccion creada")
     @PostMapping
-    public ResponseEntity<ColeccionObjetoResponseDTO> crear(@RequestBody @Valid ColeccionObjetoRequestDTO dto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(coleccionObjetoService.crear(dto));
+    public ResponseEntity<ColeccionObjetoResponseDTO> crear(@RequestBody @Valid ColeccionObjetoRequestDTO dto, Authentication authentication) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(coleccionObjetoService.crear(dto, usuario(authentication)));
     }
 
     @Operation(summary = "Listar colecciones")
@@ -63,14 +63,14 @@ public class ColeccionObjetoController {
 
     @Operation(summary = "Actualizar coleccion")
     @PutMapping("/{id}")
-    public ResponseEntity<ColeccionObjetoResponseDTO> actualizar(@PathVariable Long id, @RequestBody @Valid ColeccionObjetoRequestDTO dto) {
-        return ResponseEntity.ok(coleccionObjetoService.actualizar(id, dto));
+    public ResponseEntity<ColeccionObjetoResponseDTO> actualizar(@PathVariable Long id, @RequestBody @Valid ColeccionObjetoRequestDTO dto, Authentication authentication) {
+        return ResponseEntity.ok(coleccionObjetoService.actualizar(id, dto, usuario(authentication)));
     }
 
     @Operation(summary = "Dar de baja coleccion")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> bajaLogica(@PathVariable Long id) {
-        coleccionObjetoService.bajaLogica(id);
+    public ResponseEntity<Void> bajaLogica(@PathVariable Long id, Authentication authentication) {
+        coleccionObjetoService.bajaLogica(id, usuario(authentication));
         return ResponseEntity.noContent().build();
     }
 
@@ -95,15 +95,16 @@ public class ColeccionObjetoController {
     @PostMapping("/{id}/objetos")
     public ResponseEntity<List<ObjetoMuseoResponseDTO>> agregarObjetos(
             @PathVariable Long id,
-            @RequestBody @Valid AgregarObjetosColeccionRequestDTO dto
+            @RequestBody @Valid AgregarObjetosColeccionRequestDTO dto,
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(coleccionObjetoService.agregarObjetos(id, dto));
+        return ResponseEntity.ok(coleccionObjetoService.agregarObjetos(id, dto, usuario(authentication)));
     }
 
     @Operation(summary = "Quitar objeto de una coleccion")
     @DeleteMapping("/{id}/objetos/{objetoId}")
-    public ResponseEntity<Void> quitarObjeto(@PathVariable Long id, @PathVariable Long objetoId) {
-        coleccionObjetoService.quitarObjeto(id, objetoId);
+    public ResponseEntity<Void> quitarObjeto(@PathVariable Long id, @PathVariable Long objetoId, Authentication authentication) {
+        coleccionObjetoService.quitarObjeto(id, objetoId, usuario(authentication));
         return ResponseEntity.noContent().build();
     }
 
