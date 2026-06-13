@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useId, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { useCategoriasQuery } from "@/features/categorias/queries";
@@ -93,14 +93,20 @@ export function ObjetoSearchSelector({
     [data?.content, objetosExcluidos]
   );
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function aplicarFiltros() {
     setPage(0);
     setFiltrosAplicados({
       nombre: filtrosFormulario.nombre.trim(),
       numeroInventario: filtrosFormulario.numeroInventario.trim(),
       categoriaIds: filtrosFormulario.categoriaIds
     });
+  }
+
+  function handleFiltroKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      aplicarFiltros();
+    }
   }
 
   function handleLimpiarFiltros() {
@@ -146,13 +152,14 @@ export function ObjetoSearchSelector({
         </div>
       ) : null}
 
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <div className="space-y-4">
         <div className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
           <label className="space-y-1 text-sm font-medium text-primary">
             <span>Nombre del objeto</span>
             <input
               className="h-10 w-full rounded-md border bg-white px-3 text-sm outline-none focus:border-primary"
               onChange={(event) => setFiltrosFormulario((current) => ({ ...current, nombre: event.target.value }))}
+              onKeyDown={handleFiltroKeyDown}
               type="text"
               value={filtrosFormulario.nombre}
             />
@@ -164,12 +171,13 @@ export function ObjetoSearchSelector({
               onChange={(event) =>
                 setFiltrosFormulario((current) => ({ ...current, numeroInventario: event.target.value }))
               }
+              onKeyDown={handleFiltroKeyDown}
               type="text"
               value={filtrosFormulario.numeroInventario}
             />
           </label>
           <div className="flex flex-wrap gap-2 lg:justify-end">
-            <button className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-white hover:opacity-90" type="submit">
+            <button className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-white hover:opacity-90" onClick={aplicarFiltros} type="button">
               Buscar
             </button>
             <button
@@ -193,6 +201,7 @@ export function ObjetoSearchSelector({
             className="h-10 w-full rounded-md border bg-white px-3 text-sm outline-none focus:border-primary"
             id={categoriaBusquedaId}
             onChange={(event) => setCategoriaBusqueda(event.target.value)}
+            onKeyDown={handleFiltroKeyDown}
             placeholder="Buscar categoria"
             type="text"
             value={categoriaBusqueda}
@@ -231,7 +240,7 @@ export function ObjetoSearchSelector({
             </div>
           ) : null}
         </section>
-      </form>
+      </div>
 
       {isLoading ? <LoadingState label="Cargando objetos..." /> : null}
       {isError ? (
