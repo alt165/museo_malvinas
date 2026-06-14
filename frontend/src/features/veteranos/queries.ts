@@ -8,24 +8,33 @@ import {
   buscarUnidadesMilitares,
   crearActuacionVeterano,
   crearVeterano,
+  crearVideoVeterano,
+  eliminarImagenVeterano,
   eliminarRelacionObjetoVeterano,
+  eliminarVideoVeterano,
   listarActuacionesPorVeterano,
   listarActuacionesVeteranos,
+  listarImagenesVeterano,
   listarObjetosRelacionadosAVeterano,
   listarRangosMilitares,
   listarRelacionesObjetoVeterano,
   listarVeteranos,
+  listarVideosVeterano,
   obtenerActuacionVeteranoPorId,
-  obtenerVeteranoPorId
+  obtenerVeteranoPorId,
+  subirImagenesVeterano,
+  actualizarVideoVeterano
 } from "./api";
-import type { ActuacionVeteranoRequestDTO, Fuerza, ObjetoVeteranoRequestDTO, VeteranoRequestDTO } from "./types";
+import type { ActuacionVeteranoRequestDTO, Fuerza, ObjetoVeteranoRequestDTO, VeteranoRequestDTO, VeteranoVideoRequestDTO } from "./types";
 
 export const veteranosQueryKeys = {
   all: ["veteranos"] as const,
   lists: () => [...veteranosQueryKeys.all, "list"] as const,
   detail: (id: number) => [...veteranosQueryKeys.all, "detail", id] as const,
   actuaciones: (id: number) => [...veteranosQueryKeys.all, "actuaciones", id] as const,
-  objetos: (id: number) => [...veteranosQueryKeys.all, "objetos", id] as const
+  objetos: (id: number) => [...veteranosQueryKeys.all, "objetos", id] as const,
+  imagenes: (id: number) => [...veteranosQueryKeys.all, "imagenes", id] as const,
+  videos: (id: number) => [...veteranosQueryKeys.all, "videos", id] as const
 };
 
 export const actuacionesVeteranosQueryKeys = {
@@ -87,6 +96,14 @@ export function useActuacionesVeteranoQuery(id: number) {
 
 export function useObjetosVeteranoQuery(id: number) {
   return useQuery({ queryKey: veteranosQueryKeys.objetos(id), queryFn: () => listarObjetosRelacionadosAVeterano(id), enabled: Number.isFinite(id) });
+}
+
+export function useImagenesVeteranoQuery(id: number) {
+  return useQuery({ queryKey: veteranosQueryKeys.imagenes(id), queryFn: () => listarImagenesVeterano(id), enabled: Number.isFinite(id) });
+}
+
+export function useVideosVeteranoQuery(id: number) {
+  return useQuery({ queryKey: veteranosQueryKeys.videos(id), queryFn: () => listarVideosVeterano(id), enabled: Number.isFinite(id) });
 }
 
 export function useRelacionesObjetoVeteranoQuery() {
@@ -183,5 +200,48 @@ export function useEliminarRelacionObjetoVeteranoMutation(veteranoId: number) {
       void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.objetos(veteranoId) });
       void queryClient.invalidateQueries({ queryKey: objetosVeteranosQueryKeys.all });
     }
+  });
+}
+
+export function useSubirImagenesVeteranoMutation(veteranoId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ archivos, descripcion }: { archivos: File[]; descripcion?: string }) => subirImagenesVeterano(veteranoId, archivos, descripcion),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.imagenes(veteranoId) });
+      void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.detail(veteranoId) });
+    }
+  });
+}
+
+export function useEliminarImagenVeteranoMutation(veteranoId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (imagenId: number) => eliminarImagenVeterano(veteranoId, imagenId),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.imagenes(veteranoId) })
+  });
+}
+
+export function useCrearVideoVeteranoMutation(veteranoId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: VeteranoVideoRequestDTO) => crearVideoVeterano(veteranoId, payload),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.videos(veteranoId) })
+  });
+}
+
+export function useActualizarVideoVeteranoMutation(veteranoId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ videoId, payload }: { videoId: number; payload: VeteranoVideoRequestDTO }) => actualizarVideoVeterano(veteranoId, videoId, payload),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.videos(veteranoId) })
+  });
+}
+
+export function useEliminarVideoVeteranoMutation(veteranoId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (videoId: number) => eliminarVideoVeterano(veteranoId, videoId),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.videos(veteranoId) })
   });
 }

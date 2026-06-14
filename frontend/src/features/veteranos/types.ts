@@ -14,6 +14,34 @@ export type VeteranoResponseDTO = VeteranoRequestDTO & {
   nombreCompleto: string;
 };
 
+export type VeteranoImagenResponseDTO = {
+  id: number;
+  veteranoId: number;
+  nombreArchivo: string;
+  nombreArchivoAlmacenado?: string | null;
+  tipoContenido: string;
+  tamanioBytes: number;
+  descripcion?: string | null;
+  orden: number;
+  fechaCarga: string;
+  cargadoPor?: string | null;
+};
+
+export type VeteranoVideoRequestDTO = {
+  titulo: string;
+  urlYoutube: string;
+  descripcion?: string | null;
+  fechaEntrevista?: string | null;
+  orden?: number | null;
+};
+
+export type VeteranoVideoResponseDTO = VeteranoVideoRequestDTO & {
+  id: number;
+  veteranoId: number;
+  videoId: string;
+  orden: number;
+};
+
 export type ActuacionVeteranoRequestDTO = {
   veteranoId: number;
   rango?: string | null;

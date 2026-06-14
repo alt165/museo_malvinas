@@ -1,4 +1,4 @@
-import { apiRequest } from "@/lib/api";
+import { apiBlobRequest, apiRequest } from "@/lib/api";
 import type {
   ActuacionVeteranoRequestDTO,
   ActuacionVeteranoResponseDTO,
@@ -7,8 +7,11 @@ import type {
   ObjetoVeteranoResponseDTO,
   RangoMilitarResponseDTO,
   UnidadMilitarResponseDTO,
+  VeteranoImagenResponseDTO,
   VeteranoRequestDTO,
-  VeteranoResponseDTO
+  VeteranoResponseDTO,
+  VeteranoVideoRequestDTO,
+  VeteranoVideoResponseDTO
 } from "../types";
 
 const veteranosPath = "/api/veteranos";
@@ -35,6 +38,46 @@ export function actualizarVeterano(id: number, payload: VeteranoRequestDTO) {
 
 export function bajaLogicaVeterano(id: number) {
   return apiRequest<void>(`${veteranosPath}/${id}`, { method: "DELETE" });
+}
+
+export function listarImagenesVeterano(id: number) {
+  return apiRequest<VeteranoImagenResponseDTO[]>(`${veteranosPath}/${id}/imagenes`);
+}
+
+export function subirImagenesVeterano(id: number, archivos: File[], descripcion?: string) {
+  const formData = new FormData();
+  archivos.forEach((archivo) => formData.append("archivos", archivo));
+  if (descripcion?.trim()) {
+    formData.append("descripcion", descripcion.trim());
+  }
+  return apiRequest<VeteranoImagenResponseDTO[]>(`${veteranosPath}/${id}/imagenes`, {
+    method: "POST",
+    body: formData
+  });
+}
+
+export function descargarImagenVeterano(id: number, imagenId: number) {
+  return apiBlobRequest(`${veteranosPath}/${id}/imagenes/${imagenId}`);
+}
+
+export function eliminarImagenVeterano(id: number, imagenId: number) {
+  return apiRequest<void>(`${veteranosPath}/${id}/imagenes/${imagenId}`, { method: "DELETE" });
+}
+
+export function listarVideosVeterano(id: number) {
+  return apiRequest<VeteranoVideoResponseDTO[]>(`${veteranosPath}/${id}/videos`);
+}
+
+export function crearVideoVeterano(id: number, payload: VeteranoVideoRequestDTO) {
+  return apiRequest<VeteranoVideoResponseDTO>(`${veteranosPath}/${id}/videos`, { method: "POST", body: JSON.stringify(payload) });
+}
+
+export function actualizarVideoVeterano(id: number, videoId: number, payload: VeteranoVideoRequestDTO) {
+  return apiRequest<VeteranoVideoResponseDTO>(`${veteranosPath}/${id}/videos/${videoId}`, { method: "PUT", body: JSON.stringify(payload) });
+}
+
+export function eliminarVideoVeterano(id: number, videoId: number) {
+  return apiRequest<void>(`${veteranosPath}/${id}/videos/${videoId}`, { method: "DELETE" });
 }
 
 export function listarActuacionesVeteranos() {

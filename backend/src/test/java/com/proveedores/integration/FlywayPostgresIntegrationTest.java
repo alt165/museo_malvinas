@@ -23,7 +23,7 @@ class FlywayPostgresIntegrationTest extends IntegrationTestBase {
         Integer ubicacionesSembradas = jdbcTemplate.queryForObject("select count(*) from ubicaciones", Integer.class);
         Integer exhibicionesSembradas = jdbcTemplate.queryForObject("select count(*) from exhibiciones", Integer.class);
 
-        assertThat(versiones).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18");
+        assertThat(versiones).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19");
         assertThat(objetosSembrados).isGreaterThanOrEqualTo(6);
         assertThat(ubicacionesSembradas).isGreaterThanOrEqualTo(5);
         assertThat(jdbcTemplate.queryForObject("select count(*) from ubicaciones where nombre = 'Pre ingreso' and eliminado = false", Integer.class))
@@ -85,5 +85,11 @@ class FlywayPostgresIntegrationTest extends IntegrationTestBase {
                 .isGreaterThan(0);
         assertThat(jdbcTemplate.queryForObject("select count(*) from unidades_militares where activo = true", Integer.class))
                 .isGreaterThan(0);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.tables where table_name in ('veterano_imagen', 'veterano_video')", Integer.class))
+                .isEqualTo(2);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from pg_indexes where tablename = 'veterano_imagen' and indexname in ('idx_veterano_imagen_veterano', 'idx_veterano_imagen_activo', 'idx_veterano_imagen_orden')", Integer.class))
+                .isEqualTo(3);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from pg_indexes where tablename = 'veterano_video' and indexname in ('idx_veterano_video_veterano', 'idx_veterano_video_activo', 'idx_veterano_video_orden')", Integer.class))
+                .isEqualTo(3);
     }
 }

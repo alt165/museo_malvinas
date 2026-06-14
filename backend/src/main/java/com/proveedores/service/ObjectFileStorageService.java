@@ -23,10 +23,16 @@ public class ObjectFileStorageService {
     }
 
     public StoredObjectFile store(Long objetoId, String folder, MultipartFile archivo) {
+        return storeInOwnerFolder("objeto-" + objetoId, folder, archivo);
+    }
+
+    public StoredObjectFile storeInOwnerFolder(String ownerFolder, String folder, MultipartFile archivo) {
         String originalName = StringUtils.hasText(archivo.getOriginalFilename()) ? archivo.getOriginalFilename() : "archivo";
         String safeName = originalName.replaceAll("[^A-Za-z0-9._-]", "_");
+        String safeOwnerFolder = ownerFolder.replaceAll("[^A-Za-z0-9._-]", "_");
+        String safeFolder = folder.replaceAll("[^A-Za-z0-9._/-]", "_");
         String storedName = UUID.randomUUID() + "-" + safeName;
-        Path relativePath = Path.of("objeto-" + objetoId, folder, storedName);
+        Path relativePath = Path.of(safeOwnerFolder, safeFolder, storedName);
         Path destination = rootDir.resolve(relativePath).normalize();
         if (!destination.startsWith(rootDir)) {
             throw new BusinessException("Nombre de archivo invalido");
@@ -36,7 +42,7 @@ public class ObjectFileStorageService {
             Files.createDirectories(destination.getParent());
             archivo.transferTo(destination);
         } catch (IOException ex) {
-            throw new BusinessException("No se pudo almacenar el archivo del objeto");
+            throw new BusinessException("No se pudo almacenar el archivo");
         }
 
         return new StoredObjectFile(originalName, storedName, relativePath.toString().replace('\\', '/'), destination.toString());

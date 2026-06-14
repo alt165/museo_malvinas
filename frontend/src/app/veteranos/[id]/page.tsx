@@ -7,6 +7,7 @@ import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
 import { VeteranoDetailPanels } from "@/features/veteranos/components/veterano-detail-panels";
+import { VeteranoMultimediaPanel } from "@/features/veteranos/components/veterano-multimedia-panel";
 import { useBajaLogicaVeteranoMutation, useVeteranoQuery } from "@/features/veteranos/queries";
 import { formatDate, getApiErrorMessage } from "@/features/veteranos/utils";
 import { useEditingMode } from "@/lib/editing-mode";
@@ -39,7 +40,7 @@ export default function DetalleVeteranoPage() {
         {isLoading ? <LoadingState label="Cargando veterano..." /> : null}
         {isError ? <ErrorState message={getApiErrorMessage(error)} requestId={error instanceof ApiClientError ? error.requestId : undefined} /> : null}
         {bajaMutation.isError ? <ErrorState message={getApiErrorMessage(bajaMutation.error)} requestId={bajaMutation.error instanceof ApiClientError ? bajaMutation.error.requestId : undefined} /> : null}
-        {data ? <><div className="rounded-lg border p-5"><dl className="grid gap-5 text-sm sm:grid-cols-2"><div><dt className="text-muted-foreground">Nombre completo</dt><dd className="font-medium">{data.nombreCompleto}</dd></div><div><dt className="text-muted-foreground">Fuerza</dt><dd className="font-medium">{data.fuerza}</dd></div><div><dt className="text-muted-foreground">Nacimiento</dt><dd className="font-medium">{formatDate(data.fechaNacimiento)}</dd></div><div><dt className="text-muted-foreground">Fallecimiento</dt><dd className="font-medium">{formatDate(data.fechaFallecimiento)}</dd></div><div className="sm:col-span-2"><dt className="text-muted-foreground">Historia</dt><dd className="whitespace-pre-wrap font-medium">{data.historia || "Sin historia"}</dd></div></dl></div><VeteranoDetailPanels canWrite={puedeEscribir} veteranoId={data.id} /></> : null}
+        {data ? <><div className="rounded-lg border p-5"><dl className="grid gap-5 text-sm sm:grid-cols-2"><div><dt className="text-muted-foreground">Nombre completo</dt><dd className="font-medium">{data.nombreCompleto}</dd></div><div><dt className="text-muted-foreground">Fuerza</dt><dd className="font-medium">{data.fuerza}</dd></div><div><dt className="text-muted-foreground">Nacimiento</dt><dd className="font-medium">{formatDate(data.fechaNacimiento)}</dd></div><div><dt className="text-muted-foreground">Fallecimiento</dt><dd className="font-medium">{formatDate(data.fechaFallecimiento)}</dd></div><div className="sm:col-span-2"><dt className="text-muted-foreground">Historia</dt><dd className="whitespace-pre-wrap font-medium">{data.historia || "Sin historia"}</dd></div></dl></div><VeteranoMultimediaPanel canWrite={puedeEscribir} veteranoId={data.id} /><VeteranoDetailPanels canWrite={puedeEscribir} veteranoId={data.id} /></> : null}
       </div>
     </AppShell>
   );

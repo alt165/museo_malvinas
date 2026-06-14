@@ -56,7 +56,7 @@ public class VeteranoService {
         veteranoRepository.save(entity);
     }
 
-    private Veterano buscarActivo(Long id) {
+    public Veterano buscarActivo(Long id) {
         Veterano entity = veteranoRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Veterano no encontrado"));
         if (entity.getEliminado()) {
             throw new ResourceNotFoundException("Veterano no encontrado");
