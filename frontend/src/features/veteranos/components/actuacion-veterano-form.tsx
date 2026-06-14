@@ -2,13 +2,13 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { LoadingState } from "@/components/common/loading-state";
-import type { ActuacionVeteranoRequestDTO, ActuacionVeteranoResponseDTO } from "../types";
+import type { ActuacionVeteranoRequestDTO, ActuacionVeteranoResponseDTO, UnidadMilitarResponseDTO } from "../types";
 import { actuacionVeteranoSchema, type ActuacionVeteranoFormValues } from "../schemas";
-import { useVeteranosQuery } from "../queries";
-import { getValidationErrors } from "../utils";
+import { useRangosMilitaresQuery, useUnidadesMilitaresQuery, useVeteranosQuery } from "../queries";
+import { fuerzaLabel, getValidationErrors } from "../utils";
 
 type ActuacionVeteranoFormProps = {
   initialValue?: ActuacionVeteranoResponseDTO;
@@ -28,18 +28,32 @@ export function ActuacionVeteranoForm({
   submitLabel
 }: ActuacionVeteranoFormProps) {
   const veteranosQuery = useVeteranosQuery();
+  const [busquedaUnidad, setBusquedaUnidad] = useState("");
+  const [unidadSeleccionada, setUnidadSeleccionada] = useState<UnidadMilitarResponseDTO | null>(
+    initialValue?.unidadId
+      ? {
+          id: initialValue.unidadId,
+          fuerza: "CIVIL",
+          nombre: initialValue.unidadNombre ?? initialValue.unidad ?? "Unidad seleccionada",
+          sigla: initialValue.unidadSigla ?? null
+        }
+      : null
+  );
   const {
     control,
     formState: { errors },
     handleSubmit,
     register,
-    setError
+    setError,
+    setValue
   } = useForm<ActuacionVeteranoFormValues>({
     resolver: zodResolver(actuacionVeteranoSchema),
     defaultValues: {
       veteranoId: fixedVeteranoId ?? initialValue?.veteranoId ?? 0,
       rango: initialValue?.rango ?? "",
       unidad: initialValue?.unidad ?? "",
+      rangoId: initialValue?.rangoId ?? null,
+      unidadId: initialValue?.unidadId ?? null,
       rol: initialValue?.rol ?? "",
       fechaInicio: initialValue?.fechaInicio ?? "",
       fechaFin: initialValue?.fechaFin ?? "",
@@ -47,17 +61,59 @@ export function ActuacionVeteranoForm({
     }
   });
   const watchedVeteranoId = useWatch({ control, name: "veteranoId" });
+  const watchedUnidadId = useWatch({ control, name: "unidadId" });
   const veteranoId = fixedVeteranoId ?? watchedVeteranoId ?? 0;
-  const veteranoSeleccionado = (veteranosQuery.data ?? []).find((veterano) => veterano.id === veteranoId);
+  const veteranos = useMemo(() => veteranosQuery.data ?? [], [veteranosQuery.data]);
+  const veteranoSeleccionado = veteranos.find((veterano) => veterano.id === veteranoId);
+  const fuerzaSeleccionada = veteranoSeleccionado?.fuerza;
+  const rangosQuery = useRangosMilitaresQuery(fuerzaSeleccionada);
+  const unidadesQuery = useUnidadesMilitaresQuery(fuerzaSeleccionada, busquedaUnidad);
+
+  const unidadActual = useMemo(() => {
+    if (!watchedUnidadId) {
+      return null;
+    }
+    return unidadSeleccionada?.id === watchedUnidadId
+      ? unidadSeleccionada
+      : (unidadesQuery.data ?? []).find((unidad) => unidad.id === watchedUnidadId) ?? unidadSeleccionada;
+  }, [unidadSeleccionada, unidadesQuery.data, watchedUnidadId]);
+
+  function handleVeteranoChange(value: string) {
+    const nextVeteranoId = Number(value);
+    setValue("veteranoId", nextVeteranoId, { shouldDirty: true, shouldValidate: true });
+    setValue("rangoId", null, { shouldDirty: true, shouldValidate: true });
+    setValue("unidadId", null, { shouldDirty: true, shouldValidate: true });
+    setValue("rango", "", { shouldDirty: true });
+    setValue("unidad", "", { shouldDirty: true });
+    setUnidadSeleccionada(null);
+    setBusquedaUnidad("");
+  }
+
+  function handleSeleccionarUnidad(unidad: UnidadMilitarResponseDTO) {
+    setValue("unidadId", unidad.id, { shouldDirty: true, shouldValidate: true });
+    setValue("unidad", unidad.nombre, { shouldDirty: true });
+    setUnidadSeleccionada(unidad);
+  }
+
+  function handleLimpiarUnidad() {
+    setValue("unidadId", null, { shouldDirty: true, shouldValidate: true });
+    setValue("unidad", "", { shouldDirty: true });
+    setUnidadSeleccionada(null);
+  }
+
+  function formatoUnidad(unidad: UnidadMilitarResponseDTO) {
+    return unidad.sigla ? `${unidad.sigla} - ${unidad.nombre}` : unidad.nombre;
+  }
 
   useEffect(() => {
     const validationErrors = getValidationErrors(submitError);
-
     Object.entries(validationErrors).forEach(([field, message]) => {
       if (
         field === "veteranoId" ||
         field === "rango" ||
         field === "unidad" ||
+        field === "rangoId" ||
+        field === "unidadId" ||
         field === "rol" ||
         field === "fechaInicio" ||
         field === "fechaFin" ||
@@ -87,6 +143,8 @@ export function ActuacionVeteranoForm({
           veteranoId: selectedVeteranoId,
           rango: values.rango?.trim() || null,
           unidad: values.unidad?.trim() || null,
+          rangoId: values.rangoId ?? null,
+          unidadId: values.unidadId ?? null,
           rol: values.rol?.trim() || null,
           fechaInicio: values.fechaInicio || null,
           fechaFin: values.fechaFin || null,
@@ -105,10 +163,11 @@ export function ActuacionVeteranoForm({
           ) : (
             <select
               className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-              {...register("veteranoId", { valueAsNumber: true })}
+              onChange={(event) => handleVeteranoChange(event.target.value)}
+              value={veteranoId}
             >
               <option value={0}>Seleccionar veterano</option>
-              {(veteranosQuery.data ?? []).map((veterano) => (
+              {veteranos.map((veterano) => (
                 <option key={veterano.id} value={veterano.id}>
                   {veterano.nombreCompleto}
                 </option>
@@ -120,16 +179,65 @@ export function ActuacionVeteranoForm({
           <input
             className="h-10 w-full rounded-md border bg-muted px-3 text-sm"
             disabled
-            value={veteranoSeleccionado?.fuerza ?? "Sin fuerza seleccionada"}
+            value={fuerzaSeleccionada ? fuerzaLabel(fuerzaSeleccionada) : "Sin fuerza seleccionada"}
           />
         </Field>
       </div>
       <div className="grid gap-5 sm:grid-cols-3">
-        <Field label="Rango" error={errors.rango?.message}>
-          <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" {...register("rango")} />
+        <Field label="Rango" error={errors.rangoId?.message ?? errors.rango?.message}>
+          <select
+            className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:bg-muted"
+            disabled={!fuerzaSeleccionada || rangosQuery.isLoading}
+            {...register("rangoId", {
+              setValueAs: (value) => value ? Number(value) : null,
+              onChange: (event) => {
+                const rango = (rangosQuery.data ?? []).find((item) => item.id === Number(event.target.value));
+                setValue("rango", rango?.nombre ?? "", { shouldDirty: true });
+              }
+            })}
+          >
+            <option value="">{fuerzaSeleccionada ? "Seleccionar rango" : "Seleccione un veterano"}</option>
+            {(rangosQuery.data ?? []).map((rango) => (
+              <option key={rango.id} value={rango.id}>
+                {rango.nombre}
+              </option>
+            ))}
+          </select>
         </Field>
-        <Field label="Unidad" error={errors.unidad?.message}>
-          <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" {...register("unidad")} />
+        <Field label="Unidad" error={errors.unidadId?.message ?? errors.unidad?.message}>
+          <div className="space-y-2">
+            <input
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:bg-muted"
+              disabled={!fuerzaSeleccionada}
+              onChange={(event) => setBusquedaUnidad(event.target.value)}
+              placeholder={fuerzaSeleccionada ? "Buscar por nombre o sigla" : "Seleccione un veterano"}
+              type="search"
+              value={busquedaUnidad}
+            />
+            {unidadActual ? (
+              <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/40 px-3 py-2 text-xs">
+                <span className="font-medium">{formatoUnidad(unidadActual)}</span>
+                <button className="text-destructive hover:underline" onClick={handleLimpiarUnidad} type="button">Quitar</button>
+              </div>
+            ) : null}
+            {fuerzaSeleccionada && !unidadActual ? (
+              <div className="max-h-44 overflow-y-auto rounded-md border bg-white">
+                {unidadesQuery.isLoading ? <p className="px-3 py-2 text-xs text-muted-foreground">Cargando unidades...</p> : null}
+                {!unidadesQuery.isLoading && (unidadesQuery.data ?? []).length === 0 ? <p className="px-3 py-2 text-xs text-muted-foreground">Sin unidades disponibles.</p> : null}
+                {(unidadesQuery.data ?? []).map((unidad) => (
+                  <button
+                    className="block w-full border-b px-3 py-2 text-left text-xs last:border-b-0 hover:bg-muted"
+                    key={unidad.id}
+                    onClick={() => handleSeleccionarUnidad(unidad)}
+                    type="button"
+                  >
+                    <span className="block font-medium">{formatoUnidad(unidad)}</span>
+                    {unidad.tipoUnidad ? <span className="text-muted-foreground">{unidad.tipoUnidad}</span> : null}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
         </Field>
         <Field label="Rol" error={errors.rol?.message}>
           <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" {...register("rol")} />

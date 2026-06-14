@@ -5,18 +5,20 @@ import {
   asociarObjetoAVeterano,
   bajaLogicaActuacionVeterano,
   bajaLogicaVeterano,
+  buscarUnidadesMilitares,
   crearActuacionVeterano,
   crearVeterano,
   eliminarRelacionObjetoVeterano,
   listarActuacionesPorVeterano,
   listarActuacionesVeteranos,
   listarObjetosRelacionadosAVeterano,
+  listarRangosMilitares,
   listarRelacionesObjetoVeterano,
   listarVeteranos,
   obtenerActuacionVeteranoPorId,
   obtenerVeteranoPorId
 } from "./api";
-import type { ActuacionVeteranoRequestDTO, ObjetoVeteranoRequestDTO, VeteranoRequestDTO } from "./types";
+import type { ActuacionVeteranoRequestDTO, Fuerza, ObjetoVeteranoRequestDTO, VeteranoRequestDTO } from "./types";
 
 export const veteranosQueryKeys = {
   all: ["veteranos"] as const,
@@ -37,8 +39,30 @@ export const objetosVeteranosQueryKeys = {
   lists: () => [...objetosVeteranosQueryKeys.all, "list"] as const
 };
 
+export const catalogosMilitaresQueryKeys = {
+  all: ["catalogos-militares"] as const,
+  rangos: (fuerza?: Fuerza) => [...catalogosMilitaresQueryKeys.all, "rangos", fuerza] as const,
+  unidades: (fuerza?: Fuerza, buscar = "") => [...catalogosMilitaresQueryKeys.all, "unidades", fuerza, buscar] as const
+};
+
 export function useVeteranosQuery() {
   return useQuery({ queryKey: veteranosQueryKeys.lists(), queryFn: listarVeteranos });
+}
+
+export function useRangosMilitaresQuery(fuerza?: Fuerza) {
+  return useQuery({
+    queryKey: catalogosMilitaresQueryKeys.rangos(fuerza),
+    queryFn: () => listarRangosMilitares(fuerza as Fuerza),
+    enabled: Boolean(fuerza)
+  });
+}
+
+export function useUnidadesMilitaresQuery(fuerza?: Fuerza, buscar = "") {
+  return useQuery({
+    queryKey: catalogosMilitaresQueryKeys.unidades(fuerza, buscar),
+    queryFn: () => buscarUnidadesMilitares(fuerza as Fuerza, buscar),
+    enabled: Boolean(fuerza)
+  });
 }
 
 export function useVeteranoQuery(id: number) {

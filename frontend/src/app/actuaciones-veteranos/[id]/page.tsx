@@ -47,8 +47,8 @@ export default function DetalleActuacionVeteranoPage() {
             <dl className="grid gap-5 text-sm sm:grid-cols-2">
               <div><dt className="text-muted-foreground">Veterano</dt><dd className="font-medium">{data.veteranoNombreCompleto}</dd></div>
               <div><dt className="text-muted-foreground">Periodo</dt><dd className="font-medium">{formatDate(data.fechaInicio)} - {formatDate(data.fechaFin)}</dd></div>
-              <div><dt className="text-muted-foreground">Rango</dt><dd className="font-medium">{data.rango || "Sin rango"}</dd></div>
-              <div><dt className="text-muted-foreground">Unidad</dt><dd className="font-medium">{data.unidad || "Sin unidad"}</dd></div>
+              <div><dt className="text-muted-foreground">Rango</dt><dd className="font-medium">{data.rangoNombre || data.rango || "Sin rango"}</dd></div>
+              <div><dt className="text-muted-foreground">Unidad</dt><dd className="font-medium">{data.unidadSigla ? `${data.unidadSigla} - ${data.unidadNombre || data.unidad || "Sin unidad"}` : data.unidadNombre || data.unidad || "Sin unidad"}</dd></div>
               <div><dt className="text-muted-foreground">Rol</dt><dd className="font-medium">{data.rol || "Sin rol"}</dd></div>
               <div className="sm:col-span-2"><dt className="text-muted-foreground">Descripcion</dt><dd className="whitespace-pre-wrap font-medium">{data.descripcion || "Sin descripcion"}</dd></div>
             </dl>

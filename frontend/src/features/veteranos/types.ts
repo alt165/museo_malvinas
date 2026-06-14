@@ -18,6 +18,8 @@ export type ActuacionVeteranoRequestDTO = {
   veteranoId: number;
   rango?: string | null;
   unidad?: string | null;
+  rangoId?: number | null;
+  unidadId?: number | null;
   rol?: string | null;
   fechaInicio?: string | null;
   fechaFin?: string | null;
@@ -27,6 +29,25 @@ export type ActuacionVeteranoRequestDTO = {
 export type ActuacionVeteranoResponseDTO = ActuacionVeteranoRequestDTO & {
   id: number;
   veteranoNombreCompleto: string;
+  rangoNombre?: string | null;
+  unidadNombre?: string | null;
+  unidadSigla?: string | null;
+};
+
+export type RangoMilitarResponseDTO = {
+  id: number;
+  fuerza: Fuerza;
+  nombre: string;
+  ordenJerarquico: number;
+};
+
+export type UnidadMilitarResponseDTO = {
+  id: number;
+  fuerza: Fuerza;
+  nombre: string;
+  sigla?: string | null;
+  tipoUnidad?: string | null;
+  descripcion?: string | null;
 };
 
 export type ObjetoVeteranoRequestDTO = {

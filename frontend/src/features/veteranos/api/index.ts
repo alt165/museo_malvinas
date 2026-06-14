@@ -1,4 +1,6 @@
 export {
+  buscarUnidadesMilitares,
+  listarRangosMilitares,
   actualizarActuacionVeterano,
   actualizarVeterano,
   asociarObjetoAVeterano,

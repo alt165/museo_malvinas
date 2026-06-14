@@ -3,10 +3,16 @@ package com.proveedores.service;
 import com.proveedores.dto.ActuacionVeteranoRequestDTO;
 import com.proveedores.dto.ActuacionVeteranoResponseDTO;
 import com.proveedores.entity.ActuacionVeterano;
+import com.proveedores.entity.Fuerza;
+import com.proveedores.entity.RangoMilitar;
+import com.proveedores.entity.UnidadMilitar;
 import com.proveedores.entity.Veterano;
+import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.mapper.ActuacionVeteranoMapper;
 import com.proveedores.repository.ActuacionVeteranoRepository;
+import com.proveedores.repository.RangoMilitarRepository;
+import com.proveedores.repository.UnidadMilitarRepository;
 import com.proveedores.repository.VeteranoRepository;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,16 +24,27 @@ public class ActuacionVeteranoService {
 
     private final ActuacionVeteranoRepository actuacionVeteranoRepository;
     private final VeteranoRepository veteranoRepository;
+    private final RangoMilitarRepository rangoMilitarRepository;
+    private final UnidadMilitarRepository unidadMilitarRepository;
 
-    public ActuacionVeteranoService(ActuacionVeteranoRepository actuacionVeteranoRepository, VeteranoRepository veteranoRepository) {
+    public ActuacionVeteranoService(
+            ActuacionVeteranoRepository actuacionVeteranoRepository,
+            VeteranoRepository veteranoRepository,
+            RangoMilitarRepository rangoMilitarRepository,
+            UnidadMilitarRepository unidadMilitarRepository
+    ) {
         this.actuacionVeteranoRepository = actuacionVeteranoRepository;
         this.veteranoRepository = veteranoRepository;
+        this.rangoMilitarRepository = rangoMilitarRepository;
+        this.unidadMilitarRepository = unidadMilitarRepository;
     }
 
     @Transactional
     public ActuacionVeteranoResponseDTO crear(ActuacionVeteranoRequestDTO dto) {
         ActuacionVeterano entity = ActuacionVeteranoMapper.toEntity(dto);
-        entity.setVeterano(buscarVeterano(dto.veteranoId()));
+        Veterano veterano = buscarVeterano(dto.veteranoId());
+        entity.setVeterano(veterano);
+        aplicarCatalogos(entity, dto, veterano.getFuerza());
         return ActuacionVeteranoMapper.toResponse(actuacionVeteranoRepository.save(entity));
     }
 
@@ -44,13 +61,13 @@ public class ActuacionVeteranoService {
     @Transactional
     public ActuacionVeteranoResponseDTO actualizar(Long id, ActuacionVeteranoRequestDTO dto) {
         ActuacionVeterano entity = buscarActivo(id);
-        entity.setVeterano(buscarVeterano(dto.veteranoId()));
-        entity.setRango(dto.rango());
-        entity.setUnidad(dto.unidad());
+        Veterano veterano = buscarVeterano(dto.veteranoId());
+        entity.setVeterano(veterano);
         entity.setRol(dto.rol());
         entity.setFechaInicio(dto.fechaInicio());
         entity.setFechaFin(dto.fechaFin());
         entity.setDescripcion(dto.descripcion());
+        aplicarCatalogos(entity, dto, veterano.getFuerza());
         return ActuacionVeteranoMapper.toResponse(actuacionVeteranoRepository.save(entity));
     }
 
@@ -61,6 +78,40 @@ public class ActuacionVeteranoService {
         entity.setEliminado(true);
         entity.setFechaEliminacion(LocalDateTime.now());
         actuacionVeteranoRepository.save(entity);
+    }
+
+    private void aplicarCatalogos(ActuacionVeterano entity, ActuacionVeteranoRequestDTO dto, Fuerza fuerza) {
+        RangoMilitar rango = dto.rangoId() == null ? null : buscarRangoCompatible(dto.rangoId(), fuerza);
+        UnidadMilitar unidad = dto.unidadId() == null ? null : buscarUnidadCompatible(dto.unidadId(), fuerza);
+
+        entity.setRangoMilitar(rango);
+        entity.setUnidadMilitar(unidad);
+        entity.setRango(rango != null ? rango.getNombre() : dto.rango());
+        entity.setUnidad(unidad != null ? unidad.getNombre() : dto.unidad());
+    }
+
+    private RangoMilitar buscarRangoCompatible(Long id, Fuerza fuerza) {
+        RangoMilitar rango = rangoMilitarRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Rango militar no encontrado"));
+        if (!Boolean.TRUE.equals(rango.getActivo()) || Boolean.TRUE.equals(rango.getEliminado())) {
+            throw new ResourceNotFoundException("Rango militar no encontrado");
+        }
+        if (rango.getFuerza() != fuerza) {
+            throw new BusinessException("El rango seleccionado no pertenece a la fuerza del veterano");
+        }
+        return rango;
+    }
+
+    private UnidadMilitar buscarUnidadCompatible(Long id, Fuerza fuerza) {
+        UnidadMilitar unidad = unidadMilitarRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Unidad militar no encontrada"));
+        if (!Boolean.TRUE.equals(unidad.getActivo()) || Boolean.TRUE.equals(unidad.getEliminado())) {
+            throw new ResourceNotFoundException("Unidad militar no encontrada");
+        }
+        if (unidad.getFuerza() != fuerza) {
+            throw new BusinessException("La unidad seleccionada no pertenece a la fuerza del veterano");
+        }
+        return unidad;
     }
 
     private ActuacionVeterano buscarActivo(Long id) {

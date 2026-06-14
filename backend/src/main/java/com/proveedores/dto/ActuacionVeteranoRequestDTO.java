@@ -15,6 +15,10 @@ public record ActuacionVeteranoRequestDTO(
         @Size(max = 120, message = "La unidad no puede superar 120 caracteres")
         String unidad,
 
+        Long rangoId,
+
+        Long unidadId,
+
         @Size(max = 120, message = "El rol no puede superar 120 caracteres")
         String rol,
 

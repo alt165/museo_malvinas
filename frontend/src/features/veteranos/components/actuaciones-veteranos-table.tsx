@@ -24,8 +24,8 @@ export function ActuacionesVeteranosTable({ actuaciones, canEdit, isDeleting = f
         header: "Veterano",
         cell: ({ row }) => <span className="font-medium">{row.original.veteranoNombreCompleto}</span>
       },
-      { accessorKey: "rango", header: "Rango", cell: ({ row }) => row.original.rango || "-" },
-      { accessorKey: "unidad", header: "Unidad", cell: ({ row }) => row.original.unidad || "-" },
+      { accessorKey: "rango", header: "Rango", cell: ({ row }) => row.original.rangoNombre || row.original.rango || "-" },
+      { accessorKey: "unidad", header: "Unidad", cell: ({ row }) => row.original.unidadSigla ? `${row.original.unidadSigla} - ${row.original.unidadNombre || row.original.unidad || "-"}` : row.original.unidadNombre || row.original.unidad || "-" },
       { accessorKey: "rol", header: "Rol", cell: ({ row }) => row.original.rol || "-" },
       {
         id: "periodo",
