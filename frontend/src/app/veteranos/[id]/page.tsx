@@ -9,7 +9,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { VeteranoDetailPanels } from "@/features/veteranos/components/veterano-detail-panels";
 import { VeteranoMultimediaPanel } from "@/features/veteranos/components/veterano-multimedia-panel";
 import { useBajaLogicaVeteranoMutation, useVeteranoQuery } from "@/features/veteranos/queries";
-import { formatDate, getApiErrorMessage } from "@/features/veteranos/utils";
+import { getApiErrorMessage } from "@/features/veteranos/utils";
 import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
 
@@ -36,11 +36,11 @@ export default function DetalleVeteranoPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <PageHeader title="Detalle de veterano" description="Datos personales, actuaciones y objetos asociados." actions={<div className="flex gap-2"><Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/veteranos">Volver</Link>{puedeEscribir && data ? <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href={`/veteranos/${data.id}/editar`}>Editar</Link> : null}{puedeEscribir && data ? <button className="rounded-md border px-4 py-2 text-sm font-medium text-destructive hover:bg-muted disabled:opacity-60" disabled={bajaMutation.isPending} onClick={handleDelete} type="button">Baja</button> : null}</div>} />
+        <PageHeader title={data?.nombreCompleto || "Detalle de veterano"} description="Consulta de veterano, multimedia, actuaciones y objetos asociados." actions={<div className="flex gap-2"><Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/veteranos">Volver</Link>{puedeEscribir && data ? <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href={`/veteranos/${data.id}/editar`}>Editar</Link> : null}{puedeEscribir && data ? <button className="rounded-md border px-4 py-2 text-sm font-medium text-destructive hover:bg-muted disabled:opacity-60" disabled={bajaMutation.isPending} onClick={handleDelete} type="button">Baja</button> : null}</div>} />
         {isLoading ? <LoadingState label="Cargando veterano..." /> : null}
         {isError ? <ErrorState message={getApiErrorMessage(error)} requestId={error instanceof ApiClientError ? error.requestId : undefined} /> : null}
         {bajaMutation.isError ? <ErrorState message={getApiErrorMessage(bajaMutation.error)} requestId={bajaMutation.error instanceof ApiClientError ? bajaMutation.error.requestId : undefined} /> : null}
-        {data ? <><div className="rounded-lg border p-5"><dl className="grid gap-5 text-sm sm:grid-cols-2"><div><dt className="text-muted-foreground">Nombre completo</dt><dd className="font-medium">{data.nombreCompleto}</dd></div><div><dt className="text-muted-foreground">Fuerza</dt><dd className="font-medium">{data.fuerza}</dd></div><div><dt className="text-muted-foreground">Nacimiento</dt><dd className="font-medium">{formatDate(data.fechaNacimiento)}</dd></div><div><dt className="text-muted-foreground">Fallecimiento</dt><dd className="font-medium">{formatDate(data.fechaFallecimiento)}</dd></div><div className="sm:col-span-2"><dt className="text-muted-foreground">Historia</dt><dd className="whitespace-pre-wrap font-medium">{data.historia || "Sin historia"}</dd></div></dl></div><VeteranoMultimediaPanel canWrite={puedeEscribir} veteranoId={data.id} /><VeteranoDetailPanels canWrite={puedeEscribir} veteranoId={data.id} /></> : null}
+        {data ? <><VeteranoMultimediaPanel canWrite={puedeEscribir} veterano={data} /><VeteranoDetailPanels canWrite={puedeEscribir} veteranoId={data.id} /></> : null}
       </div>
     </AppShell>
   );

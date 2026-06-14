@@ -31,7 +31,7 @@ export function VeteranoDetailPanels({ canWrite, veteranoId }: { canWrite: boole
   return (
     <div className="space-y-8">
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Actuaciones históricas</h2>
+        <h2 className="text-lg font-semibold">Actuaciones</h2>
         {canWrite ? (
           <form className="grid gap-3 rounded-lg border p-4 md:grid-cols-3" onSubmit={actuacionForm.handleSubmit((values) => crearActuacion.mutate({
             veteranoId,
@@ -57,7 +57,7 @@ export function VeteranoDetailPanels({ canWrite, veteranoId }: { canWrite: boole
         {actuacionesQuery.data && actuacionesQuery.data.length > 0 ? <div className="rounded-lg border">{actuacionesQuery.data.map((a) => <div className="flex items-start justify-between gap-3 border-b p-4 text-sm last:border-b-0" key={a.id}><div><p className="font-medium">{a.rangoNombre || a.rango || "Sin rango"} · {a.unidadSigla ? `${a.unidadSigla} - ${a.unidadNombre || a.unidad || "Sin unidad"}` : a.unidadNombre || a.unidad || "Sin unidad"} · {a.rol || "Sin rol"}</p><p className="text-muted-foreground">{formatDate(a.fechaInicio)} - {formatDate(a.fechaFin)}</p><p className="mt-2">{a.descripcion || "Sin descripción"}</p></div><div className="flex shrink-0 gap-2"><Link className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted" href={`/actuaciones-veteranos/${a.id}`}>Ver</Link>{canWrite ? <Link className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted" href={`/actuaciones-veteranos/${a.id}/editar`}>Editar</Link> : null}</div></div>)}</div> : null}
       </section>
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Objetos asociados</h2>
+        <h2 className="text-lg font-semibold">Objetos vinculados</h2>
         {canWrite ? (
           <form className="grid gap-3 rounded-lg border p-4 md:grid-cols-[1fr_180px_1fr_auto]" onSubmit={objetoForm.handleSubmit((values) => asociarObjeto.mutate({
             veteranoId,
