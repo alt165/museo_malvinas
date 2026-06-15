@@ -33,6 +33,7 @@ public class KeycloakAdminService {
 
     private static final Set<String> ROLES_GESTIONABLES = Set.of("ADMIN", "OPERATOR", "VIEWER");
     private static final String DNI_ATTRIBUTE = "dni";
+    private static final String UPDATE_PASSWORD_REQUIRED_ACTION = "UPDATE_PASSWORD";
 
     private final Keycloak keycloak;
     private final KeycloakAdminProperties properties;
@@ -64,6 +65,7 @@ public class KeycloakAdminService {
         usuario.setEnabled(dto.habilitado() == null || dto.habilitado());
         usuario.setEmailVerified(false);
         setDniAttribute(usuario, dto.dni());
+        usuario.setRequiredActions(List.of(UPDATE_PASSWORD_REQUIRED_ACTION));
         if (dto.contrasenaInicial() != null && !dto.contrasenaInicial().isBlank()) {
             usuario.setCredentials(List.of(crearCredencialTemporal(dto.contrasenaInicial())));
         }
@@ -206,7 +208,7 @@ public class KeycloakAdminService {
     private void setDniAttribute(UserRepresentation usuario, String dni) {
         Map<String, List<String>> attributes = usuario.getAttributes();
         attributes = attributes == null ? new java.util.HashMap<>() : new java.util.HashMap<>(attributes);
-        attributes.put(DNI_ATTRIBUTE, List.of(dni));
+        attributes.put(DNI_ATTRIBUTE, List.of(dni.trim()));
         usuario.setAttributes(attributes);
     }
 

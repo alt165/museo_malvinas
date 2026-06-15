@@ -15,6 +15,7 @@ type AuthContextValue = AuthSession & {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 let keycloakInitPromise: Promise<boolean> | null = null;
+let loginRedirectInProgress = false;
 const logoutRedirectPath = "/login";
 
 type MuseoTokenParsed = KeycloakTokenParsed & {
@@ -75,6 +76,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async () => {
+    if (keycloak.authenticated || loginRedirectInProgress) {
+      return;
+    }
+
+    loginRedirectInProgress = true;
     window.sessionStorage.removeItem("museo.logout");
     await keycloak.login({
       redirectUri: `${window.location.origin}/dashboard`
@@ -82,6 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    loginRedirectInProgress = false;
     window.sessionStorage.setItem("museo.logout", "1");
     setAuthenticated(false);
     setUser(null);
@@ -121,6 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
+        loginRedirectInProgress = false;
         syncSession();
       })
       .finally(() => {

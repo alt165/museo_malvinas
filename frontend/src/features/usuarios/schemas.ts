@@ -16,7 +16,16 @@ export const usuarioSchema = z.object({
 });
 
 export const usuarioCrearSchema = usuarioSchema.superRefine((values, context) => {
-  if (values.contrasenaInicial && values.contrasenaInicial.length < 8) {
+  if (!values.contrasenaInicial?.trim()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "La contrasena inicial es obligatoria",
+      path: ["contrasenaInicial"]
+    });
+    return;
+  }
+
+  if (values.contrasenaInicial.length < 8) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       message: "La contrasena debe tener al menos 8 caracteres",

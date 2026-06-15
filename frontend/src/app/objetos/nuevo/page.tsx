@@ -23,6 +23,7 @@ export default function NuevoObjetoPage() {
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [createdObjectId, setCreatedObjectId] = useState<number | null>(null);
   const [resultado, setResultado] = useState<{ objeto: ObjetoMuseoResponseDTO; recibo: ReciboIngresoObjetoResponseDTO } | null>(null);
+  const [formResetSignal, setFormResetSignal] = useState(0);
 
   async function handleSubmit(payload: ObjetoMuseoRequestDTO, archivos: ObjetoMuseoFormFiles) {
     setUploadError(null);
@@ -49,6 +50,7 @@ export default function NuevoObjetoPage() {
           await queryClient.invalidateQueries({ queryKey: objetosQueryKeys.reciboEscaneado(objeto.id) });
           await queryClient.invalidateQueries({ queryKey: objetosQueryKeys.recibos(objeto.id) });
           setResultado({ objeto, recibo });
+          setFormResetSignal((current) => current + 1);
         } catch {
           setUploadError("El objeto fue creado, pero fallo la subida de uno o mas archivos. Podes reintentar la carga desde el detalle del objeto.");
         }
@@ -110,6 +112,7 @@ export default function NuevoObjetoPage() {
           allowFileUploads
           isSubmitting={mutation.isPending}
           onSubmit={handleSubmit}
+          resetSignal={formResetSignal}
           submitError={mutation.error}
           submitLabel="Crear objeto"
         />

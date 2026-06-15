@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { useCategoriasQuery } from "@/features/categorias/queries";
 import { useBuscarDepositantePorIdentificacionMutation, useBuscarDepositantesPorNombreQuery } from "@/features/depositantes/queries";
@@ -21,6 +21,7 @@ type ObjetoMuseoFormProps = {
   submitError?: unknown;
   submitLabel: string;
   onSubmit: (payload: ObjetoMuseoRequestDTO, archivos: ObjetoMuseoFormFiles) => void;
+  resetSignal?: number;
 };
 
 export type ObjetoMuseoFormFiles = {
@@ -51,6 +52,7 @@ export function ObjetoMuseoForm({
   initialValue,
   isSubmitting = false,
   onSubmit,
+  resetSignal = 0,
   submitError,
   submitLabel
 }: ObjetoMuseoFormProps) {
@@ -68,6 +70,7 @@ export function ObjetoMuseoForm({
   const [identificacion, setIdentificacion] = useState("");
   const [nombreDepositante, setNombreDepositante] = useState("");
   const [nombreDepositanteDebounced, setNombreDepositanteDebounced] = useState("");
+  const lastResetSignalRef = useRef(0);
   const [depositanteSeleccionado, setDepositanteSeleccionado] = useState<DepositanteResponseDTO | null>(() => {
     if (!initialValue?.depositanteId || !initialValue.depositanteNombre) {
       return null;
@@ -85,6 +88,7 @@ export function ObjetoMuseoForm({
     formState: { errors },
     handleSubmit,
     register,
+    reset,
     setError,
     setValue,
     control
@@ -128,6 +132,37 @@ export function ObjetoMuseoForm({
     const timeout = window.setTimeout(() => setNombreDepositanteDebounced(nombreDepositante.trim()), 300);
     return () => window.clearTimeout(timeout);
   }, [nombreDepositante]);
+
+  useEffect(() => {
+    if (resetSignal === 0 || initialValue || lastResetSignalRef.current === resetSignal) {
+      return;
+    }
+
+    lastResetSignalRef.current = resetSignal;
+    reset({
+      numeroInventario: "",
+      denominacionObjeto: "",
+      descripcion: "",
+      descripcionTecnica: "",
+      materiales: "",
+      dimensiones: "",
+      estadoConservacion: "",
+      categoriaIds: [],
+      ubicacionId: 0,
+      depositanteId: 0,
+      caracterRecepcion: "",
+      fechaVencimiento: ""
+    });
+    setCategoriaBusqueda("");
+    setFotos([]);
+    setReciboEscaneado(null);
+    setFileErrors([]);
+    setIdentificacion("");
+    setNombreDepositante("");
+    setNombreDepositanteDebounced("");
+    setDepositanteSeleccionado(null);
+    buscarDepositanteMutation.reset();
+  }, [buscarDepositanteMutation, initialValue, reset, resetSignal]);
 
   useEffect(() => {
     if (!caracteresConVencimiento.has(caracterRecepcion)) {

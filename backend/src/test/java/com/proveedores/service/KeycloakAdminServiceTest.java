@@ -92,6 +92,7 @@ class KeycloakAdminServiceTest {
         assertThat(credencial.getType()).isEqualTo(CredentialRepresentation.PASSWORD);
         assertThat(credencial.getValue()).isEqualTo("Temporal123");
         assertThat(credencial.isTemporary()).isTrue();
+        assertThat(usuarioCaptor.getValue().getRequiredActions()).containsExactly("UPDATE_PASSWORD");
         assertThat(usuarioCaptor.getValue().getAttributes()).containsEntry("dni", List.of("12345678"));
         assertThat(response.id()).isEqualTo("user-id");
         assertThat(response.dni()).isEqualTo("12345678");

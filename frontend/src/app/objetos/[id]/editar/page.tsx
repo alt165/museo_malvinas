@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
@@ -24,6 +26,7 @@ export default function EditarObjetoPage() {
   const id = getParamId(params.id);
   const { data, error, isError, isLoading } = useObjetoQuery(id);
   const mutation = useActualizarObjetoMutation(id);
+  const [objetoCompletado, setObjetoCompletado] = useState<string | null>(null);
 
   return (
     <AppShell requiredRoles={[...routePermissions.write]}>
@@ -45,14 +48,34 @@ export default function EditarObjetoPage() {
             requestId={mutation.error instanceof ApiClientError ? mutation.error.requestId : undefined}
           />
         ) : null}
-        {data ? (
+        {objetoCompletado ? (
+          <div className="rounded-lg border border-green-200 bg-green-50 p-5 text-sm text-green-900">
+            <p className="font-medium">Objeto cargado correctamente: {objetoCompletado}</p>
+            <p className="mt-1">La ficha fue completada y los campos de carga ya no quedan en pantalla.</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link className="rounded-md border bg-white px-4 py-2 text-sm font-medium hover:bg-muted" href="/objetos/pendientes">
+                Volver a pendientes
+              </Link>
+              <Link className="rounded-md border bg-white px-4 py-2 text-sm font-medium hover:bg-muted" href="/objetos/nuevo">
+                Nueva alta completa
+              </Link>
+            </div>
+          </div>
+        ) : null}
+        {data && !objetoCompletado ? (
           <>
             <ObjetoMuseoForm
               initialValue={data}
               isSubmitting={mutation.isPending}
               onSubmit={(payload) =>
                 mutation.mutate(payload, {
-                  onSuccess: (objeto) => router.push(`/objetos/${objeto.id}`)
+                  onSuccess: (objeto) => {
+                    if (data.origenCarga === "RAPIDA" && data.datosCompletos === false) {
+                      setObjetoCompletado(objeto.numeroInventario);
+                      return;
+                    }
+                    router.push(`/objetos/${objeto.id}`);
+                  }
                 })
               }
               submitError={mutation.error}
