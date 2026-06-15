@@ -72,29 +72,36 @@ export default function NuevoObjetoPage() {
           />
         ) : null}
         {resultado ? (
-          <div className="rounded-lg border p-5 text-sm">
-            <p className="font-medium">Objeto creado: {resultado.objeto.numeroInventario}</p>
-            <p className="mt-1 text-muted-foreground">Recibo emitido: {resultado.recibo.numeroRecibo}</p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" onClick={() => router.push(`/objetos/${resultado.objeto.id}`)} type="button">
-                Ver objeto
-              </button>
-              <button
-                className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
-                onClick={async () => {
-                  setDownloadError(null);
-                  try {
-                    await descargarReciboIngresoPdf(resultado.recibo);
-                  } catch {
-                    setDownloadError("No se pudo descargar el recibo. Intentalo nuevamente.");
-                  }
-                }}
-                type="button"
-              >
-                Descargar recibo
-              </button>
+          <div aria-labelledby="objeto-creado-title" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog">
+            <div className="w-full max-w-lg rounded-lg border bg-background p-5 shadow-xl">
+              <h2 className="text-lg font-semibold text-primary" id="objeto-creado-title">Objeto cargado correctamente</h2>
+              <p className="mt-2 text-sm font-medium">Número de inventario: {resultado.objeto.numeroInventario}</p>
+              <p className="mt-1 text-sm text-muted-foreground">Recibo emitido: {resultado.recibo.numeroRecibo}</p>
+              <p className="mt-3 text-sm text-muted-foreground">El formulario quedó limpio y listo para una nueva carga.</p>
+              <div className="mt-5 flex flex-wrap justify-end gap-2">
+                <button className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" onClick={() => setResultado(null)} type="button">
+                  Nueva carga
+                </button>
+                <button className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" onClick={() => router.push(`/objetos/${resultado.objeto.id}`)} type="button">
+                  Ver objeto
+                </button>
+                <button
+                  className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+                  onClick={async () => {
+                    setDownloadError(null);
+                    try {
+                      await descargarReciboIngresoPdf(resultado.recibo);
+                    } catch {
+                      setDownloadError("No se pudo descargar el recibo. Intentalo nuevamente.");
+                    }
+                  }}
+                  type="button"
+                >
+                  Descargar recibo
+                </button>
+              </div>
+              {downloadError ? <p className="mt-3 text-sm text-destructive">{downloadError}</p> : null}
             </div>
-            {downloadError ? <p className="mt-3 text-sm text-destructive">{downloadError}</p> : null}
           </div>
         ) : null}
         {uploadError ? (

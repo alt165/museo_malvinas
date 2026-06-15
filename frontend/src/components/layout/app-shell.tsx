@@ -40,7 +40,7 @@ export function AppShell({ children, requiredRoles }: AppShellProps) {
           <main className="min-h-[calc(100vh-68px)] bg-background p-6">
             <VencimientosProximosAlert />
             {permitirEdicion ? (
-              <div className="mb-6 rounded-md border border-destructive bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive">
+              <div className="mb-6 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-950">
                 Modo edición activado: es posible modificar datos del sistema.
               </div>
             ) : null}

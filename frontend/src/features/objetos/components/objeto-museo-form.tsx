@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { type FieldErrors, useForm, useWatch } from "react-hook-form";
 import { useCategoriasQuery } from "@/features/categorias/queries";
 import { useBuscarDepositantePorIdentificacionMutation, useBuscarDepositantesPorNombreQuery } from "@/features/depositantes/queries";
 import type { DepositanteResponseDTO } from "@/features/depositantes/types";
@@ -43,6 +43,29 @@ const caracteresRecepcion = [
   ["OTRO", "Otro"]
 ] as const;
 
+const objetoMuseoFieldLabels: Partial<Record<keyof ObjetoMuseoFormValues, string>> = {
+  numeroInventario: "Número de inventario",
+  denominacionObjeto: "Denominación",
+  descripcion: "Descripción breve",
+  descripcionTecnica: "Descripción técnica",
+  materiales: "Materiales",
+  dimensiones: "Dimensiones",
+  estadoConservacion: "Estado de conservación",
+  categoriaIds: "Categorías",
+  ubicacionId: "Ubicación inicial",
+  depositanteId: "Depositante",
+  caracterRecepcion: "Carácter de recepción",
+  fechaVencimiento: "Fecha de vencimiento"
+};
+
+function validationMessages(errors: FieldErrors<ObjetoMuseoFormValues>) {
+  return Object.entries(errors).flatMap(([field, error]) => {
+    const label = objetoMuseoFieldLabels[field as keyof ObjetoMuseoFormValues] ?? field;
+    const message = typeof error?.message === "string" ? error.message : "Debe completar este campo";
+    return [`${label}: ${message}`];
+  });
+}
+
 function tipoDepositanteLabel(depositante: DepositanteResponseDTO) {
   return depositante.tipo === "PERSONA" ? "Persona" : "Institucion";
 }
@@ -70,6 +93,7 @@ export function ObjetoMuseoForm({
   const [identificacion, setIdentificacion] = useState("");
   const [nombreDepositante, setNombreDepositante] = useState("");
   const [nombreDepositanteDebounced, setNombreDepositanteDebounced] = useState("");
+  const [validationSummary, setValidationSummary] = useState<string[] | null>(null);
   const lastResetSignalRef = useRef(0);
   const [depositanteSeleccionado, setDepositanteSeleccionado] = useState<DepositanteResponseDTO | null>(() => {
     if (!initialValue?.depositanteId || !initialValue.depositanteNombre) {
@@ -263,23 +287,43 @@ export function ObjetoMuseoForm({
   return (
     <form
       className="w-full space-y-5 rounded-lg border p-5"
-      onSubmit={handleSubmit((values) =>
-        onSubmit({
-          numeroInventario: values.numeroInventario.trim(),
-          denominacionObjeto: values.denominacionObjeto.trim(),
-          descripcion: values.descripcion?.trim() || null,
-          descripcionTecnica: values.descripcionTecnica?.trim() || null,
-          materiales: values.materiales?.trim() || null,
-          dimensiones: values.dimensiones?.trim() || null,
-          estadoConservacion: values.estadoConservacion || null,
-          categoriaIds: values.categoriaIds ?? [],
-          ubicacionId: values.ubicacionId && values.ubicacionId > 0 ? Number(values.ubicacionId) : null,
-          depositanteId: values.depositanteId,
-          caracterRecepcion: values.caracterRecepcion || null,
-          fechaVencimiento: caracteresConVencimiento.has(values.caracterRecepcion) ? values.fechaVencimiento || null : null
-        }, { fotos, reciboEscaneado })
+      onSubmit={handleSubmit(
+        (values) => {
+          setValidationSummary(null);
+          onSubmit({
+            numeroInventario: values.numeroInventario.trim(),
+            denominacionObjeto: values.denominacionObjeto.trim(),
+            descripcion: values.descripcion?.trim() || null,
+            descripcionTecnica: values.descripcionTecnica?.trim() || null,
+            materiales: values.materiales?.trim() || null,
+            dimensiones: values.dimensiones?.trim() || null,
+            estadoConservacion: values.estadoConservacion || null,
+            categoriaIds: values.categoriaIds ?? [],
+            ubicacionId: values.ubicacionId && values.ubicacionId > 0 ? Number(values.ubicacionId) : null,
+            depositanteId: values.depositanteId,
+            caracterRecepcion: values.caracterRecepcion || null,
+            fechaVencimiento: caracteresConVencimiento.has(values.caracterRecepcion) ? values.fechaVencimiento || null : null
+          }, { fotos, reciboEscaneado });
+        },
+        (invalidErrors) => setValidationSummary(validationMessages(invalidErrors))
       )}
     >
+      {validationSummary ? (
+        <div aria-labelledby="objeto-validation-title" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog">
+          <div className="w-full max-w-lg rounded-lg border bg-background p-5 shadow-xl">
+            <h2 className="text-lg font-semibold text-destructive" id="objeto-validation-title">Faltan datos para completar la carga</h2>
+            <p className="mt-2 text-sm text-muted-foreground">Revisá los siguientes campos antes de guardar:</p>
+            <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-destructive">
+              {validationSummary.map((message) => <li key={message}>{message}</li>)}
+            </ul>
+            <div className="mt-5 flex justify-end">
+              <button className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" onClick={() => setValidationSummary(null)} type="button">
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {initialValue?.origenCarga === "RAPIDA" && initialValue.datosCompletos === false ? (
         <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
           <p className="font-medium">Ficha pendiente de completar</p>
