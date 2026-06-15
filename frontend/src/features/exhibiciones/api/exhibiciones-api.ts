@@ -1,6 +1,6 @@
 import { apiRequest } from "@/lib/api";
 import type { PageResponse } from "@/features/objetos/types";
-import type { ExhibicionObjetoRequestDTO, ExhibicionObjetoResponseDTO, ExhibicionRequestDTO, ExhibicionResponseDTO, ObjetoDisponibilidadExhibicionResponseDTO } from "../types";
+import type { ExhibicionObjetoRequestDTO, ExhibicionObjetoResponseDTO, ExhibicionProximaInicioResponseDTO, ExhibicionRequestDTO, ExhibicionResponseDTO, ObjetoDisponibilidadExhibicionResponseDTO } from "../types";
 
 const exhibicionesPath = "/api/exhibiciones";
 const exhibicionesObjetosPath = "/api/exhibiciones-objetos";
@@ -25,6 +25,10 @@ export function actualizarExhibicion(id: number, payload: ExhibicionRequestDTO) 
     method: "PUT",
     body: JSON.stringify(payload)
   });
+}
+
+export function listarExhibicionesProximasInicio() {
+  return apiRequest<ExhibicionProximaInicioResponseDTO[]>(`${exhibicionesPath}/proximas-inicio`);
 }
 
 export type BuscarDisponibilidadExhibicionParams = {
@@ -84,6 +88,12 @@ export function bajaLogicaExhibicion(id: number) {
 
 export function finalizarExhibicion(id: number) {
   return apiRequest<ExhibicionResponseDTO>(`${exhibicionesPath}/${id}/finalizar`, {
+    method: "POST"
+  });
+}
+
+export function cancelarExhibicion(id: number) {
+  return apiRequest<ExhibicionResponseDTO>(`${exhibicionesPath}/${id}/cancelar`, {
     method: "POST"
   });
 }

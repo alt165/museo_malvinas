@@ -8,7 +8,7 @@ import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
 import { ExhibicionesTable } from "@/features/exhibiciones/components/exhibiciones-table";
-import { useExhibicionesQuery, useFinalizarExhibicionPorIdMutation } from "@/features/exhibiciones/queries";
+import { useCancelarExhibicionPorIdMutation, useExhibicionesQuery, useFinalizarExhibicionPorIdMutation } from "@/features/exhibiciones/queries";
 import { getApiErrorMessage } from "@/features/exhibiciones/utils";
 import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
@@ -17,7 +17,9 @@ export default function ExhibicionesPage() {
   const { canEdit: puedeEscribir } = useEditingMode();
   const { data = [], error, isError, isLoading } = useExhibicionesQuery();
   const [finalizandoId, setFinalizandoId] = useState<number>();
+  const [cancelandoId, setCancelandoId] = useState<number>();
   const finalizarMutation = useFinalizarExhibicionPorIdMutation();
+  const cancelarMutation = useCancelarExhibicionPorIdMutation();
 
   return (
     <AppShell>
@@ -46,6 +48,12 @@ export default function ExhibicionesPage() {
             requestId={finalizarMutation.error instanceof ApiClientError ? finalizarMutation.error.requestId : undefined}
           />
         ) : null}
+        {cancelarMutation.isError ? (
+          <ErrorState
+            message={getApiErrorMessage(cancelarMutation.error)}
+            requestId={cancelarMutation.error instanceof ApiClientError ? cancelarMutation.error.requestId : undefined}
+          />
+        ) : null}
         {!isLoading && !isError && data.length === 0 ? (
           <EmptyState
             action={
@@ -63,7 +71,14 @@ export default function ExhibicionesPage() {
           <ExhibicionesTable
             canEdit={puedeEscribir}
             exhibiciones={data}
+            cancelandoId={cancelarMutation.isPending ? cancelandoId : undefined}
             finalizandoId={finalizarMutation.isPending ? finalizandoId : undefined}
+            onCancelar={(id) => {
+              if (window.confirm("¿Confirma que desea cancelar esta exhibición? Los objetos asociados quedarán disponibles.")) {
+                setCancelandoId(id);
+                cancelarMutation.mutate(id);
+              }
+            }}
             onFinalizar={(id) => {
               if (window.confirm("Confirmar finalización de la exhibición")) {
                 setFinalizandoId(id);

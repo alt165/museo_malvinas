@@ -1,6 +1,7 @@
 package com.proveedores.service;
 
 import com.proveedores.dto.ExhibicionObjetoResponseDTO;
+import com.proveedores.dto.ExhibicionProximaInicioResponseDTO;
 import com.proveedores.dto.ExhibicionRequestDTO;
 import com.proveedores.dto.ExhibicionResponseDTO;
 import com.proveedores.dto.ObjetoDisponibilidadExhibicionResponseDTO;
@@ -9,6 +10,7 @@ import com.proveedores.entity.EstadoExhibicionObjeto;
 import com.proveedores.entity.Exhibicion;
 import com.proveedores.entity.ExhibicionObjeto;
 import com.proveedores.entity.ObjetoMuseo;
+import com.proveedores.entity.TipoExhibicion;
 import com.proveedores.entity.TipoOperacionAuditoria;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ConflictException;
@@ -27,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.time.temporal.ChronoUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -35,6 +38,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -59,9 +63,12 @@ public class ExhibicionService {
 
     @Transactional
     public ExhibicionResponseDTO crear(ExhibicionRequestDTO dto) {
-        validarFechas(dto.fechaInicio(), dto.fechaFin());
+        validarFechasAlta(dto.fechaInicio(), dto.fechaFin());
         validarObjetosSinConflicto(dto.objetoIds(), dto.fechaInicio(), dto.fechaFin(), null);
-        Exhibicion saved = exhibicionRepository.save(ExhibicionMapper.toEntity(dto));
+        Exhibicion entity = ExhibicionMapper.toEntity(dto);
+        normalizarTipo(entity);
+        entity.setEstado(estadoInicial(entity.getFechaInicio()));
+        Exhibicion saved = exhibicionRepository.save(entity);
         sincronizarObjetos(saved, dto.objetoIds(), null);
         log.info("event=exhibicion.created exhibicionId={} estado={} tipo={}", saved.getId(), saved.getEstado(), saved.getTipo());
         return toResponse(saved);
@@ -75,6 +82,21 @@ public class ExhibicionService {
     @Transactional(readOnly = true)
     public List<ExhibicionResponseDTO> listar() {
         return exhibicionRepository.findAll().stream().filter(e -> !e.getEliminado()).map(this::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ExhibicionProximaInicioResponseDTO> listarProximasAIniciar() {
+        LocalDate hoy = LocalDate.now();
+        return exhibicionRepository.buscarProximasAIniciar(hoy, hoy.plusDays(15)).stream()
+                .map(exhibicion -> new ExhibicionProximaInicioResponseDTO(
+                        exhibicion.getId(),
+                        exhibicion.getNombre(),
+                        exhibicion.getFechaInicio(),
+                        ChronoUnit.DAYS.between(hoy, exhibicion.getFechaInicio()),
+                        exhibicion.getTipo(),
+                        exhibicion.getFechaFin() == null
+                ))
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -114,15 +136,21 @@ public class ExhibicionService {
     public ExhibicionResponseDTO actualizar(Long id, ExhibicionRequestDTO dto) {
         validarFechas(dto.fechaInicio(), dto.fechaFin());
         Exhibicion entity = buscarActivo(id);
+        if (entity.getEstado() == EstadoExhibicion.CANCELADA) {
+            throw new BusinessException("No se puede editar una exhibicion cancelada");
+        }
+        if (dto.estado() == EstadoExhibicion.CANCELADA) {
+            throw new BusinessException("Para cancelar una exhibición debe usar la acción de cancelación.");
+        }
         Set<Long> objetoIds = dto.objetoIds() == null ? idsObjetosActuales(id) : idsUnicos(dto.objetoIds());
         validarObjetosSinConflicto(objetoIds, dto.fechaInicio(), dto.fechaFin(), id);
         LocalDate fechaInicioAnterior = entity.getFechaInicio();
         LocalDate fechaFinAnterior = entity.getFechaFin();
         entity.setNombre(dto.nombre());
         entity.setDescripcion(dto.descripcion());
-        entity.setTipo(dto.tipo());
         entity.setFechaInicio(dto.fechaInicio());
         entity.setFechaFin(dto.fechaFin());
+        normalizarTipo(entity);
         entity.setEstado(dto.estado());
         Exhibicion saved = exhibicionRepository.save(entity);
         if (dto.objetoIds() != null) {
@@ -138,16 +166,50 @@ public class ExhibicionService {
     @Transactional
     public ExhibicionResponseDTO finalizar(Long id) {
         Exhibicion entity = buscarActivo(id);
-        List<ExhibicionObjeto> objetos = exhibicionObjetoRepository.findByExhibicionIdAndEliminadoFalse(id);
-        boolean hayPendientes = objetos.stream().anyMatch(objeto -> !Boolean.TRUE.equals(objeto.getDevolucionVerificada()) || objeto.getEstado() != EstadoExhibicionObjeto.DEVUELTO);
-        if (hayPendientes) {
-            log.warn("event=exhibicion.business_error reason=objetos_pendientes_devolucion exhibicionId={} objetosAsociados={}", id, objetos.size());
-            throw new BusinessException("No se puede finalizar la exhibicion con objetos pendientes de devolucion");
+        if (entity.getEstado() == EstadoExhibicion.CANCELADA) {
+            throw new BusinessException("No se puede finalizar una exhibicion cancelada");
+        }
+        if (entity.getEstado() == EstadoExhibicion.FINALIZADA) {
+            return toResponse(entity);
+        }
+        LocalDate hoy = LocalDate.now();
+        boolean anticipada = entity.getFechaFin() == null || entity.getFechaFin().isAfter(hoy);
+        if (anticipada) {
+            entity.setFechaFin(hoy);
+            normalizarTipo(entity);
         }
         entity.setEstado(EstadoExhibicion.FINALIZADA);
         Exhibicion saved = exhibicionRepository.save(entity);
-        log.info("event=exhibicion.finalized exhibicionId={} objetosAsociados={}", saved.getId(), objetos.size());
+        liberarObjetosPorFinalizacion(saved, anticipada, null);
+        log.info("event=exhibicion.finalized exhibicionId={} anticipada={}", saved.getId(), anticipada);
         return toResponse(saved);
+    }
+
+    @Transactional
+    public ExhibicionResponseDTO cancelar(Long id) {
+        Exhibicion entity = buscarActivo(id);
+        LocalDate hoy = LocalDate.now();
+        if (entity.getEstado() != EstadoExhibicion.PLANIFICADA || !entity.getFechaInicio().isAfter(hoy)) {
+            throw new BusinessException("No se puede cancelar una exhibición que ya inició.");
+        }
+        entity.setEstado(EstadoExhibicion.CANCELADA);
+        Exhibicion saved = exhibicionRepository.save(entity);
+        liberarObjetosPorCancelacion(saved, null);
+        log.info("event=exhibicion.cancelled exhibicionId={}", saved.getId());
+        return toResponse(saved);
+    }
+
+    @Scheduled(cron = "0 0 * * * *")
+    @Transactional
+    public void iniciarExhibicionesPlanificadasVencidas() {
+        LocalDate hoy = LocalDate.now();
+        List<Exhibicion> exhibiciones = exhibicionRepository.findByEstadoAndEliminadoFalseAndFechaInicioLessThanEqual(EstadoExhibicion.PLANIFICADA, hoy);
+        for (Exhibicion exhibicion : exhibiciones) {
+            exhibicion.setEstado(EstadoExhibicion.ACTIVA);
+            Exhibicion saved = exhibicionRepository.save(exhibicion);
+            registrarInicioAutomatico(saved, null);
+            log.info("event=exhibicion.auto_started exhibicionId={}", saved.getId());
+        }
     }
 
     @Transactional
@@ -262,7 +324,8 @@ public class ExhibicionService {
                 .map(ExhibicionObjeto::getExhibicion)
                 .filter(exhibicion -> exhibicion != null && !exhibicion.getEliminado())
                 .filter(exhibicion -> exhibicionId == null || !exhibicion.getId().equals(exhibicionId))
-                .filter(exhibicion -> haySuperposicion(fechaInicio, fechaFin, exhibicion.getFechaInicio(), exhibicion.getFechaFin()))
+                .filter(this::bloqueaDisponibilidad)
+                .filter(exhibicion -> haySuperposicion(fechaInicio, fechaFin, exhibicion.getFechaInicio(), fechaFinEfectiva(exhibicion)))
                 .findFirst()
                 .orElse(null);
     }
@@ -273,12 +336,107 @@ public class ExhibicionService {
         return !inicioA.isAfter(finNormalB) && !finNormalA.isBefore(inicioB);
     }
 
+    private void validarFechasAlta(LocalDate fechaInicio, LocalDate fechaFin) {
+        validarFechas(fechaInicio, fechaFin);
+        if (fechaInicio.isBefore(LocalDate.now())) {
+            throw new BusinessException("La fecha de inicio no puede ser anterior a la fecha actual.");
+        }
+    }
+
     private void validarFechas(LocalDate fechaInicio, LocalDate fechaFin) {
         if (fechaInicio == null) {
             throw new BusinessException("La fecha de inicio es obligatoria");
         }
         if (fechaFin != null && fechaFin.isBefore(fechaInicio)) {
             throw new BusinessException("La fecha de fin no puede ser anterior al inicio");
+        }
+    }
+
+    private void normalizarTipo(Exhibicion exhibicion) {
+        exhibicion.setTipo(exhibicion.getFechaFin() == null ? TipoExhibicion.PERMANENTE : TipoExhibicion.TEMPORAL);
+    }
+
+    private EstadoExhibicion estadoInicial(LocalDate fechaInicio) {
+        return fechaInicio.isAfter(LocalDate.now()) ? EstadoExhibicion.PLANIFICADA : EstadoExhibicion.ACTIVA;
+    }
+
+    private boolean bloqueaDisponibilidad(Exhibicion exhibicion) {
+        if (exhibicion.getEstado() == EstadoExhibicion.CANCELADA) {
+            return false;
+        }
+        if (exhibicion.getEstado() == EstadoExhibicion.FINALIZADA) {
+            return exhibicion.getFechaFin() != null;
+        }
+        return exhibicion.getEstado() == EstadoExhibicion.PLANIFICADA || exhibicion.getEstado() == EstadoExhibicion.ACTIVA;
+    }
+
+    private LocalDate fechaFinEfectiva(Exhibicion exhibicion) {
+        if (exhibicion.getEstado() == EstadoExhibicion.FINALIZADA) {
+            return exhibicion.getFechaFin();
+        }
+        return exhibicion.getFechaFin();
+    }
+
+    private void liberarObjetosPorFinalizacion(Exhibicion exhibicion, boolean anticipada, String operador) {
+        LocalDate hoy = LocalDate.now();
+        for (ExhibicionObjeto relacion : exhibicionObjetoRepository.findByExhibicionIdAndEliminadoFalse(exhibicion.getId())) {
+            Map<String, Object> anteriores = snapshotExhibicion(relacion);
+            relacion.setEstado(EstadoExhibicionObjeto.DEVUELTO);
+            relacion.setDevolucionVerificada(true);
+            relacion.setFechaRetiro(hoy);
+            ExhibicionObjeto saved = exhibicionObjetoRepository.save(relacion);
+            if (saved == null) {
+                saved = relacion;
+            }
+            auditoriaObjetoService.registrar(
+                    saved.getObjetoMuseo(),
+                    TipoOperacionAuditoria.MODIFICACION,
+                    anticipada ? "FINALIZACION_ANTICIPADA_EXHIBICION" : "FINALIZACION_EXHIBICION",
+                    "La exhibición fue finalizada. El objeto quedó disponible desde la fecha de finalización.",
+                    "EXHIBICION",
+                    anteriores,
+                    snapshotExhibicion(saved),
+                    operador
+            );
+        }
+    }
+
+    private void liberarObjetosPorCancelacion(Exhibicion exhibicion, String operador) {
+        LocalDate hoy = LocalDate.now();
+        for (ExhibicionObjeto relacion : exhibicionObjetoRepository.findByExhibicionIdAndEliminadoFalse(exhibicion.getId())) {
+            Map<String, Object> anteriores = snapshotExhibicion(relacion);
+            relacion.setEstado(EstadoExhibicionObjeto.DEVUELTO);
+            relacion.setDevolucionVerificada(true);
+            relacion.setFechaRetiro(hoy);
+            ExhibicionObjeto saved = exhibicionObjetoRepository.save(relacion);
+            if (saved == null) {
+                saved = relacion;
+            }
+            auditoriaObjetoService.registrar(
+                    saved.getObjetoMuseo(),
+                    TipoOperacionAuditoria.MODIFICACION,
+                    "CANCELACION_EXHIBICION",
+                    "La exhibición fue cancelada. El objeto asociado quedó disponible.",
+                    "EXHIBICION",
+                    anteriores,
+                    snapshotExhibicion(saved),
+                    operador
+            );
+        }
+    }
+
+    private void registrarInicioAutomatico(Exhibicion exhibicion, String operador) {
+        for (ExhibicionObjeto relacion : exhibicionObjetoRepository.findByExhibicionIdAndEliminadoFalse(exhibicion.getId())) {
+            auditoriaObjetoService.registrar(
+                    relacion.getObjetoMuseo(),
+                    TipoOperacionAuditoria.MODIFICACION,
+                    "INICIO_AUTOMATICO_EXHIBICION",
+                    "Exhibición iniciada automáticamente por llegada de fecha programada.",
+                    "EXHIBICION",
+                    null,
+                    snapshotExhibicion(relacion),
+                    operador
+            );
         }
     }
 

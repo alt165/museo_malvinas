@@ -51,6 +51,7 @@ export function ExhibicionForm({ initialValue, isSubmitting = false, repetirExhi
     register,
     reset,
     setError,
+    setValue,
     control
   } = useForm<ExhibicionFormValues>({
     resolver: zodResolver(exhibicionSchema),
@@ -66,6 +67,9 @@ export function ExhibicionForm({ initialValue, isSubmitting = false, repetirExhi
 
   const fechaInicio = useWatch({ control, name: "fechaInicio" });
   const fechaFin = useWatch({ control, name: "fechaFin" });
+  const today = new Date().toISOString().slice(0, 10);
+  const tipoDerivado = fechaFin ? "TEMPORAL" : "PERMANENTE";
+  const estadosDisponibles = useMemo(() => estadosExhibicion.filter((estado) => estado !== "CANCELADA"), []);
   const objetoIds = useMemo(() => objetosIncluidos.map((objeto) => objeto.id), [objetosIncluidos]);
   const hayBusqueda = textoAplicado.trim().length > 0;
   const disponibilidadQuery = useObjetosDisponibilidadExhibicionQuery({
@@ -87,12 +91,16 @@ export function ExhibicionForm({ initialValue, isSubmitting = false, repetirExhi
   const conflictosRepeticionIncluidos = useMemo(() => objetosParaRepetir.filter((objeto) => !objeto.disponible && objetoIds.includes(objeto.objetoId)), [objetoIds, objetosParaRepetir]);
 
   useEffect(() => {
+    setValue("tipo", tipoDerivado, { shouldDirty: true, shouldValidate: true });
+  }, [setValue, tipoDerivado]);
+
+  useEffect(() => {
     const exhibicion = exhibicionARepetirQuery.data;
     if (!exhibicion || initialValue || repeticionPrecargadaIdRef.current === exhibicion.id) return;
     reset({
       nombre: `${exhibicion.nombre} (repetición)`,
       descripcion: exhibicion.descripcion ?? "",
-      tipo: exhibicion.tipo,
+      tipo: "PERMANENTE",
       fechaInicio: getValues("fechaInicio"),
       fechaFin: "",
       estado: "PLANIFICADA"
@@ -139,6 +147,10 @@ export function ExhibicionForm({ initialValue, isSubmitting = false, repetirExhi
   }
 
   function submit(values: ExhibicionFormValues) {
+    if (!initialValue && values.fechaInicio < today) {
+      setError("fechaInicio", { message: "La fecha de inicio no puede ser anterior a la fecha actual." });
+      return;
+    }
     if (conflictosRepeticionIncluidos.length > 0) {
       setMensajeRepeticion("Hay objetos incluidos que ya no están disponibles para el rango de fechas seleccionado. Quite esos objetos o modifique las fechas antes de guardar.");
       return;
@@ -150,7 +162,7 @@ export function ExhibicionForm({ initialValue, isSubmitting = false, repetirExhi
     onSubmit({
       nombre: values.nombre.trim(),
       descripcion: values.descripcion?.trim() || null,
-      tipo: values.fechaFin ? values.tipo : "PERMANENTE",
+      tipo: tipoDerivado,
       fechaInicio: values.fechaInicio,
       fechaFin: values.fechaFin || null,
       estado: values.estado,
@@ -169,21 +181,24 @@ export function ExhibicionForm({ initialValue, isSubmitting = false, repetirExhi
       </Field>
       <div className="grid gap-5 sm:grid-cols-2">
         <Field error={errors.tipo?.message} label="Tipo">
-          <select className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" {...register("tipo")}>{tiposExhibicion.map((tipo) => <option key={tipo} value={tipo}>{tipo}</option>)}</select>
+          <select className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" disabled value={tipoDerivado}>
+            {tiposExhibicion.map((tipo) => <option key={tipo} value={tipo}>{tipo}</option>)}
+          </select>
+          <input type="hidden" value={tipoDerivado} {...register("tipo")} />
         </Field>
         <Field error={errors.estado?.message} label="Estado">
-          <select className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" {...register("estado")}>{estadosExhibicion.map((estado) => <option key={estado} value={estado}>{estado}</option>)}</select>
+          <select className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" {...register("estado")}>{estadosDisponibles.map((estado) => <option key={estado} value={estado}>{estado}</option>)}</select>
         </Field>
       </div>
       <div className="grid gap-5 sm:grid-cols-2">
         <Field error={errors.fechaInicio?.message} label="Fecha de inicio">
-          <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" type="date" {...register("fechaInicio")} />
+          <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" min={!initialValue ? today : undefined} type="date" {...register("fechaInicio")} />
         </Field>
         <Field error={errors.fechaFin?.message} label="Fecha de finalización">
           <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" type="date" {...register("fechaFin")} />
         </Field>
       </div>
-      {!fechaFin ? <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">Sin fecha de finalización: se evaluará disponibilidad como exhibición permanente.</div> : null}
+      {!fechaFin ? <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">La exhibición será cargada como permanente porque no se indicó fecha de finalización. La disponibilidad se evaluará como exhibición permanente.</div> : <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">La exhibición será cargada como temporal porque se indicó fecha de finalización.</div>}
 
       {exhibicionARepetirId ? (
         <section className="space-y-4 rounded-lg border bg-surface p-4">

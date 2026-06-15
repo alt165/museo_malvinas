@@ -1,5 +1,6 @@
 package com.proveedores.controller;
 
+import com.proveedores.dto.ExhibicionProximaInicioResponseDTO;
 import com.proveedores.dto.ExhibicionRequestDTO;
 import com.proveedores.dto.ExhibicionResponseDTO;
 import com.proveedores.dto.ObjetoDisponibilidadExhibicionResponseDTO;
@@ -58,6 +59,13 @@ public class ExhibicionController {
         return ResponseEntity.ok(exhibicionService.buscarObjetosDisponibilidad(texto, fechaInicio, fechaFin, exhibicionId, pageable));
     }
 
+    @Operation(summary = "Listar exhibiciones próximas a iniciar")
+    @ApiResponse(responseCode = "200", description = "Exhibiciones próximas obtenidas")
+    @GetMapping("/proximas-inicio")
+    public ResponseEntity<List<ExhibicionProximaInicioResponseDTO>> proximasInicio() {
+        return ResponseEntity.ok(exhibicionService.listarProximasAIniciar());
+    }
+
     @Operation(summary = "Buscar exhibiciones finalizadas para repetir")
     @ApiResponse(responseCode = "200", description = "Exhibiciones finalizadas obtenidas")
     @GetMapping("/finalizadas/buscar")
@@ -105,6 +113,13 @@ public class ExhibicionController {
     @PostMapping("/{id}/finalizar")
     public ResponseEntity<ExhibicionResponseDTO> finalizar(@PathVariable Long id) {
         return ResponseEntity.ok(exhibicionService.finalizar(id));
+    }
+
+    @Operation(summary = "Cancelar exhibicion")
+    @ApiResponse(responseCode = "200", description = "Exhibicion cancelada")
+    @PostMapping("/{id}/cancelar")
+    public ResponseEntity<ExhibicionResponseDTO> cancelar(@PathVariable Long id) {
+        return ResponseEntity.ok(exhibicionService.cancelar(id));
     }
 
     @Operation(summary = "Dar de baja recurso")

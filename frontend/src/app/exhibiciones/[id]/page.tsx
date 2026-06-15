@@ -7,7 +7,7 @@ import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
 import { ObjetosExhibicionPanel } from "@/features/exhibiciones/components/objetos-exhibicion-panel";
-import { useExhibicionQuery, useFinalizarExhibicionMutation } from "@/features/exhibiciones/queries";
+import { useCancelarExhibicionMutation, useExhibicionQuery, useFinalizarExhibicionMutation } from "@/features/exhibiciones/queries";
 import { formatDate, getApiErrorMessage } from "@/features/exhibiciones/utils";
 import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
@@ -24,6 +24,8 @@ export default function DetalleExhibicionPage() {
   const { canEdit: puedeEscribir } = useEditingMode();
   const { data, error, isError, isLoading } = useExhibicionQuery(id);
   const finalizarMutation = useFinalizarExhibicionMutation(id);
+  const cancelarMutation = useCancelarExhibicionMutation(id);
+  const hoy = new Date().toISOString().slice(0, 10);
 
   return (
     <AppShell>
@@ -39,11 +41,25 @@ export default function DetalleExhibicionPage() {
                   <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href={`/exhibiciones/${data.id}/editar`}>
                     Editar
                   </Link>
+                  {data.estado === "PLANIFICADA" && data.fechaInicio > hoy ? (
+                    <button
+                      className="rounded-md border px-4 py-2 text-sm font-medium text-destructive hover:bg-muted disabled:opacity-60"
+                      disabled={cancelarMutation.isPending}
+                      onClick={() => {
+                        if (window.confirm("¿Confirma que desea cancelar esta exhibición? Los objetos asociados quedarán disponibles.")) {
+                          cancelarMutation.mutate();
+                        }
+                      }}
+                      type="button"
+                    >
+                      {cancelarMutation.isPending ? "Cancelando..." : "Cancelar exhibición"}
+                    </button>
+                  ) : null}
                   {data.estado === "FINALIZADA" ? (
                     <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href={`/exhibiciones/repetir/${data.id}`}>
                       Repetir exhibición
                     </Link>
-                  ) : (
+                  ) : data.estado !== "CANCELADA" ? (
                     <button
                       className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-60"
                       disabled={finalizarMutation.isPending}
@@ -56,7 +72,7 @@ export default function DetalleExhibicionPage() {
                     >
                       {finalizarMutation.isPending ? "Finalizando..." : "Finalizar"}
                     </button>
-                  )}
+                  ) : null}
                 </>
               ) : null}
             </div>
@@ -75,6 +91,12 @@ export default function DetalleExhibicionPage() {
           <ErrorState
             message={getApiErrorMessage(finalizarMutation.error)}
             requestId={finalizarMutation.error instanceof ApiClientError ? finalizarMutation.error.requestId : undefined}
+          />
+        ) : null}
+        {cancelarMutation.isError ? (
+          <ErrorState
+            message={getApiErrorMessage(cancelarMutation.error)}
+            requestId={cancelarMutation.error instanceof ApiClientError ? cancelarMutation.error.requestId : undefined}
           />
         ) : null}
         {data ? (

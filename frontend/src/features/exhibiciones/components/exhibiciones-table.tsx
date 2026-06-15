@@ -5,7 +5,7 @@
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
 import { useMemo } from "react";
-import { CopyPlus, Pencil, Search, SquareCheckBig } from "lucide-react";
+import { Ban, CopyPlus, Pencil, Search, SquareCheckBig } from "lucide-react";
 import type { ExhibicionResponseDTO } from "../types";
 import { formatDate } from "../utils";
 
@@ -13,10 +13,14 @@ type ExhibicionesTableProps = {
   exhibiciones: ExhibicionResponseDTO[];
   canEdit: boolean;
   onFinalizar: (id: number) => void;
+  onCancelar: (id: number) => void;
   finalizandoId?: number;
+  cancelandoId?: number;
 };
 
-export function ExhibicionesTable({ canEdit, exhibiciones, finalizandoId, onFinalizar }: ExhibicionesTableProps) {
+export function ExhibicionesTable({ canEdit, cancelandoId, exhibiciones, finalizandoId, onCancelar, onFinalizar }: ExhibicionesTableProps) {
+  const hoy = new Date().toISOString().slice(0, 10);
+
   const columns = useMemo<ColumnDef<ExhibicionResponseDTO>[]>(
     () => [
       { accessorKey: "nombre", header: "Nombre", cell: ({ row }) => <span className="font-medium">{row.original.nombre}</span> },
@@ -39,12 +43,23 @@ export function ExhibicionesTable({ canEdit, exhibiciones, finalizandoId, onFina
                   <Pencil className="h-3.5 w-3.5" />
                   Editar
                 </Link>
+                {row.original.estado === "PLANIFICADA" && row.original.fechaInicio > hoy ? (
+                  <button
+                    className="inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs text-destructive hover:bg-muted disabled:opacity-60"
+                    disabled={cancelandoId === row.original.id}
+                    onClick={() => onCancelar(row.original.id)}
+                    type="button"
+                  >
+                    <Ban className="h-3.5 w-3.5" />
+                    Cancelar
+                  </button>
+                ) : null}
                 {row.original.estado === "FINALIZADA" ? (
                   <Link className="inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs hover:bg-muted" href={`/exhibiciones/repetir/${row.original.id}`}>
                     <CopyPlus className="h-3.5 w-3.5" />
                     Repetir
                   </Link>
-                ) : (
+                ) : row.original.estado !== "CANCELADA" ? (
                   <button
                     className="inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs hover:bg-muted disabled:opacity-60"
                     disabled={finalizandoId === row.original.id}
@@ -54,14 +69,14 @@ export function ExhibicionesTable({ canEdit, exhibiciones, finalizandoId, onFina
                     <SquareCheckBig className="h-3.5 w-3.5" />
                     Finalizar
                   </button>
-                )}
+                ) : null}
               </>
             ) : null}
           </div>
         )
       }
     ],
-    [canEdit, finalizandoId, onFinalizar]
+    [canEdit, cancelandoId, finalizandoId, hoy, onCancelar, onFinalizar]
   );
 
   const table = useReactTable({ data: exhibiciones, columns, getCoreRowModel: getCoreRowModel() });

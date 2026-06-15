@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { useExhibicionesProximasInicioQuery } from "@/features/exhibiciones/queries";
 import { useConfigAlertasComodatosPrestamosQuery, useObjetosVencimientosProximosQuery } from "@/features/objetos/queries";
 import type { CaracterRecepcionObjeto } from "@/features/objetos/types";
 import { hasRole, useAuth } from "@/lib/auth";
@@ -30,6 +31,19 @@ function diasRestantesLabel(dias: number) {
   return `vence en ${dias} días`;
 }
 
+
+function diasInicioLabel(dias: number) {
+  if (dias === 0) {
+    return "inicia hoy";
+  }
+
+  if (dias === 1) {
+    return "inicia en 1 día";
+  }
+
+  return `inicia en ${dias} días`;
+}
+
 function initialClosed() {
   if (typeof window === "undefined") {
     return false;
@@ -45,13 +59,15 @@ export function VencimientosProximosAlert() {
   const configQuery = useConfigAlertasComodatosPrestamosQuery(esAdmin && !cerrada);
   const diasVencimiento = configQuery.data?.diasAnticipacion ?? 14;
   const vencimientosQuery = useObjetosVencimientosProximosQuery(diasVencimiento, esAdmin && !cerrada && configQuery.isSuccess);
+  const exhibicionesQuery = useExhibicionesProximasInicioQuery(esAdmin && !cerrada);
   const vencimientos = vencimientosQuery.data ?? [];
+  const exhibiciones = exhibicionesQuery.data ?? [];
 
   if (!esAdmin || cerrada) {
     return null;
   }
 
-  if (configQuery.isError || vencimientosQuery.isError) {
+  if (configQuery.isError || vencimientosQuery.isError || exhibicionesQuery.isError) {
     return (
       <div className="mb-6 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
         No se pudieron consultar los vencimientos próximos.
@@ -59,7 +75,7 @@ export function VencimientosProximosAlert() {
     );
   }
 
-  if (!vencimientosQuery.isSuccess || vencimientos.length === 0) {
+  if ((!vencimientosQuery.isSuccess && !exhibicionesQuery.isSuccess) || (vencimientos.length === 0 && exhibiciones.length === 0)) {
     return null;
   }
 
@@ -72,8 +88,8 @@ export function VencimientosProximosAlert() {
     <section className="mb-6 rounded-md border border-red-300 bg-red-50 p-4 text-sm text-red-950">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="font-semibold">Hay objetos con préstamo o comodato próximos a vencer.</h2>
-          <p className="mt-1 text-red-900">Vencen desde hoy hasta dentro de {diasVencimiento} días inclusive.</p>
+          <h2 className="font-semibold">Hay avisos próximos de comodatos, préstamos o exhibiciones.</h2>
+          <p className="mt-1 text-red-900">Se muestran vencimientos e inicios previstos dentro del período configurado.</p>
         </div>
         <button
           aria-label="Cerrar alerta de vencimientos próximos"
@@ -84,6 +100,19 @@ export function VencimientosProximosAlert() {
           <X className="h-4 w-4" />
         </button>
       </div>
+      {exhibiciones.length > 0 ? (
+        <div className="mt-4 rounded-md border border-red-200 bg-white p-3">
+          <h3 className="font-medium text-red-950">Exhibiciones próximas a iniciar</h3>
+          <div className="mt-2 space-y-2 text-sm">
+            {exhibiciones.map((exhibicion) => (
+              <Link className="block rounded-md border border-red-100 px-3 py-2 hover:bg-red-50" href={`/exhibiciones/${exhibicion.id}`} key={exhibicion.id}>
+                Exhibición {exhibicion.permanente ? "permanente " : ""}“{exhibicion.nombre}” {diasInicioLabel(exhibicion.diasRestantes)} ({formatDate(exhibicion.fechaInicio)})
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {vencimientos.length > 0 ? (
       <div className="mt-4 overflow-x-auto rounded-md border border-red-200 bg-white">
         <table className="w-full min-w-[760px] border-collapse text-left text-sm">
           <thead className="bg-red-100/70 text-red-950">
@@ -114,6 +143,7 @@ export function VencimientosProximosAlert() {
           </tbody>
         </table>
       </div>
+      ) : null}
     </section>
   );
 }

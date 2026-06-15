@@ -4,9 +4,11 @@ import {
   agregarObjetoAExhibicion,
   buscarExhibicionesFinalizadas,
   buscarObjetosDisponibilidadExhibicion,
+  cancelarExhibicion,
   crearExhibicion,
   finalizarExhibicion,
   listarExhibiciones,
+  listarExhibicionesProximasInicio,
   listarObjetosDeExhibicion,
   obtenerExhibicionPorId,
   obtenerObjetosParaRepetirExhibicion,
@@ -23,7 +25,8 @@ export const exhibicionesQueryKeys = {
   objetos: (id: number) => [...exhibicionesQueryKeys.all, "objetos", id] as const,
   disponibilidad: (params: BuscarDisponibilidadExhibicionParams) => [...exhibicionesQueryKeys.all, "disponibilidad", params] as const,
   finalizadas: (params: BuscarExhibicionesFinalizadasParams) => [...exhibicionesQueryKeys.all, "finalizadas", params] as const,
-  objetosParaRepetir: (params: ObjetosParaRepetirParams) => [...exhibicionesQueryKeys.all, "objetos-para-repetir", params] as const
+  objetosParaRepetir: (params: ObjetosParaRepetirParams) => [...exhibicionesQueryKeys.all, "objetos-para-repetir", params] as const,
+  proximasInicio: () => [...exhibicionesQueryKeys.all, "proximas-inicio"] as const
 };
 
 export function useExhibicionesQuery() {
@@ -76,6 +79,14 @@ export function useObjetosParaRepetirExhibicionQuery(params: ObjetosParaRepetirP
   });
 }
 
+export function useExhibicionesProximasInicioQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: exhibicionesQueryKeys.proximasInicio(),
+    queryFn: listarExhibicionesProximasInicio,
+    enabled
+  });
+}
+
 export function useCrearExhibicionMutation() {
   const queryClient = useQueryClient();
 
@@ -107,6 +118,20 @@ export function useFinalizarExhibicionMutation(id: number) {
     onSuccess: (exhibicion) => {
       queryClient.setQueryData(exhibicionesQueryKeys.detail(id), exhibicion);
       void queryClient.invalidateQueries({ queryKey: exhibicionesQueryKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: exhibicionesQueryKeys.proximasInicio() });
+    }
+  });
+}
+
+export function useCancelarExhibicionMutation(id: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => cancelarExhibicion(id),
+    onSuccess: (exhibicion) => {
+      queryClient.setQueryData(exhibicionesQueryKeys.detail(id), exhibicion);
+      void queryClient.invalidateQueries({ queryKey: exhibicionesQueryKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: exhibicionesQueryKeys.proximasInicio() });
     }
   });
 }
@@ -119,6 +144,20 @@ export function useFinalizarExhibicionPorIdMutation() {
     onSuccess: (exhibicion) => {
       queryClient.setQueryData(exhibicionesQueryKeys.detail(exhibicion.id), exhibicion);
       void queryClient.invalidateQueries({ queryKey: exhibicionesQueryKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: exhibicionesQueryKeys.proximasInicio() });
+    }
+  });
+}
+
+export function useCancelarExhibicionPorIdMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: cancelarExhibicion,
+    onSuccess: (exhibicion) => {
+      queryClient.setQueryData(exhibicionesQueryKeys.detail(exhibicion.id), exhibicion);
+      void queryClient.invalidateQueries({ queryKey: exhibicionesQueryKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: exhibicionesQueryKeys.proximasInicio() });
     }
   });
 }

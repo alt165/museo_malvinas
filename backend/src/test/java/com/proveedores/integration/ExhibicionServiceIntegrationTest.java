@@ -1,8 +1,6 @@
 package com.proveedores.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.proveedores.dto.ExhibicionObjetoRequestDTO;
 import com.proveedores.dto.ExhibicionRequestDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
@@ -10,7 +8,7 @@ import com.proveedores.entity.CaracterRecepcionObjeto;
 import com.proveedores.entity.EstadoExhibicion;
 import com.proveedores.entity.EstadoExhibicionObjeto;
 import com.proveedores.entity.TipoExhibicion;
-import com.proveedores.exception.BusinessException;
+import com.proveedores.repository.ExhibicionObjetoRepository;
 import com.proveedores.repository.ExhibicionRepository;
 import com.proveedores.service.ExhibicionObjetoService;
 import com.proveedores.service.ExhibicionService;
@@ -33,8 +31,11 @@ class ExhibicionServiceIntegrationTest extends IntegrationTestBase {
     @Autowired
     private ExhibicionRepository exhibicionRepository;
 
+    @Autowired
+    private ExhibicionObjetoRepository exhibicionObjetoRepository;
+
     @Test
-    void noFinalizaExhibicionConObjetosPendientesDeDevolucion() {
+    void finalizaExhibicionConObjetosPendientesYLosLibera() {
         var objeto = objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
                 "IT-EXH-PEND",
                 "Mapa de sala",
@@ -59,9 +60,16 @@ class ExhibicionServiceIntegrationTest extends IntegrationTestBase {
                 null
         ));
 
-        assertThatThrownBy(() -> exhibicionService.finalizar(exhibicion.id()))
-                .isInstanceOf(BusinessException.class)
-                .hasMessage("No se puede finalizar la exhibicion con objetos pendientes de devolucion");
+        var response = exhibicionService.finalizar(exhibicion.id());
+
+        assertThat(response.estado()).isEqualTo(EstadoExhibicion.FINALIZADA);
+        assertThat(exhibicionObjetoRepository.findByExhibicionIdAndEliminadoFalse(exhibicion.id()))
+                .singleElement()
+                .satisfies(relacion -> {
+                    assertThat(relacion.getEstado()).isEqualTo(EstadoExhibicionObjeto.DEVUELTO);
+                    assertThat(relacion.getDevolucionVerificada()).isTrue();
+                    assertThat(relacion.getFechaRetiro()).isEqualTo(LocalDate.now());
+                });
     }
 
     @Test

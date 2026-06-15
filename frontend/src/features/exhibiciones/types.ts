@@ -1,6 +1,6 @@
 export type TipoExhibicion = "TEMPORAL" | "PERMANENTE";
 
-export type EstadoExhibicion = "PLANIFICADA" | "ACTIVA" | "FINALIZADA";
+export type EstadoExhibicion = "PLANIFICADA" | "ACTIVA" | "FINALIZADA" | "CANCELADA";
 
 export type EstadoExhibicionObjeto = "EN_EXHIBICION" | "DEVUELTO" | "PENDIENTE_REVISION";
 
@@ -50,7 +50,7 @@ export type ExhibicionObjetoResponseDTO = {
 };
 
 export const tiposExhibicion: TipoExhibicion[] = ["TEMPORAL", "PERMANENTE"];
-export const estadosExhibicion: EstadoExhibicion[] = ["PLANIFICADA", "ACTIVA", "FINALIZADA"];
+export const estadosExhibicion: EstadoExhibicion[] = ["PLANIFICADA", "ACTIVA", "FINALIZADA", "CANCELADA"];
 
 
 export type ObjetoDisponibilidadExhibicionResponseDTO = {
@@ -64,4 +64,13 @@ export type ObjetoDisponibilidadExhibicionResponseDTO = {
   exhibicionConflictoFechaInicio?: string | null;
   exhibicionConflictoFechaFin?: string | null;
   exhibicionConflictoPermanente: boolean;
+};
+
+export type ExhibicionProximaInicioResponseDTO = {
+  id: number;
+  nombre: string;
+  fechaInicio: string;
+  diasRestantes: number;
+  tipo: TipoExhibicion;
+  permanente: boolean;
 };
