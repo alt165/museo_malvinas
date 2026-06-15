@@ -1,5 +1,6 @@
 import { apiRequest } from "@/lib/api";
-import type { ExhibicionObjetoRequestDTO, ExhibicionObjetoResponseDTO, ExhibicionRequestDTO, ExhibicionResponseDTO } from "../types";
+import type { PageResponse } from "@/features/objetos/types";
+import type { ExhibicionObjetoRequestDTO, ExhibicionObjetoResponseDTO, ExhibicionRequestDTO, ExhibicionResponseDTO, ObjetoDisponibilidadExhibicionResponseDTO } from "../types";
 
 const exhibicionesPath = "/api/exhibiciones";
 const exhibicionesObjetosPath = "/api/exhibiciones-objetos";
@@ -24,6 +25,55 @@ export function actualizarExhibicion(id: number, payload: ExhibicionRequestDTO) 
     method: "PUT",
     body: JSON.stringify(payload)
   });
+}
+
+export type BuscarDisponibilidadExhibicionParams = {
+  texto?: string;
+  fechaInicio: string;
+  fechaFin?: string | null;
+  exhibicionId?: number;
+  page?: number;
+  size?: number;
+};
+
+export function buscarObjetosDisponibilidadExhibicion(params: BuscarDisponibilidadExhibicionParams) {
+  const searchParams = new URLSearchParams();
+  if (params.texto?.trim()) searchParams.set("texto", params.texto.trim());
+  searchParams.set("fechaInicio", params.fechaInicio);
+  if (params.fechaFin) searchParams.set("fechaFin", params.fechaFin);
+  if (params.exhibicionId) searchParams.set("exhibicionId", String(params.exhibicionId));
+  searchParams.set("page", String(params.page ?? 0));
+  searchParams.set("size", String(params.size ?? 10));
+  searchParams.set("sort", "numeroInventario,asc");
+  return apiRequest<PageResponse<ObjetoDisponibilidadExhibicionResponseDTO>>(`${exhibicionesPath}/objetos-disponibilidad?${searchParams.toString()}`);
+}
+
+export type BuscarExhibicionesFinalizadasParams = {
+  texto?: string;
+  page?: number;
+  size?: number;
+};
+
+export function buscarExhibicionesFinalizadas(params: BuscarExhibicionesFinalizadasParams) {
+  const searchParams = new URLSearchParams();
+  if (params.texto?.trim()) searchParams.set("texto", params.texto.trim());
+  searchParams.set("page", String(params.page ?? 0));
+  searchParams.set("size", String(params.size ?? 10));
+  searchParams.set("sort", "nombre,asc");
+  return apiRequest<PageResponse<ExhibicionResponseDTO>>(`${exhibicionesPath}/finalizadas/buscar?${searchParams.toString()}`);
+}
+
+export type ObjetosParaRepetirParams = {
+  exhibicionId: number;
+  fechaInicioNueva: string;
+  fechaFinNueva?: string | null;
+};
+
+export function obtenerObjetosParaRepetirExhibicion(params: ObjetosParaRepetirParams) {
+  const searchParams = new URLSearchParams();
+  searchParams.set("fechaInicioNueva", params.fechaInicioNueva);
+  if (params.fechaFinNueva) searchParams.set("fechaFinNueva", params.fechaFinNueva);
+  return apiRequest<ObjetoDisponibilidadExhibicionResponseDTO[]>(`${exhibicionesPath}/${params.exhibicionId}/objetos-para-repetir?${searchParams.toString()}`);
 }
 
 export function bajaLogicaExhibicion(id: number) {

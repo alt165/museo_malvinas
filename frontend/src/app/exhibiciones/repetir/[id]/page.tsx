@@ -1,7 +1,7 @@
+
 "use client";
 
-import { Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ErrorState } from "@/components/common/error-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
@@ -11,30 +11,23 @@ import { getApiErrorMessage } from "@/features/exhibiciones/utils";
 import { ApiClientError } from "@/lib/errors/api-error";
 import { routePermissions } from "@/lib/routes";
 
-export default function NuevaExhibicionPage() {
-  return (
-    <Suspense fallback={null}>
-      <NuevaExhibicionContent />
-    </Suspense>
-  );
+function getParamId(value: string | string[] | undefined) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const id = Number(raw);
+  return Number.isFinite(id) ? id : NaN;
 }
 
-function NuevaExhibicionContent() {
+export default function RepetirExhibicionPage() {
+  const params = useParams<{ id: string }>();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const repetirId = Number(searchParams.get("repetir"));
+  const id = getParamId(params.id);
   const mutation = useCrearExhibicionMutation();
 
   return (
     <AppShell requiredRoles={[...routePermissions.write]}>
       <div className="space-y-6">
-        <PageHeader description="Alta de exhibición." title="Nueva exhibición" />
-        {mutation.isError ? (
-          <ErrorState
-            message={getApiErrorMessage(mutation.error)}
-            requestId={mutation.error instanceof ApiClientError ? mutation.error.requestId : undefined}
-          />
-        ) : null}
+        <PageHeader description="Crear una nueva exhibición a partir de una exhibición finalizada." title="Repetir exhibición" />
+        {mutation.isError ? <ErrorState message={getApiErrorMessage(mutation.error)} requestId={mutation.error instanceof ApiClientError ? mutation.error.requestId : undefined} /> : null}
         <ExhibicionForm
           isSubmitting={mutation.isPending}
           onSubmit={(payload) =>
@@ -42,9 +35,9 @@ function NuevaExhibicionContent() {
               onSuccess: (exhibicion) => router.push(`/exhibiciones/${exhibicion.id}`)
             })
           }
-          repetirExhibicionId={Number.isFinite(repetirId) ? repetirId : undefined}
+          repetirExhibicionId={id}
           submitError={mutation.error}
-          submitLabel={Number.isFinite(repetirId) ? "Crear exhibición repetida" : "Crear exhibición"}
+          submitLabel="Crear exhibición repetida"
         />
       </div>
     </AppShell>

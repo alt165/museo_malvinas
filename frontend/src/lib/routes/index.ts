@@ -62,6 +62,7 @@ export const routes = {
   actuacionesVeteranos: "/actuaciones-veteranos",
   actuacionVeteranoNueva: "/actuaciones-veteranos/nueva",
   exhibiciones: "/exhibiciones",
+  exhibicionesFinalizadas: "/exhibiciones/finalizadas",
   exhibicionNueva: "/exhibiciones/nueva",
   usuarios: "/usuarios",
   usuarioNuevo: "/usuarios/nuevo",
@@ -153,7 +154,7 @@ export const navigationGroups: NavigationGroup[] = [
     items: [
       { href: routes.exhibiciones, label: "Consulta", icon: Landmark, roles: readRoles },
       { href: routes.exhibicionNueva, label: "Alta", icon: Landmark, roles: writeRoles, requiresEditing: true },
-      { href: "#", label: "Repetir", icon: Landmark, roles: writeRoles, disabled: true, badge: "Proximamente", requiresEditing: true }
+      { href: routes.exhibicionesFinalizadas, label: "Repetir", icon: Landmark, roles: writeRoles, requiresEditing: true }
     ]
   }
 ];

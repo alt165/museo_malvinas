@@ -23,7 +23,7 @@ public final class ExhibicionObjetoMapper {
     }
 
     public static ExhibicionObjetoResponseDTO toResponse(ExhibicionObjeto entity) {
-        return new ExhibicionObjetoResponseDTO(entity.getId(), entity.getExhibicion().getId(), entity.getExhibicion().getNombre(), entity.getObjetoMuseo().getId(), entity.getObjetoMuseo().getDenominacionObjeto(), entity.getFechaInclusion(), entity.getFechaRetiro(), entity.getEstado(), entity.getDevolucionVerificada(), userId(entity), userName(entity), entity.getFechaVerificacion(), entity.getObservacionesDevolucion());
+        return new ExhibicionObjetoResponseDTO(entity.getId(), entity.getExhibicion().getId(), entity.getExhibicion().getNombre(), entity.getObjetoMuseo().getId(), entity.getObjetoMuseo().getNumeroInventario(), entity.getObjetoMuseo().getDenominacionObjeto(), entity.getFechaInclusion(), entity.getFechaRetiro(), entity.getEstado(), entity.getDevolucionVerificada(), userId(entity), userName(entity), entity.getFechaVerificacion(), entity.getObservacionesDevolucion());
     }
 
     private static Long userId(ExhibicionObjeto entity) { return entity.getVerificadoPor() == null ? null : entity.getVerificadoPor().getId(); }

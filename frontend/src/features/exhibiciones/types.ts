@@ -11,10 +11,13 @@ export type ExhibicionRequestDTO = {
   fechaInicio: string;
   fechaFin?: string | null;
   estado: EstadoExhibicion;
+  objetoIds?: number[];
 };
 
 export type ExhibicionResponseDTO = ExhibicionRequestDTO & {
   id: number;
+  permanente: boolean;
+  objetos: ExhibicionObjetoResponseDTO[];
 };
 
 export type ExhibicionObjetoRequestDTO = {
@@ -34,6 +37,7 @@ export type ExhibicionObjetoResponseDTO = {
   exhibicionId: number;
   exhibicionNombre: string;
   objetoMuseoId: number;
+  objetoNumeroInventario?: string | null;
   objetoNombre: string;
   fechaInclusion: string;
   fechaRetiro?: string | null;
@@ -47,3 +51,17 @@ export type ExhibicionObjetoResponseDTO = {
 
 export const tiposExhibicion: TipoExhibicion[] = ["TEMPORAL", "PERMANENTE"];
 export const estadosExhibicion: EstadoExhibicion[] = ["PLANIFICADA", "ACTIVA", "FINALIZADA"];
+
+
+export type ObjetoDisponibilidadExhibicionResponseDTO = {
+  objetoId: number;
+  numeroInventario: string;
+  denominacion: string;
+  disponible: boolean;
+  motivoNoDisponible?: string | null;
+  exhibicionConflictoId?: number | null;
+  exhibicionConflictoNombre?: string | null;
+  exhibicionConflictoFechaInicio?: string | null;
+  exhibicionConflictoFechaFin?: string | null;
+  exhibicionConflictoPermanente: boolean;
+};

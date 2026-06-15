@@ -2,21 +2,28 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   actualizarExhibicion,
   agregarObjetoAExhibicion,
+  buscarExhibicionesFinalizadas,
+  buscarObjetosDisponibilidadExhibicion,
   crearExhibicion,
   finalizarExhibicion,
   listarExhibiciones,
   listarObjetosDeExhibicion,
   obtenerExhibicionPorId,
+  obtenerObjetosParaRepetirExhibicion,
   revertirDevolucionObjeto,
   verificarDevolucionObjeto
 } from "./api";
 import type { ExhibicionObjetoRequestDTO, ExhibicionRequestDTO } from "./types";
+import type { BuscarDisponibilidadExhibicionParams, BuscarExhibicionesFinalizadasParams, ObjetosParaRepetirParams } from "./api/exhibiciones-api";
 
 export const exhibicionesQueryKeys = {
   all: ["exhibiciones"] as const,
   lists: () => [...exhibicionesQueryKeys.all, "list"] as const,
   detail: (id: number) => [...exhibicionesQueryKeys.all, "detail", id] as const,
-  objetos: (id: number) => [...exhibicionesQueryKeys.all, "objetos", id] as const
+  objetos: (id: number) => [...exhibicionesQueryKeys.all, "objetos", id] as const,
+  disponibilidad: (params: BuscarDisponibilidadExhibicionParams) => [...exhibicionesQueryKeys.all, "disponibilidad", params] as const,
+  finalizadas: (params: BuscarExhibicionesFinalizadasParams) => [...exhibicionesQueryKeys.all, "finalizadas", params] as const,
+  objetosParaRepetir: (params: ObjetosParaRepetirParams) => [...exhibicionesQueryKeys.all, "objetos-para-repetir", params] as const
 };
 
 export function useExhibicionesQuery() {
@@ -42,6 +49,30 @@ export function useObjetosExhibicionQuery(exhibicionId: number) {
       return objetos.filter((objeto) => objeto.exhibicionId === exhibicionId);
     },
     enabled: Number.isFinite(exhibicionId)
+  });
+}
+
+export function useObjetosDisponibilidadExhibicionQuery(params: BuscarDisponibilidadExhibicionParams, enabled: boolean) {
+  return useQuery({
+    queryKey: exhibicionesQueryKeys.disponibilidad(params),
+    queryFn: () => buscarObjetosDisponibilidadExhibicion(params),
+    enabled
+  });
+}
+
+export function useExhibicionesFinalizadasQuery(params: BuscarExhibicionesFinalizadasParams, enabled: boolean) {
+  return useQuery({
+    queryKey: exhibicionesQueryKeys.finalizadas(params),
+    queryFn: () => buscarExhibicionesFinalizadas(params),
+    enabled
+  });
+}
+
+export function useObjetosParaRepetirExhibicionQuery(params: ObjetosParaRepetirParams, enabled: boolean) {
+  return useQuery({
+    queryKey: exhibicionesQueryKeys.objetosParaRepetir(params),
+    queryFn: () => obtenerObjetosParaRepetirExhibicion(params),
+    enabled
   });
 }
 

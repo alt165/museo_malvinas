@@ -20,6 +20,10 @@ public final class ExhibicionMapper {
     }
 
     public static ExhibicionResponseDTO toResponse(Exhibicion entity) {
-        return new ExhibicionResponseDTO(entity.getId(), entity.getNombre(), entity.getDescripcion(), entity.getTipo(), entity.getFechaInicio(), entity.getFechaFin(), entity.getEstado());
+        return new ExhibicionResponseDTO(entity.getId(), entity.getNombre(), entity.getDescripcion(), entity.getTipo(), entity.getFechaInicio(), entity.getFechaFin(), entity.getEstado(), entity.getFechaFin() == null, java.util.List.of());
+    }
+
+    public static ExhibicionResponseDTO toResponse(Exhibicion entity, java.util.List<com.proveedores.dto.ExhibicionObjetoResponseDTO> objetos) {
+        return new ExhibicionResponseDTO(entity.getId(), entity.getNombre(), entity.getDescripcion(), entity.getTipo(), entity.getFechaInicio(), entity.getFechaFin(), entity.getEstado(), entity.getFechaFin() == null, objetos);
     }
 }

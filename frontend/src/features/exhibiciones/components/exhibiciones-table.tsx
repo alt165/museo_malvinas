@@ -5,7 +5,7 @@
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
 import { useMemo } from "react";
-import { Pencil, Search, SquareCheckBig } from "lucide-react";
+import { CopyPlus, Pencil, Search, SquareCheckBig } from "lucide-react";
 import type { ExhibicionResponseDTO } from "../types";
 import { formatDate } from "../utils";
 
@@ -39,7 +39,12 @@ export function ExhibicionesTable({ canEdit, exhibiciones, finalizandoId, onFina
                   <Pencil className="h-3.5 w-3.5" />
                   Editar
                 </Link>
-                {row.original.estado !== "FINALIZADA" ? (
+                {row.original.estado === "FINALIZADA" ? (
+                  <Link className="inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs hover:bg-muted" href={`/exhibiciones/repetir/${row.original.id}`}>
+                    <CopyPlus className="h-3.5 w-3.5" />
+                    Repetir
+                  </Link>
+                ) : (
                   <button
                     className="inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs hover:bg-muted disabled:opacity-60"
                     disabled={finalizandoId === row.original.id}
@@ -49,7 +54,7 @@ export function ExhibicionesTable({ canEdit, exhibiciones, finalizandoId, onFina
                     <SquareCheckBig className="h-3.5 w-3.5" />
                     Finalizar
                   </button>
-                ) : null}
+                )}
               </>
             ) : null}
           </div>

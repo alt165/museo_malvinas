@@ -3,6 +3,7 @@ package com.proveedores.dto;
 import com.proveedores.entity.EstadoExhibicion;
 import com.proveedores.entity.TipoExhibicion;
 import java.time.LocalDate;
+import java.util.List;
 
 public record ExhibicionResponseDTO(
         Long id,
@@ -11,6 +12,8 @@ public record ExhibicionResponseDTO(
         TipoExhibicion tipo,
         LocalDate fechaInicio,
         LocalDate fechaFin,
-        EstadoExhibicion estado
+        EstadoExhibicion estado,
+        boolean permanente,
+        List<ExhibicionObjetoResponseDTO> objetos
 ) {
 }

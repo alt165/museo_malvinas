@@ -39,7 +39,11 @@ export default function DetalleExhibicionPage() {
                   <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href={`/exhibiciones/${data.id}/editar`}>
                     Editar
                   </Link>
-                  {data.estado !== "FINALIZADA" ? (
+                  {data.estado === "FINALIZADA" ? (
+                    <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href={`/exhibiciones/repetir/${data.id}`}>
+                      Repetir exhibición
+                    </Link>
+                  ) : (
                     <button
                       className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-60"
                       disabled={finalizarMutation.isPending}
@@ -52,7 +56,7 @@ export default function DetalleExhibicionPage() {
                     >
                       {finalizarMutation.isPending ? "Finalizando..." : "Finalizar"}
                     </button>
-                  ) : null}
+                  )}
                 </>
               ) : null}
             </div>

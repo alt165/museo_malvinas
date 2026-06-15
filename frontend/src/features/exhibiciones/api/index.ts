@@ -1,5 +1,7 @@
 export {
   actualizarExhibicion,
+  buscarExhibicionesFinalizadas,
+  buscarObjetosDisponibilidadExhibicion,
   actualizarObjetoDeExhibicion,
   agregarObjetoAExhibicion,
   bajaLogicaExhibicion,
@@ -8,6 +10,7 @@ export {
   listarExhibiciones,
   listarObjetosDeExhibicion,
   obtenerExhibicionPorId,
+  obtenerObjetosParaRepetirExhibicion,
   revertirDevolucionObjeto,
   verificarDevolucionObjeto
 } from "./exhibiciones-api";
