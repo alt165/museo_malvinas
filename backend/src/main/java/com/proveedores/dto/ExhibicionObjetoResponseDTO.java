@@ -9,6 +9,7 @@ public record ExhibicionObjetoResponseDTO(
         Long exhibicionId,
         String exhibicionNombre,
         Long objetoMuseoId,
+        String objetoNumeroInventario,
         String objetoNombre,
         LocalDate fechaInclusion,
         LocalDate fechaRetiro,

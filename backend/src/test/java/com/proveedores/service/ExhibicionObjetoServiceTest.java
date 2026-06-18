@@ -39,6 +39,9 @@ class ExhibicionObjetoServiceTest {
     @Mock
     private UsuarioRepository usuarioRepository;
 
+    @Mock
+    private AuditoriaObjetoService auditoriaObjetoService;
+
     @InjectMocks
     private ExhibicionObjetoService service;
 
@@ -105,7 +108,7 @@ class ExhibicionObjetoServiceTest {
     private ObjetoMuseo objeto() {
         ObjetoMuseo objeto = new ObjetoMuseo();
         objeto.setId(10L);
-        objeto.setNombre("Objeto");
+        objeto.setDenominacionObjeto("Objeto");
         objeto.setNumeroInventario("INV-10");
         objeto.setEliminado(false);
         return objeto;

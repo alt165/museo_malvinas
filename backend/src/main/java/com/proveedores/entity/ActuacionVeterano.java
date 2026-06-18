@@ -37,6 +37,14 @@ public class ActuacionVeterano extends EntidadBase {
     @Column(length = 120)
     private String unidad;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rango_id")
+    private RangoMilitar rangoMilitar;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "unidad_id")
+    private UnidadMilitar unidadMilitar;
+
     @Column(length = 120)
     private String rol;
 

@@ -49,6 +49,27 @@ public class Auditoria extends EntidadBase {
     @Column(name = "entidad_id", nullable = false)
     private Long entidadId;
 
+    @Column(length = 80)
+    private String accion;
+
+    @Column(columnDefinition = "TEXT")
+    private String descripcion;
+
+    @Column(length = 80)
+    private String origen;
+
+    @Column(name = "numero_inventario", length = 80)
+    private String numeroInventario;
+
+    @Column(name = "usuario_identificador", length = 160)
+    private String usuarioIdentificador;
+
+    @Column(name = "usuario_nombre", length = 200)
+    private String usuarioNombre;
+
+    @Column(length = 80)
+    private String rol;
+
     @Column(name = "datos_previos", columnDefinition = "TEXT")
     private String datosPrevios;
 

@@ -22,9 +22,6 @@ public class Ubicacion extends EntidadBase {
     @Column(nullable = false, unique = true, length = 120)
     private String nombre;
 
-    @Column(length = 80)
-    private String tipo;
-
     @Column(columnDefinition = "TEXT")
     private String descripcion;
 }

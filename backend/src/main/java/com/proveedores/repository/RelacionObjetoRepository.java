@@ -22,8 +22,11 @@ public interface RelacionObjetoRepository extends JpaRepository<RelacionObjeto, 
     @Query("""
             select ro
             from RelacionObjeto ro
+            join fetch ro.objetoOrigen
+            join fetch ro.objetoDestino
             where ro.eliminado = false
               and (ro.objetoOrigen.id = :objetoMuseoId or ro.objetoDestino.id = :objetoMuseoId)
+            order by ro.fechaCreacion desc, ro.id desc
             """)
     List<RelacionObjeto> findAllByObjetoMuseoId(@Param("objetoMuseoId") Long objetoMuseoId);
 }

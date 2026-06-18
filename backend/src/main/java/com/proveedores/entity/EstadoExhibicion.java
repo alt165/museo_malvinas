@@ -3,5 +3,6 @@ package com.proveedores.entity;
 public enum EstadoExhibicion {
     PLANIFICADA,
     ACTIVA,
-    FINALIZADA
+    FINALIZADA,
+    CANCELADA
 }

@@ -1,15 +1,46 @@
 package com.proveedores.controller;
 
+import com.proveedores.dto.AgregarCategoriaObjetoRequestDTO;
+import com.proveedores.dto.CargaRapidaObjetoRequestDTO;
+import com.proveedores.dto.CargaRapidaObjetoResponseDTO;
+import com.proveedores.dto.FotoObjetoMuseoResponseDTO;
+import com.proveedores.dto.MoverObjetoRequestDTO;
+import com.proveedores.dto.MovimientoObjetoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
+import com.proveedores.dto.ObjetoGrafoResponseDTO;
+import com.proveedores.dto.ObjetoPendienteCompletarResponseDTO;
+import com.proveedores.dto.ObjetoVencimientoProximoResponseDTO;
+import com.proveedores.dto.ReciboEscaneadoObjetoMuseoResponseDTO;
+import com.proveedores.dto.ReciboIngresoObjetoResponseDTO;
+import com.proveedores.dto.RelacionObjetoPorObjetoResponseDTO;
+import com.proveedores.service.ComodatoPrestamoService;
+import com.proveedores.service.FotoObjetoMuseoService;
+import com.proveedores.service.ObjetoMuseoExportService;
 import com.proveedores.service.ObjetoMuseoService;
+import com.proveedores.service.ReciboEscaneadoObjetoMuseoService;
+import com.proveedores.service.ReciboIngresoObjetoService;
+import com.proveedores.service.RelacionObjetoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,7 +48,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "Objetos de museo", description = "Gestion de objetos patrimoniales del museo")
 @RestController
@@ -25,16 +58,36 @@ import org.springframework.web.bind.annotation.RestController;
 public class ObjetoMuseoController {
 
     private final ObjetoMuseoService objetoMuseoService;
+    private final ObjetoMuseoExportService objetoMuseoExportService;
+    private final ComodatoPrestamoService comodatoPrestamoService;
+    private final FotoObjetoMuseoService fotoObjetoMuseoService;
+    private final ReciboEscaneadoObjetoMuseoService reciboEscaneadoObjetoMuseoService;
+    private final ReciboIngresoObjetoService reciboIngresoObjetoService;
+    private final RelacionObjetoService relacionObjetoService;
 
-    public ObjetoMuseoController(ObjetoMuseoService objetoMuseoService) {
+    public ObjetoMuseoController(
+            ObjetoMuseoService objetoMuseoService,
+            ObjetoMuseoExportService objetoMuseoExportService,
+            ComodatoPrestamoService comodatoPrestamoService,
+            FotoObjetoMuseoService fotoObjetoMuseoService,
+            ReciboEscaneadoObjetoMuseoService reciboEscaneadoObjetoMuseoService,
+            ReciboIngresoObjetoService reciboIngresoObjetoService,
+            RelacionObjetoService relacionObjetoService
+    ) {
         this.objetoMuseoService = objetoMuseoService;
+        this.objetoMuseoExportService = objetoMuseoExportService;
+        this.comodatoPrestamoService = comodatoPrestamoService;
+        this.fotoObjetoMuseoService = fotoObjetoMuseoService;
+        this.reciboEscaneadoObjetoMuseoService = reciboEscaneadoObjetoMuseoService;
+        this.reciboIngresoObjetoService = reciboIngresoObjetoService;
+        this.relacionObjetoService = relacionObjetoService;
     }
 
     @Operation(summary = "Crear recurso")
     @ApiResponse(responseCode = "201", description = "Recurso creado")
     @PostMapping
-    public ResponseEntity<ObjetoMuseoResponseDTO> crear(@RequestBody @Valid ObjetoMuseoRequestDTO dto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(objetoMuseoService.crear(dto));
+    public ResponseEntity<ObjetoMuseoResponseDTO> crear(@RequestBody @Valid ObjetoMuseoRequestDTO dto, Authentication authentication) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(objetoMuseoService.crear(dto, usuario(authentication)));
     }
 
     @Operation(summary = "Obtener recurso por id")
@@ -51,18 +104,279 @@ public class ObjetoMuseoController {
         return ResponseEntity.ok(objetoMuseoService.listar());
     }
 
+    @Operation(
+            summary = "Buscar objetos de museo con paginacion",
+            description = "Permite ordenar por numeroInventario, denominacionObjeto, descripcion, descripcionTecnica, estadoConservacion y fechaIngreso. El ordenamiento por categorias no se aplica por tratarse de una relacion multiple."
+    )
+    @ApiResponse(responseCode = "200", description = "Busqueda obtenida")
+    @GetMapping("/buscar")
+    public ResponseEntity<Page<ObjetoMuseoResponseDTO>> buscar(
+            @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) String numeroInventario,
+            @RequestParam(required = false) List<Long> categoriaIds,
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable
+    ) {
+        return ResponseEntity.ok(objetoMuseoService.buscar(nombre, numeroInventario, categoriaIds, pageable));
+    }
+
+    @Operation(summary = "Buscar objetos disponibles para coleccion")
+    @ApiResponse(responseCode = "200", description = "Busqueda obtenida")
+    @GetMapping("/buscar-disponibles-para-coleccion")
+    public ResponseEntity<Page<ObjetoMuseoResponseDTO>> buscarDisponiblesParaColeccion(
+            @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) String numeroInventario,
+            @RequestParam(required = false) List<Long> categoriaIds,
+            @RequestParam(required = false) Long coleccionId,
+            @ParameterObject @PageableDefault(size = 10) Pageable pageable
+    ) {
+        return ResponseEntity.ok(objetoMuseoService.buscarDisponiblesParaColeccion(nombre, numeroInventario, categoriaIds, coleccionId, pageable));
+    }
+
+    @Operation(summary = "Exportar listado de objetos de museo en PDF")
+    @ApiResponse(responseCode = "200", description = "PDF generado")
+    @GetMapping(value = "/export/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> exportarPdf(
+            @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) String numeroInventario,
+            @RequestParam(required = false) List<Long> categoriaIds,
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable,
+            Authentication authentication
+    ) {
+        byte[] pdf = objetoMuseoExportService.exportarListadoPdf(
+                nombre,
+                numeroInventario,
+                categoriaIds,
+                pageable.getSort(),
+                usuario(authentication)
+        );
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombreArchivoObjetosPdf() + "\"")
+                .body(pdf);
+    }
+
+    @Operation(summary = "Listar objetos sin coleccion")
+    @ApiResponse(responseCode = "200", description = "Objetos obtenidos")
+    @GetMapping("/sin-coleccion")
+    public ResponseEntity<List<ObjetoMuseoResponseDTO>> listarSinColeccion() {
+        return ResponseEntity.ok(objetoMuseoService.listarSinColeccion());
+    }
+
+    @Operation(summary = "Listar objetos creados por carga rapida pendientes de completar")
+    @ApiResponse(responseCode = "200", description = "Pendientes obtenidos")
+    @GetMapping("/pendientes-completar")
+    public ResponseEntity<Page<ObjetoPendienteCompletarResponseDTO>> pendientesCompletar(
+            @ParameterObject @PageableDefault(size = 20, sort = "fechaCargaRapida") Pageable pageable
+    ) {
+        return ResponseEntity.ok(objetoMuseoService.listarPendientesCompletar(pageable));
+    }
+
+    @Operation(summary = "Exportar objetos pendientes de completar en PDF")
+    @ApiResponse(responseCode = "200", description = "PDF generado")
+    @GetMapping(value = "/pendientes-completar/export/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> exportarPendientesCompletarPdf(
+            @ParameterObject @PageableDefault(size = 20, sort = "fechaCargaRapida") Pageable pageable,
+            Authentication authentication
+    ) {
+        byte[] pdf = objetoMuseoExportService.exportarPendientesCompletarPdf(pageable.getSort(), usuario(authentication));
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombreArchivoPendientesCompletarPdf() + "\"")
+                .body(pdf);
+    }
+
+    @Operation(summary = "Listar objetos con prestamo o comodato proximos a vencer")
+    @ApiResponse(responseCode = "200", description = "Vencimientos obtenidos")
+    @GetMapping("/vencimientos-proximos")
+    public ResponseEntity<List<ObjetoVencimientoProximoResponseDTO>> vencimientosProximos(@RequestParam(required = false) Integer dias) {
+        return ResponseEntity.ok(comodatoPrestamoService.listarVencimientosProximos(dias));
+    }
+
     @Operation(summary = "Actualizar recurso")
     @ApiResponse(responseCode = "200", description = "Recurso actualizado")
     @PutMapping("/{id}")
-    public ResponseEntity<ObjetoMuseoResponseDTO> actualizar(@PathVariable Long id, @RequestBody @Valid ObjetoMuseoRequestDTO dto) {
-        return ResponseEntity.ok(objetoMuseoService.actualizar(id, dto));
+    public ResponseEntity<ObjetoMuseoResponseDTO> actualizar(
+            @PathVariable Long id,
+            @RequestBody @Valid ObjetoMuseoRequestDTO dto,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(objetoMuseoService.actualizar(id, dto, usuario(authentication)));
+    }
+
+    @Operation(summary = "Mover objeto a otra ubicacion")
+    @ApiResponse(responseCode = "200", description = "Objeto movido")
+    @PostMapping("/{id}/mover")
+    public ResponseEntity<MovimientoObjetoResponseDTO> mover(
+            @PathVariable Long id,
+            @RequestBody @Valid MoverObjetoRequestDTO dto,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(objetoMuseoService.mover(id, dto, usuario(authentication)));
+    }
+
+    @Operation(summary = "Listar movimientos del objeto")
+    @ApiResponse(responseCode = "200", description = "Movimientos obtenidos")
+    @GetMapping("/{id}/movimientos")
+    public ResponseEntity<List<MovimientoObjetoResponseDTO>> listarMovimientos(@PathVariable Long id) {
+        return ResponseEntity.ok(objetoMuseoService.listarMovimientos(id));
+    }
+
+    @Operation(summary = "Listar relaciones del objeto")
+    @ApiResponse(responseCode = "200", description = "Relaciones obtenidas")
+    @GetMapping("/{id}/relaciones")
+    public ResponseEntity<List<RelacionObjetoPorObjetoResponseDTO>> listarRelaciones(@PathVariable Long id) {
+        return ResponseEntity.ok(relacionObjetoService.listarPorObjeto(id));
+    }
+
+    @Operation(summary = "Obtener grafo de relaciones del objeto")
+    @ApiResponse(responseCode = "200", description = "Grafo obtenido")
+    @GetMapping("/{id}/grafo-relaciones")
+    public ResponseEntity<ObjetoGrafoResponseDTO> obtenerGrafoRelaciones(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "1") Integer profundidad
+    ) {
+        return ResponseEntity.ok(relacionObjetoService.obtenerGrafoRelaciones(id, profundidad));
     }
 
     @Operation(summary = "Dar de baja recurso")
     @ApiResponse(responseCode = "204", description = "Recurso dado de baja")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> bajaLogica(@PathVariable Long id) {
-        objetoMuseoService.bajaLogica(id);
+    public ResponseEntity<Void> bajaLogica(@PathVariable Long id, Authentication authentication) {
+        objetoMuseoService.bajaLogica(id, usuario(authentication));
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Agregar categoria al objeto")
+    @PostMapping("/{id}/categorias")
+    public ResponseEntity<ObjetoMuseoResponseDTO> agregarCategoria(
+            @PathVariable Long id,
+            @RequestBody @Valid AgregarCategoriaObjetoRequestDTO dto
+    ) {
+        return ResponseEntity.ok(objetoMuseoService.agregarCategoria(id, dto));
+    }
+
+    @Operation(summary = "Quitar categoria del objeto")
+    @DeleteMapping("/{id}/categorias/{categoriaId}")
+    public ResponseEntity<ObjetoMuseoResponseDTO> quitarCategoria(@PathVariable Long id, @PathVariable Long categoriaId) {
+        return ResponseEntity.ok(objetoMuseoService.quitarCategoria(id, categoriaId));
+    }
+
+    @Operation(summary = "Subir foto del objeto")
+    @PostMapping(path = "/{id}/fotos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<List<FotoObjetoMuseoResponseDTO>> subirFoto(
+            @PathVariable Long id,
+            @RequestParam(value = "archivos", required = false) List<MultipartFile> archivos,
+            @RequestParam(value = "archivo", required = false) MultipartFile archivo,
+            @RequestParam(value = "descripcion", required = false) String descripcion,
+            Authentication authentication
+    ) {
+        List<MultipartFile> archivosParaSubir = new ArrayList<>();
+        if (archivos != null) {
+            archivosParaSubir.addAll(archivos);
+        }
+        if (archivo != null) {
+            archivosParaSubir.add(archivo);
+        }
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(archivosParaSubir.stream()
+                        .map(item -> fotoObjetoMuseoService.subir(id, item, descripcion, usuario(authentication)))
+                        .toList());
+    }
+
+    @Operation(summary = "Listar fotos del objeto")
+    @GetMapping("/{id}/fotos")
+    public ResponseEntity<List<FotoObjetoMuseoResponseDTO>> listarFotos(@PathVariable Long id) {
+        return ResponseEntity.ok(fotoObjetoMuseoService.listar(id));
+    }
+
+    @Operation(summary = "Listar recibos emitidos para el objeto")
+    @GetMapping("/{id}/recibos")
+    public ResponseEntity<List<ReciboIngresoObjetoResponseDTO>> listarRecibos(@PathVariable Long id) {
+        objetoMuseoService.obtenerPorId(id);
+        return ResponseEntity.ok(reciboIngresoObjetoService.listarPorObjeto(id));
+    }
+
+    @Operation(summary = "Descargar foto del objeto")
+    @GetMapping("/{id}/fotos/{fotoId}")
+    public ResponseEntity<Resource> descargarFoto(@PathVariable Long id, @PathVariable Long fotoId) {
+        FotoObjetoMuseoService.FotoArchivo foto = fotoObjetoMuseoService.descargar(id, fotoId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(foto.metadata().contentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + foto.metadata().nombreArchivo() + "\"")
+                .body(foto.resource());
+    }
+
+    @Operation(summary = "Eliminar foto del objeto")
+    @DeleteMapping("/{id}/fotos/{fotoId}")
+    public ResponseEntity<Void> eliminarFoto(@PathVariable Long id, @PathVariable Long fotoId) {
+        fotoObjetoMuseoService.eliminar(id, fotoId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Subir recibo escaneado del objeto")
+    @PostMapping(path = "/{id}/recibo-escaneado", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ReciboEscaneadoObjetoMuseoResponseDTO> subirReciboEscaneado(
+            @PathVariable Long id,
+            @RequestParam("archivo") MultipartFile archivo,
+            Authentication authentication
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(reciboEscaneadoObjetoMuseoService.subir(id, archivo, usuario(authentication)));
+    }
+
+    @Operation(summary = "Obtener metadata del recibo escaneado del objeto")
+    @GetMapping("/{id}/recibo-escaneado")
+    public ResponseEntity<ReciboEscaneadoObjetoMuseoResponseDTO> obtenerReciboEscaneado(@PathVariable Long id) {
+        return reciboEscaneadoObjetoMuseoService.obtener(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "Descargar recibo escaneado del objeto")
+    @GetMapping("/{id}/recibo-escaneado/archivo")
+    public ResponseEntity<Resource> descargarReciboEscaneado(@PathVariable Long id) {
+        ReciboEscaneadoObjetoMuseoService.ReciboEscaneadoArchivo recibo = reciboEscaneadoObjetoMuseoService.descargar(id);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(recibo.contentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + recibo.nombreArchivo() + "\"")
+                .body(recibo.resource());
+    }
+
+    @Operation(summary = "Eliminar recibo escaneado del objeto")
+    @DeleteMapping("/{id}/recibo-escaneado/{archivoId}")
+    public ResponseEntity<Void> eliminarReciboEscaneado(@PathVariable Long id, @PathVariable Long archivoId) {
+        reciboEscaneadoObjetoMuseoService.eliminar(id, archivoId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Crear objeto por carga rapida y emitir recibo")
+    @PostMapping("/carga-rapida")
+    public ResponseEntity<CargaRapidaObjetoResponseDTO> cargaRapida(
+            @RequestBody @Valid CargaRapidaObjetoRequestDTO dto,
+            Authentication authentication
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(objetoMuseoService.cargaRapida(dto, usuario(authentication)));
+    }
+
+    private String nombreArchivoObjetosPdf() {
+        return "objetos_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm")) + ".pdf";
+    }
+
+    private String nombreArchivoPendientesCompletarPdf() {
+        return "objetos_pendientes_completar_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm")) + ".pdf";
+    }
+
+    private String usuario(Authentication authentication) {
+        if (authentication == null) {
+            return null;
+        }
+        if (authentication instanceof JwtAuthenticationToken jwtAuthentication) {
+            String username = jwtAuthentication.getToken().getClaimAsString("preferred_username");
+            if (StringUtils.hasText(username)) {
+                return username;
+            }
+        }
+        return authentication.getName();
     }
 }

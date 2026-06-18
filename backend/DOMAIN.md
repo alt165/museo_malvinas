@@ -30,15 +30,23 @@ La baja de recursos se implementa como borrado logico. Los services validan que 
 Campos principales:
 
 - `numeroInventario`: unico y obligatorio.
-- `nombre`: obligatorio.
-- `tipoObjeto`.
+- `denominacionObjeto`: denominacion patrimonial principal y obligatoria.
 - `descripcion`.
+- `descripcionTecnica`: descripcion tecnica de la ficha patrimonial.
+- `materiales`: texto libre.
+- `dimensiones`: texto libre.
+- `estadoConservacion`: usa el enum de conservacion existente.
 
 Regla importante:
 
 - No puede existir otro objeto activo con el mismo `numeroInventario`.
+- Las categorias se asignan mediante `ObjetoCategoria`; no se usa `@ManyToMany` directo y no se permiten duplicados activos.
 
 `ObjetoDigital` hereda de `ObjetoMuseo` usando estrategia JPA `JOINED`. En este modelo no representa un archivo asociado; guarda metadatos digitales como formato, resolucion y derechos.
+
+`FotoObjetoMuseo` registra fotos asociadas a un objeto. La base guarda metadata, content type, tamanio, fecha, usuario de carga y ruta interna del archivo. El binario se guarda en storage local configurable.
+
+`ReciboIngresoObjeto` registra el recibo emitido durante carga rapida. Conserva numero, fecha, datos del depositante, objeto, operador, texto de constancia y, cuando se carga posteriormente, metadata de la copia firmada digitalizada.
 
 ## Inventario y movimientos
 
@@ -145,6 +153,8 @@ Tipos:
 
 `ObjetoDepositante` es la entidad intermedia entre objetos y depositantes. Permite registrar fecha de deposito, tipo de deposito y observaciones.
 
+La carga rapida crea un `ObjetoMuseo`, lo vincula al `Depositante` con `ObjetoDepositante` y emite un `ReciboIngresoObjeto`. No crea inventario si faltan ubicacion y estado obligatorios; la ficha e inventario se completan en una carga posterior.
+
 ## Categorias y relaciones
 
 `CategoriaObjeto` clasifica objetos.
@@ -170,4 +180,3 @@ Tipos:
 No se persisten roles locales; Keycloak es la fuente de verdad.
 
 `Auditoria` existe en el modelo para registrar operaciones sobre entidades, con tipo de operacion, entidad, id y datos previos/nuevos.
-

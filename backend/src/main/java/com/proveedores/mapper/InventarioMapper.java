@@ -23,6 +23,6 @@ public final class InventarioMapper {
     }
 
     public static InventarioResponseDTO toResponse(Inventario entity) {
-        return new InventarioResponseDTO(entity.getId(), entity.getObjetoMuseo().getId(), entity.getObjetoMuseo().getNombre(), entity.getUbicacion().getId(), entity.getUbicacion().getNombre(), entity.getEstado(), entity.getEstadoConservacion(), entity.getFechaIngreso(), entity.getFechaSalida(), entity.getFechaUltimoMovimiento(), entity.getObservaciones());
+        return new InventarioResponseDTO(entity.getId(), entity.getObjetoMuseo().getId(), entity.getObjetoMuseo().getDenominacionObjeto(), entity.getUbicacion().getId(), entity.getUbicacion().getNombre(), entity.getEstado(), entity.getEstadoConservacion(), entity.getFechaIngreso(), entity.getFechaSalida(), entity.getFechaUltimoMovimiento(), entity.getObservaciones());
     }
 }

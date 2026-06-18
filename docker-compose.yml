@@ -32,7 +32,8 @@ services:
     ports:
       - "8081:8080"
     volumes:
-      - ./backend/docker/keycloak:/opt/keycloak/data/import:ro
+      - ./backend/docker/keycloak/museo-realm.json:/opt/keycloak/data/import/museo-realm.json:ro
+      - ./backend/docker/keycloak/themes:/opt/keycloak/themes:ro
     networks:
       - museo_network
 
@@ -49,7 +50,13 @@ services:
       KEYCLOAK_ISSUER_URI: ${KEYCLOAK_ISSUER_URI:-http://localhost:8081/realms/museo}
       KEYCLOAK_JWK_SET_URI: ${KEYCLOAK_JWK_SET_URI:-http://keycloak:8080/realms/museo/protocol/openid-connect/certs}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-museo-backend}
-      APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
+      KEYCLOAK_ADMIN_SERVER_URL: ${KEYCLOAK_ADMIN_SERVER_URL:-http://keycloak:8080}
+      KEYCLOAK_ADMIN_REALM: ${KEYCLOAK_ADMIN_REALM:-museo}
+      KEYCLOAK_ADMIN_CLIENT_ID: ${KEYCLOAK_ADMIN_CLIENT_ID:-museo-admin}
+      KEYCLOAK_ADMIN_CLIENT_SECRET: ${KEYCLOAK_ADMIN_CLIENT_SECRET:-museo-admin-secret}
+      APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173,http://localhost:13000}
+      APP_STORAGE_OBJECT_FILES_DIR: ${APP_STORAGE_OBJECT_FILES_DIR:-/app/storage/object-files}
+      APP_STORAGE_SIGNED_RECEIPTS_DIR: ${APP_STORAGE_SIGNED_RECEIPTS_DIR:-/app/storage/signed-receipts}
     depends_on:
       postgres:
         condition: service_healthy
@@ -60,6 +67,8 @@ services:
     read_only: true
     tmpfs:
       - /tmp
+    volumes:
+      - backend_storage:/app/storage
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health/readiness >/dev/null"]
       interval: 10s
@@ -69,8 +78,33 @@ services:
     networks:
       - museo_network
 
+  frontend:
+    container_name: museo-frontend
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}
+        NEXT_PUBLIC_KEYCLOAK_URL: ${NEXT_PUBLIC_KEYCLOAK_URL:-http://localhost:8081}
+        NEXT_PUBLIC_KEYCLOAK_REALM: ${NEXT_PUBLIC_KEYCLOAK_REALM:-museo}
+        NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: ${NEXT_PUBLIC_KEYCLOAK_CLIENT_ID:-museo-frontend}
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}
+      NEXT_PUBLIC_KEYCLOAK_URL: ${NEXT_PUBLIC_KEYCLOAK_URL:-http://localhost:8081}
+      NEXT_PUBLIC_KEYCLOAK_REALM: ${NEXT_PUBLIC_KEYCLOAK_REALM:-museo}
+      NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: ${NEXT_PUBLIC_KEYCLOAK_CLIENT_ID:-museo-frontend}
+    depends_on:
+      backend:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    networks:
+      - museo_network
+
 volumes:
   postgres_data:
+  backend_storage:
 
 networks:
   museo_network:

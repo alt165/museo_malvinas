@@ -18,6 +18,12 @@ public record DepositanteRequestDTO(
         @Size(max = 160, message = "El contacto no puede superar 160 caracteres")
         String contacto,
 
+        @Size(max = 30, message = "El DNI no puede superar 30 caracteres")
+        String dni,
+
+        @Size(max = 30, message = "El CUIT no puede superar 30 caracteres")
+        String cuit,
+
         String observaciones
 ) {
 }

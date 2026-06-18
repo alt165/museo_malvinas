@@ -7,6 +7,7 @@ import com.proveedores.entity.EstadoExhibicionObjeto;
 import com.proveedores.entity.Exhibicion;
 import com.proveedores.entity.ExhibicionObjeto;
 import com.proveedores.entity.ObjetoMuseo;
+import com.proveedores.entity.TipoOperacionAuditoria;
 import com.proveedores.entity.Usuario;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
@@ -31,16 +32,23 @@ public class ExhibicionObjetoService {
     private final ExhibicionRepository exhibicionRepository;
     private final ObjetoMuseoRepository objetoMuseoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final AuditoriaObjetoService auditoriaObjetoService;
 
-    public ExhibicionObjetoService(ExhibicionObjetoRepository exhibicionObjetoRepository, ExhibicionRepository exhibicionRepository, ObjetoMuseoRepository objetoMuseoRepository, UsuarioRepository usuarioRepository) {
+    public ExhibicionObjetoService(ExhibicionObjetoRepository exhibicionObjetoRepository, ExhibicionRepository exhibicionRepository, ObjetoMuseoRepository objetoMuseoRepository, UsuarioRepository usuarioRepository, AuditoriaObjetoService auditoriaObjetoService) {
         this.exhibicionObjetoRepository = exhibicionObjetoRepository;
         this.exhibicionRepository = exhibicionRepository;
         this.objetoMuseoRepository = objetoMuseoRepository;
         this.usuarioRepository = usuarioRepository;
+        this.auditoriaObjetoService = auditoriaObjetoService;
     }
 
     @Transactional
     public ExhibicionObjetoResponseDTO crear(ExhibicionObjetoRequestDTO dto) {
+        return crear(dto, null);
+    }
+
+    @Transactional
+    public ExhibicionObjetoResponseDTO crear(ExhibicionObjetoRequestDTO dto, String operador) {
         Exhibicion exhibicion = buscarExhibicion(dto.exhibicionId());
         ObjetoMuseo objeto = buscarObjeto(dto.objetoMuseoId());
         validarObjetoNoEsteEnOtraExhibicionActiva(objeto.getId(), null, exhibicion);
@@ -49,6 +57,16 @@ public class ExhibicionObjetoService {
         entity.setObjetoMuseo(objeto);
         entity.setVerificadoPor(buscarUsuarioOpcional(dto.verificadoPorUsuarioId()));
         ExhibicionObjeto saved = exhibicionObjetoRepository.save(entity);
+        auditoriaObjetoService.registrar(
+                objeto,
+                TipoOperacionAuditoria.MODIFICACION,
+                "INCORPORACION_EXHIBICION",
+                "Incorporación del objeto a exhibición",
+                "EXHIBICION",
+                null,
+                snapshotExhibicion(saved),
+                operador
+        );
         log.info("event=exhibicion_objeto.created exhibicionObjetoId={} exhibicionId={} objetoMuseoId={} estado={}", saved.getId(), exhibicion.getId(), objeto.getId(), saved.getEstado());
         return ExhibicionObjetoMapper.toResponse(saved);
     }
@@ -85,25 +103,101 @@ public class ExhibicionObjetoService {
 
     @Transactional
     public ExhibicionObjetoResponseDTO verificarDevolucion(Long id, Long usuarioId, String observaciones) {
+        return verificarDevolucion(id, usuarioId, observaciones, null);
+    }
+
+    @Transactional
+    public ExhibicionObjetoResponseDTO verificarDevolucion(Long id, Long usuarioId, String observaciones, String operador) {
         ExhibicionObjeto entity = buscarActivo(id);
+        var anteriores = snapshotExhibicion(entity);
         entity.setEstado(EstadoExhibicionObjeto.DEVUELTO);
         entity.setDevolucionVerificada(true);
         entity.setVerificadoPor(buscarUsuarioOpcional(usuarioId));
         entity.setFechaVerificacion(LocalDateTime.now());
         entity.setObservacionesDevolucion(observaciones);
         ExhibicionObjeto saved = exhibicionObjetoRepository.save(entity);
+        auditoriaObjetoService.registrar(
+                saved.getObjetoMuseo(),
+                TipoOperacionAuditoria.MODIFICACION,
+                "VERIFICACION_DEVOLUCION",
+                "Verificación de devolución del objeto en exhibición",
+                "EXHIBICION",
+                anteriores,
+                snapshotExhibicion(saved),
+                operador
+        );
         log.info("event=exhibicion_objeto.return_verified exhibicionObjetoId={} exhibicionId={} objetoMuseoId={}", saved.getId(), saved.getExhibicion().getId(), saved.getObjetoMuseo().getId());
         return ExhibicionObjetoMapper.toResponse(saved);
     }
 
     @Transactional
-    public void bajaLogica(Long id) {
+    public ExhibicionObjetoResponseDTO revertirDevolucion(Long id) {
+        return revertirDevolucion(id, null);
+    }
+
+    @Transactional
+    public ExhibicionObjetoResponseDTO revertirDevolucion(Long id, String operador) {
         ExhibicionObjeto entity = buscarActivo(id);
+        var anteriores = snapshotExhibicion(entity);
+        entity.setEstado(EstadoExhibicionObjeto.EN_EXHIBICION);
+        entity.setDevolucionVerificada(false);
+        entity.setVerificadoPor(null);
+        entity.setFechaVerificacion(null);
+        entity.setFechaRetiro(null);
+        ExhibicionObjeto saved = exhibicionObjetoRepository.save(entity);
+        auditoriaObjetoService.registrar(
+                saved.getObjetoMuseo(),
+                TipoOperacionAuditoria.MODIFICACION,
+                "REVERSION_DEVOLUCION",
+                "Reversión de verificación de devolución del objeto",
+                "EXHIBICION",
+                anteriores,
+                snapshotExhibicion(saved),
+                operador
+        );
+        log.info("event=exhibicion_objeto.return_reverted exhibicionObjetoId={} exhibicionId={} objetoMuseoId={}", saved.getId(), saved.getExhibicion().getId(), saved.getObjetoMuseo().getId());
+        return ExhibicionObjetoMapper.toResponse(saved);
+    }
+
+    @Transactional
+    public void bajaLogica(Long id) {
+        bajaLogica(id, null);
+    }
+
+    @Transactional
+    public void bajaLogica(Long id, String operador) {
+        ExhibicionObjeto entity = buscarActivo(id);
+        var anteriores = snapshotExhibicion(entity);
         entity.setActivo(false);
         entity.setEliminado(true);
         entity.setFechaEliminacion(LocalDateTime.now());
         exhibicionObjetoRepository.save(entity);
+        auditoriaObjetoService.registrar(
+                entity.getObjetoMuseo(),
+                TipoOperacionAuditoria.MODIFICACION,
+                "REMOCION_EXHIBICION",
+                "Remoción del objeto de exhibición",
+                "EXHIBICION",
+                anteriores,
+                null,
+                operador
+        );
         log.info("event=exhibicion_objeto.deleted exhibicionObjetoId={} exhibicionId={} objetoMuseoId={}", entity.getId(), entity.getExhibicion().getId(), entity.getObjetoMuseo().getId());
+    }
+
+
+    private java.util.Map<String, Object> snapshotExhibicion(ExhibicionObjeto entity) {
+        return auditoriaObjetoService.mapOf(
+                "exhibicionObjetoId", entity.getId(),
+                "exhibicionId", entity.getExhibicion() == null ? null : entity.getExhibicion().getId(),
+                "exhibicion", entity.getExhibicion() == null ? null : entity.getExhibicion().getNombre(),
+                "estado", entity.getEstado(),
+                "fechaInclusion", entity.getFechaInclusion(),
+                "fechaRetiro", entity.getFechaRetiro(),
+                "devolucionVerificada", entity.getDevolucionVerificada(),
+                "fechaVerificacion", entity.getFechaVerificacion(),
+                "observacionesDevolucion", entity.getObservacionesDevolucion()
+        );
     }
 
     private void validarObjetoNoEsteEnOtraExhibicionActiva(Long objetoId, Long relacionActualId, Exhibicion exhibicion) {

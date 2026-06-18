@@ -18,6 +18,6 @@ public final class ObjetoVeteranoMapper {
     }
 
     public static ObjetoVeteranoResponseDTO toResponse(ObjetoVeterano entity) {
-        return new ObjetoVeteranoResponseDTO(entity.getId(), entity.getObjetoMuseo().getId(), entity.getObjetoMuseo().getNombre(), entity.getVeterano().getId(), entity.getVeterano().getNombre() + " " + entity.getVeterano().getApellido(), entity.getTipoRelacion(), entity.getDescripcion());
+        return new ObjetoVeteranoResponseDTO(entity.getId(), entity.getObjetoMuseo().getId(), entity.getObjetoMuseo().getDenominacionObjeto(), entity.getVeterano().getId(), entity.getVeterano().getNombre() + " " + entity.getVeterano().getApellido(), entity.getTipoRelacion(), entity.getDescripcion());
     }
 }

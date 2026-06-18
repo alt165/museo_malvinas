@@ -39,7 +39,7 @@ Puertos por defecto:
 Si esos puertos estan ocupados:
 
 ```bash
-POSTGRES_PORT=55432 BACKEND_PORT=18080 docker compose up --build
+POSTGRES_PORT=55432 BACKEND_PORT=18080 KEYCLOAK_PORT=18081 FRONTEND_PORT=13000 docker compose up --build --wait
 ```
 
 El compose levanta:
@@ -47,6 +47,10 @@ El compose levanta:
 - `museo-postgres`: base PostgreSQL con volumen persistente.
 - `museo-keycloak`: Keycloak local con realm importado desde `docker/keycloak/museo-realm.json`.
 - `museo-backend`: aplicacion Spring Boot.
+
+La administracion de usuarios se realiza contra Keycloak desde `/api/admin/usuarios`. El DNI de cada usuario es obligatorio en altas/ediciones, se maneja como string y se guarda como atributo custom de Keycloak (`attributes["dni"] = ["..."]`), sin persistirse en PostgreSQL.
+
+Los objetos de museo soportan ficha patrimonial extendida, carga rapida con recibo, fotos y copia firmada digitalizada del recibo. Los archivos se guardan en storage local configurable (`APP_STORAGE_OBJECT_PHOTOS_DIR`, `APP_STORAGE_SIGNED_RECEIPTS_DIR`) y PostgreSQL conserva solo metadata/rutas internas.
 
 ## Swagger y documentacion interactiva
 
@@ -97,4 +101,3 @@ mvn test
 ```
 
 La suite incluye tests unitarios de servicios y tests de integracion con Testcontainers y PostgreSQL real. Los tests de integracion validan Flyway, JPA, repositorios, servicios y reglas criticas contra una base real.
-

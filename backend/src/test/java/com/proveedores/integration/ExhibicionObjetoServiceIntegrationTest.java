@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.proveedores.dto.ExhibicionObjetoRequestDTO;
 import com.proveedores.dto.ExhibicionRequestDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
+import com.proveedores.entity.CaracterRecepcionObjeto;
 import com.proveedores.entity.EstadoExhibicion;
 import com.proveedores.entity.EstadoExhibicionObjeto;
 import com.proveedores.entity.TipoExhibicion;
@@ -37,7 +38,11 @@ class ExhibicionObjetoServiceIntegrationTest extends IntegrationTestBase {
         var objeto = objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
                 "IT-EXO-001",
                 "Cantimplora",
-                "Equipamiento",
+                null,
+                null, null, null, null, null,
+                null,
+                1L,
+                CaracterRecepcionObjeto.DONACION,
                 null
         ));
         var exhibicionActiva = crearExhibicion("IT Exhibicion activa A", EstadoExhibicion.ACTIVA);
@@ -56,7 +61,11 @@ class ExhibicionObjetoServiceIntegrationTest extends IntegrationTestBase {
         var objeto = objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
                 "IT-EXO-DEV",
                 "Cuaderno de notas",
-                "Documento",
+                null,
+                null, null, null, null, null,
+                null,
+                1L,
+                CaracterRecepcionObjeto.DONACION,
                 null
         ));
         var exhibicion = crearExhibicion("IT Exhibicion devolucion", EstadoExhibicion.ACTIVA);

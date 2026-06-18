@@ -1,0 +1,60 @@
+"use client";
+
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { ErrorState } from "@/components/common/error-state";
+import { LoadingState } from "@/components/common/loading-state";
+import { PageHeader } from "@/components/common/page-header";
+import { AppShell } from "@/components/layout/app-shell";
+import { useActuacionVeteranoQuery, useBajaLogicaActuacionVeteranoMutation } from "@/features/veteranos/queries";
+import { formatDate, getApiErrorMessage } from "@/features/veteranos/utils";
+import { useEditingMode } from "@/lib/editing-mode";
+import { ApiClientError } from "@/lib/errors/api-error";
+
+function getParamId(value: string | string[] | undefined) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const id = Number(raw);
+  return Number.isFinite(id) ? id : NaN;
+}
+
+export default function DetalleActuacionVeteranoPage() {
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const id = getParamId(params.id);
+  const { canEdit: puedeEscribir } = useEditingMode();
+  const { data, error, isError, isLoading } = useActuacionVeteranoQuery(id);
+  const bajaMutation = useBajaLogicaActuacionVeteranoMutation(data?.veteranoId);
+
+  function handleDelete() {
+    if (window.confirm("Dar de baja esta actuacion?")) {
+      bajaMutation.mutate(id, { onSuccess: () => router.push("/actuaciones-veteranos") });
+    }
+  }
+
+  return (
+    <AppShell>
+      <div className="space-y-6">
+        <PageHeader
+          actions={<div className="flex gap-2"><Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/actuaciones-veteranos">Volver</Link>{data ? <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href={`/veteranos/${data.veteranoId}`}>Ver veterano</Link> : null}{puedeEscribir && data ? <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href={`/actuaciones-veteranos/${data.id}/editar`}>Editar</Link> : null}{puedeEscribir && data ? <button className="rounded-md border px-4 py-2 text-sm font-medium text-destructive hover:bg-muted disabled:opacity-60" disabled={bajaMutation.isPending} onClick={handleDelete} type="button">Baja</button> : null}</div>}
+          description="Datos de la actuacion historica."
+          title="Detalle de actuacion"
+        />
+        {isLoading ? <LoadingState label="Cargando actuacion..." /> : null}
+        {isError ? <ErrorState message={getApiErrorMessage(error)} requestId={error instanceof ApiClientError ? error.requestId : undefined} /> : null}
+        {bajaMutation.isError ? <ErrorState message={getApiErrorMessage(bajaMutation.error)} requestId={bajaMutation.error instanceof ApiClientError ? bajaMutation.error.requestId : undefined} /> : null}
+        {data ? (
+          <div className="rounded-lg border p-5">
+            <dl className="grid gap-5 text-sm sm:grid-cols-2">
+              <div><dt className="text-muted-foreground">Veterano</dt><dd className="font-medium">{data.veteranoNombreCompleto}</dd></div>
+              <div><dt className="text-muted-foreground">Periodo</dt><dd className="font-medium">{formatDate(data.fechaInicio)} - {formatDate(data.fechaFin)}</dd></div>
+              <div><dt className="text-muted-foreground">Rango</dt><dd className="font-medium">{data.rangoNombre || data.rango || "Sin rango"}</dd></div>
+              <div><dt className="text-muted-foreground">Unidad</dt><dd className="font-medium">{data.unidadSigla ? `${data.unidadSigla} - ${data.unidadNombre || data.unidad || "Sin unidad"}` : data.unidadNombre || data.unidad || "Sin unidad"}</dd></div>
+              <div><dt className="text-muted-foreground">Rol</dt><dd className="font-medium">{data.rol || "Sin rol"}</dd></div>
+              <div className="sm:col-span-2"><dt className="text-muted-foreground">Descripcion</dt><dd className="whitespace-pre-wrap font-medium">{data.descripcion || "Sin descripcion"}</dd></div>
+            </dl>
+          </div>
+        ) : null}
+      </div>
+    </AppShell>
+  );
+}

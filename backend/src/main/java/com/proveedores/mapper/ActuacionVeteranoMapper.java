@@ -3,6 +3,8 @@ package com.proveedores.mapper;
 import com.proveedores.dto.ActuacionVeteranoRequestDTO;
 import com.proveedores.dto.ActuacionVeteranoResponseDTO;
 import com.proveedores.entity.ActuacionVeterano;
+import com.proveedores.entity.RangoMilitar;
+import com.proveedores.entity.UnidadMilitar;
 
 public final class ActuacionVeteranoMapper {
     private ActuacionVeteranoMapper() {
@@ -21,6 +23,25 @@ public final class ActuacionVeteranoMapper {
     }
 
     public static ActuacionVeteranoResponseDTO toResponse(ActuacionVeterano entity) {
-        return new ActuacionVeteranoResponseDTO(entity.getId(), entity.getVeterano().getId(), entity.getVeterano().getNombre() + " " + entity.getVeterano().getApellido(), entity.getRango(), entity.getUnidad(), entity.getRol(), entity.getFechaInicio(), entity.getFechaFin(), entity.getDescripcion());
+        RangoMilitar rangoMilitar = entity.getRangoMilitar();
+        UnidadMilitar unidadMilitar = entity.getUnidadMilitar();
+        String rangoNombre = rangoMilitar != null ? rangoMilitar.getNombre() : entity.getRango();
+        String unidadNombre = unidadMilitar != null ? unidadMilitar.getNombre() : entity.getUnidad();
+        return new ActuacionVeteranoResponseDTO(
+                entity.getId(),
+                entity.getVeterano().getId(),
+                entity.getVeterano().getNombre() + " " + entity.getVeterano().getApellido(),
+                entity.getRango(),
+                entity.getUnidad(),
+                rangoMilitar != null ? rangoMilitar.getId() : null,
+                rangoNombre,
+                unidadMilitar != null ? unidadMilitar.getId() : null,
+                unidadNombre,
+                unidadMilitar != null ? unidadMilitar.getSigla() : null,
+                entity.getRol(),
+                entity.getFechaInicio(),
+                entity.getFechaFin(),
+                entity.getDescripcion()
+        );
     }
 }

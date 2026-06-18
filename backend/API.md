@@ -26,6 +26,7 @@ Authorization: Bearer <access_token>
 
 Permisos generales actuales:
 
+- `/api/admin/**`: solo `ADMIN`
 - `GET /api/**`: `ADMIN`, `OPERATOR`, `VIEWER`
 - `POST /api/**`: `ADMIN`, `OPERATOR`
 - `PUT /api/**`: `ADMIN`, `OPERATOR`
@@ -58,10 +59,98 @@ DELETE /api/<recurso>/{id}  -> baja logica, responde 204
 | Actuaciones de veteranos | `/api/actuaciones-veteranos` | Participacion, unidad, rol y periodo. |
 | Depositantes | `/api/depositantes` | Personas o instituciones depositantes. |
 | Categorias | `/api/categorias` | Clasificacion de objetos. |
+| Colecciones de objetos | `/api/colecciones` | Agrupaciones opcionales 1:N de objetos patrimoniales. |
 | Ubicaciones | `/api/ubicaciones` | Lugares fisicos/logicos del museo. |
 | Relaciones entre objetos | `/api/relaciones-objetos` | Vinculos semanticos entre objetos. |
+| Administracion de usuarios | `/api/admin/usuarios` | Usuarios reales en Keycloak. Solo `ADMIN`. |
+| Recibos de ingreso | `/api/recibos` | Recibos emitidos por carga rapida y copia firmada digitalizada. |
 
 ## Endpoints especiales
+
+### Administrar usuarios Keycloak
+
+```http
+GET    /api/admin/usuarios
+GET    /api/admin/usuarios/{id}
+POST   /api/admin/usuarios
+PUT    /api/admin/usuarios/{id}
+PATCH  /api/admin/usuarios/{id}/estado?habilitado=true
+PUT    /api/admin/usuarios/{id}/roles
+POST   /api/admin/usuarios/{id}/reset-password
+```
+
+El campo `dni` es obligatorio y se trata siempre como string. El backend lo guarda en Keycloak como atributo custom:
+
+```json
+{
+  "attributes": {
+    "dni": ["12345678"]
+  }
+}
+```
+
+No se usa como username, no participa del login y no se persiste en PostgreSQL.
+
+### Objetos, fotos y recibos
+
+```http
+POST   /api/objetos/{id}/categorias
+DELETE /api/objetos/{id}/categorias/{categoriaId}
+POST   /api/objetos/{id}/fotos
+GET    /api/objetos/{id}/fotos
+GET    /api/objetos/{id}/fotos/{fotoId}
+DELETE /api/objetos/{id}/fotos/{fotoId}
+POST   /api/objetos/{id}/recibo-escaneado
+GET    /api/objetos/{id}/recibo-escaneado
+GET    /api/objetos/{id}/recibo-escaneado/archivo
+DELETE /api/objetos/{id}/recibo-escaneado/{archivoId}
+POST   /api/objetos/carga-rapida
+GET    /api/objetos/pendientes-completar
+GET    /api/objetos/sin-coleccion
+GET    /api/objetos/{id}/relaciones
+GET    /api/objetos/{id}/grafo-relaciones?profundidad=1
+GET    /api/objetos/{id}/recibos
+GET    /api/recibos/{id}
+GET    /api/recibos/{id}/pdf
+POST   /api/recibos/{id}/copia-firmada
+GET    /api/recibos/{id}/copia-firmada
+```
+
+Las fotos aceptan `image/jpeg`, `image/png` e `image/webp`; `POST /api/objetos/{id}/fotos` consume `multipart/form-data` y permite enviar multiples partes `archivos`. El recibo escaneado del objeto es opcional, consume `multipart/form-data`, acepta `application/pdf`, `image/jpeg`, `image/png` e `image/webp`, y mantiene un unico archivo activo por objeto reemplazando el anterior. La copia firmada de un recibo emitido sigue usando `/api/recibos/{id}/copia-firmada`.
+
+Los binarios se guardan en storage local configurable por `APP_STORAGE_OBJECT_FILES_DIR`; PostgreSQL conserva metadata y rutas internas. Los archivos no se exponen por ruta publica directa: se descargan por endpoints autenticados.
+
+### Colecciones de objetos
+
+```http
+GET    /api/colecciones
+GET    /api/colecciones/{id}
+POST   /api/colecciones
+PUT    /api/colecciones/{id}
+DELETE /api/colecciones/{id}
+GET    /api/colecciones/{id}/objetos
+POST   /api/colecciones/{id}/objetos
+DELETE /api/colecciones/{id}/objetos/{objetoId}
+GET    /api/objetos/sin-coleccion
+```
+
+Cada objeto puede pertenecer como maximo a una coleccion. `POST /api/colecciones/{id}/objetos` acepta `{ "objetoIds": [1, 2] }` y solo asocia objetos activos, no eliminados y sin coleccion previa. `DELETE /api/colecciones/{id}/objetos/{objetoId}` deja el objeto sin coleccion. Al dar de baja una coleccion se desvinculan sus objetos asociados y no se eliminan los objetos.
+
+### Relaciones entre objetos
+
+```http
+GET    /api/relaciones-objetos
+GET    /api/relaciones-objetos/{id}
+POST   /api/relaciones-objetos
+PUT    /api/relaciones-objetos/{id}
+DELETE /api/relaciones-objetos/{id}
+GET    /api/objetos/{id}/relaciones
+GET    /api/objetos/{id}/grafo-relaciones?profundidad=1
+```
+
+Las relaciones son direccionales: `objetoOrigenId -> objetoDestinoId`. No se permite relacionar un objeto consigo mismo ni duplicar una relacion activa con el mismo origen, destino y tipo. `GET /api/objetos/{id}/relaciones` consulta en base de datos relaciones entrantes y salientes del objeto e informa la direccion relativa como `ENTRANTE` o `SALIENTE`. La baja es logica.
+
+`GET /api/objetos/{id}/grafo-relaciones` devuelve `nodes` y `edges` para visualizar el grafo del objeto. La profundidad es opcional, por defecto `1`; si se solicita una profundidad mayor a `3`, el backend responde `400` con `BusinessException`.
 
 ### Finalizar exhibicion
 
@@ -89,9 +178,13 @@ curl -X POST http://localhost:8080/api/objetos \
   -H "Content-Type: application/json" \
   -d '{
     "numeroInventario": "MM-2026-001",
-    "nombre": "Casco de combate",
-    "tipoObjeto": "Equipo",
-    "descripcion": "Objeto historico catalogado para inventario."
+    "denominacionObjeto": "Casco de combate",
+    "descripcion": "Objeto historico catalogado para inventario.",
+    "descripcionTecnica": "Casco metalico con correas interiores.",
+    "materiales": "Metal y cuero",
+    "dimensiones": "30 x 24 x 18 cm",
+    "estadoConservacion": "BUENO",
+    "categoriaIds": [1, 2]
   }'
 ```
 
@@ -101,10 +194,48 @@ Respuesta:
 {
   "id": 1,
   "numeroInventario": "MM-2026-001",
-  "nombre": "Casco de combate",
-  "tipoObjeto": "Equipo",
-  "descripcion": "Objeto historico catalogado para inventario."
+  "denominacionObjeto": "Casco de combate",
+  "descripcion": "Objeto historico catalogado para inventario.",
+  "descripcionTecnica": "Casco metalico con correas interiores.",
+  "materiales": "Metal y cuero",
+  "dimensiones": "30 x 24 x 18 cm",
+  "estadoConservacion": "BUENO",
+  "categorias": []
 }
+```
+
+### Carga rapida de objeto
+
+```bash
+curl -X POST http://localhost:8080/api/objetos/carga-rapida \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "depositanteId": 1,
+    "denominacionObjeto": "Carta familiar",
+    "numeroInventario": "MM-2026-QR-001",
+    "descripcionBreve": "Carta entregada por depositante para registro inicial."
+  }'
+```
+
+La respuesta incluye el objeto creado, el recibo emitido y `reciboPdfUrl`.
+
+### Adjuntar fotos, recibo escaneado y copia firmada
+
+```bash
+curl -X POST http://localhost:8080/api/objetos/1/fotos \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "archivos=@foto-frente.webp;type=image/webp" \
+  -F "archivos=@foto-dorso.jpg;type=image/jpeg" \
+  -F "descripcion=Registro inicial"
+
+curl -X POST http://localhost:8080/api/objetos/1/recibo-escaneado \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "archivo=@recibo-escaneado.pdf;type=application/pdf"
+
+curl -X POST http://localhost:8080/api/recibos/1/copia-firmada \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "archivo=@recibo-firmado.pdf;type=application/pdf"
 ```
 
 ### Crear inventario
@@ -139,6 +270,26 @@ curl -X POST http://localhost:8080/api/exhibiciones \
     "estado": "ACTIVA"
   }'
 ```
+
+### Crear usuario Keycloak
+
+```bash
+curl -X POST http://localhost:8080/api/admin/usuarios \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "jperez",
+    "email": "jperez@local.test",
+    "dni": "12345678",
+    "nombre": "Juan",
+    "apellido": "Perez",
+    "habilitado": true,
+    "contrasenaInicial": "Temporal123",
+    "roles": ["VIEWER"]
+  }'
+```
+
+`contrasenaInicial`, si se informa, se configura como temporal y nunca se devuelve en responses.
 
 ### Asociar objeto a exhibicion
 
@@ -196,4 +347,3 @@ Codigos habituales:
 - `404`: recurso inexistente o eliminado logicamente.
 - `409`: violacion de restriccion de datos.
 - `500`: error interno no controlado.
-

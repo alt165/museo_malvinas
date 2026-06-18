@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -23,6 +24,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @EnableConfigurationProperties(KeycloakSecurityProperties.class)
 public class SecurityConfig {
 
@@ -49,6 +51,16 @@ public class SecurityConfig {
                                 "/v3/api-docs",
                                 "/v3/api-docs/**"
                         ).permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/objetos/vencimientos-proximos").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/objetos/pendientes-completar/export/pdf").hasAnyRole("ADMIN", "OPERATOR")
+                        .requestMatchers(HttpMethod.GET, "/api/objetos/pendientes-completar").hasAnyRole("ADMIN", "OPERATOR")
+                        .requestMatchers(HttpMethod.GET, "/api/objetos/*/movimientos").hasAnyRole("ADMIN", "OPERATOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/colecciones/*").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/ubicaciones/**").hasAnyRole("ADMIN", "OPERATOR")
+                        .requestMatchers(HttpMethod.POST, "/api/ubicaciones/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/ubicaciones/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/ubicaciones/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole("ADMIN", "OPERATOR", "VIEWER")
                         .requestMatchers(HttpMethod.POST, "/api/**").hasAnyRole("ADMIN", "OPERATOR")
                         .requestMatchers(HttpMethod.PUT, "/api/**").hasAnyRole("ADMIN", "OPERATOR")

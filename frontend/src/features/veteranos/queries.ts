@@ -1,0 +1,247 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  actualizarActuacionVeterano,
+  actualizarVeterano,
+  asociarObjetoAVeterano,
+  bajaLogicaActuacionVeterano,
+  bajaLogicaVeterano,
+  buscarUnidadesMilitares,
+  crearActuacionVeterano,
+  crearVeterano,
+  crearVideoVeterano,
+  eliminarImagenVeterano,
+  eliminarRelacionObjetoVeterano,
+  eliminarVideoVeterano,
+  listarActuacionesPorVeterano,
+  listarActuacionesVeteranos,
+  listarImagenesVeterano,
+  listarObjetosRelacionadosAVeterano,
+  listarRangosMilitares,
+  listarRelacionesObjetoVeterano,
+  listarVeteranos,
+  listarVideosVeterano,
+  obtenerActuacionVeteranoPorId,
+  obtenerVeteranoPorId,
+  subirImagenesVeterano,
+  actualizarVideoVeterano
+} from "./api";
+import type { ActuacionVeteranoRequestDTO, Fuerza, ObjetoVeteranoRequestDTO, VeteranoRequestDTO, VeteranoVideoRequestDTO } from "./types";
+
+export const veteranosQueryKeys = {
+  all: ["veteranos"] as const,
+  lists: () => [...veteranosQueryKeys.all, "list"] as const,
+  detail: (id: number) => [...veteranosQueryKeys.all, "detail", id] as const,
+  actuaciones: (id: number) => [...veteranosQueryKeys.all, "actuaciones", id] as const,
+  objetos: (id: number) => [...veteranosQueryKeys.all, "objetos", id] as const,
+  imagenes: (id: number) => [...veteranosQueryKeys.all, "imagenes", id] as const,
+  videos: (id: number) => [...veteranosQueryKeys.all, "videos", id] as const
+};
+
+export const actuacionesVeteranosQueryKeys = {
+  all: ["actuaciones-veteranos"] as const,
+  lists: () => [...actuacionesVeteranosQueryKeys.all, "list"] as const,
+  detail: (id: number) => [...actuacionesVeteranosQueryKeys.all, "detail", id] as const
+};
+
+export const objetosVeteranosQueryKeys = {
+  all: ["objetos-veteranos"] as const,
+  lists: () => [...objetosVeteranosQueryKeys.all, "list"] as const
+};
+
+export const catalogosMilitaresQueryKeys = {
+  all: ["catalogos-militares"] as const,
+  rangos: (fuerza?: Fuerza) => [...catalogosMilitaresQueryKeys.all, "rangos", fuerza] as const,
+  unidades: (fuerza?: Fuerza, buscar = "") => [...catalogosMilitaresQueryKeys.all, "unidades", fuerza, buscar] as const
+};
+
+export function useVeteranosQuery() {
+  return useQuery({ queryKey: veteranosQueryKeys.lists(), queryFn: listarVeteranos });
+}
+
+export function useRangosMilitaresQuery(fuerza?: Fuerza) {
+  return useQuery({
+    queryKey: catalogosMilitaresQueryKeys.rangos(fuerza),
+    queryFn: () => listarRangosMilitares(fuerza as Fuerza),
+    enabled: Boolean(fuerza)
+  });
+}
+
+export function useUnidadesMilitaresQuery(fuerza?: Fuerza, buscar = "") {
+  return useQuery({
+    queryKey: catalogosMilitaresQueryKeys.unidades(fuerza, buscar),
+    queryFn: () => buscarUnidadesMilitares(fuerza as Fuerza, buscar),
+    enabled: Boolean(fuerza)
+  });
+}
+
+export function useVeteranoQuery(id: number) {
+  return useQuery({ queryKey: veteranosQueryKeys.detail(id), queryFn: () => obtenerVeteranoPorId(id), enabled: Number.isFinite(id) });
+}
+
+export function useActuacionesVeteranosQuery() {
+  return useQuery({ queryKey: actuacionesVeteranosQueryKeys.lists(), queryFn: listarActuacionesVeteranos });
+}
+
+export function useActuacionVeteranoQuery(id: number) {
+  return useQuery({
+    queryKey: actuacionesVeteranosQueryKeys.detail(id),
+    queryFn: () => obtenerActuacionVeteranoPorId(id),
+    enabled: Number.isFinite(id)
+  });
+}
+
+export function useActuacionesVeteranoQuery(id: number) {
+  return useQuery({ queryKey: veteranosQueryKeys.actuaciones(id), queryFn: () => listarActuacionesPorVeterano(id), enabled: Number.isFinite(id) });
+}
+
+export function useObjetosVeteranoQuery(id: number) {
+  return useQuery({ queryKey: veteranosQueryKeys.objetos(id), queryFn: () => listarObjetosRelacionadosAVeterano(id), enabled: Number.isFinite(id) });
+}
+
+export function useImagenesVeteranoQuery(id: number) {
+  return useQuery({ queryKey: veteranosQueryKeys.imagenes(id), queryFn: () => listarImagenesVeterano(id), enabled: Number.isFinite(id) });
+}
+
+export function useVideosVeteranoQuery(id: number) {
+  return useQuery({ queryKey: veteranosQueryKeys.videos(id), queryFn: () => listarVideosVeterano(id), enabled: Number.isFinite(id) });
+}
+
+export function useRelacionesObjetoVeteranoQuery() {
+  return useQuery({ queryKey: objetosVeteranosQueryKeys.lists(), queryFn: listarRelacionesObjetoVeterano });
+}
+
+export function useCrearVeteranoMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({ mutationFn: crearVeterano, onSuccess: () => void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.all }) });
+}
+
+export function useActualizarVeteranoMutation(id: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: VeteranoRequestDTO) => actualizarVeterano(id, payload),
+    onSuccess: (veterano) => {
+      queryClient.setQueryData(veteranosQueryKeys.detail(id), veterano);
+      void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.lists() });
+    }
+  });
+}
+
+export function useBajaLogicaVeteranoMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: bajaLogicaVeterano,
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.all })
+  });
+}
+
+export function useCrearActuacionVeteranoMutation(veteranoId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: ActuacionVeteranoRequestDTO) => crearActuacionVeterano(payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.actuaciones(veteranoId) });
+      void queryClient.invalidateQueries({ queryKey: actuacionesVeteranosQueryKeys.all });
+    }
+  });
+}
+
+export function useCrearActuacionVeteranoGlobalMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: crearActuacionVeterano,
+    onSuccess: (actuacion) => {
+      void queryClient.invalidateQueries({ queryKey: actuacionesVeteranosQueryKeys.all });
+      void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.actuaciones(actuacion.veteranoId) });
+    }
+  });
+}
+
+export function useActualizarActuacionVeteranoMutation(id: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: ActuacionVeteranoRequestDTO) => actualizarActuacionVeterano(id, payload),
+    onSuccess: (actuacion) => {
+      queryClient.setQueryData(actuacionesVeteranosQueryKeys.detail(id), actuacion);
+      void queryClient.invalidateQueries({ queryKey: actuacionesVeteranosQueryKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.actuaciones(actuacion.veteranoId) });
+    }
+  });
+}
+
+export function useBajaLogicaActuacionVeteranoMutation(veteranoId?: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: bajaLogicaActuacionVeterano,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: actuacionesVeteranosQueryKeys.all });
+      if (veteranoId) {
+        void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.actuaciones(veteranoId) });
+      }
+    }
+  });
+}
+
+export function useAsociarObjetoVeteranoMutation(veteranoId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: ObjetoVeteranoRequestDTO) => asociarObjetoAVeterano(payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.objetos(veteranoId) });
+      void queryClient.invalidateQueries({ queryKey: objetosVeteranosQueryKeys.all });
+    }
+  });
+}
+
+export function useEliminarRelacionObjetoVeteranoMutation(veteranoId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: eliminarRelacionObjetoVeterano,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.objetos(veteranoId) });
+      void queryClient.invalidateQueries({ queryKey: objetosVeteranosQueryKeys.all });
+    }
+  });
+}
+
+export function useSubirImagenesVeteranoMutation(veteranoId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ archivos, descripcion }: { archivos: File[]; descripcion?: string }) => subirImagenesVeterano(veteranoId, archivos, descripcion),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.imagenes(veteranoId) });
+      void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.detail(veteranoId) });
+    }
+  });
+}
+
+export function useEliminarImagenVeteranoMutation(veteranoId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (imagenId: number) => eliminarImagenVeterano(veteranoId, imagenId),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.imagenes(veteranoId) })
+  });
+}
+
+export function useCrearVideoVeteranoMutation(veteranoId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: VeteranoVideoRequestDTO) => crearVideoVeterano(veteranoId, payload),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.videos(veteranoId) })
+  });
+}
+
+export function useActualizarVideoVeteranoMutation(veteranoId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ videoId, payload }: { videoId: number; payload: VeteranoVideoRequestDTO }) => actualizarVideoVeterano(veteranoId, videoId, payload),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.videos(veteranoId) })
+  });
+}
+
+export function useEliminarVideoVeteranoMutation(veteranoId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (videoId: number) => eliminarVideoVeterano(veteranoId, videoId),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.videos(veteranoId) })
+  });
+}

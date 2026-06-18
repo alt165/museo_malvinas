@@ -1,5 +1,6 @@
 target/
 backend/target/
+backend/storage/
 
 .idea/
 .vscode/

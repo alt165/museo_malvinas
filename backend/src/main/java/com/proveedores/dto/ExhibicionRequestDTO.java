@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
+import java.util.Set;
 
 public record ExhibicionRequestDTO(
         @NotBlank(message = "El nombre es obligatorio")
@@ -23,6 +24,11 @@ public record ExhibicionRequestDTO(
         LocalDate fechaFin,
 
         @NotNull(message = "El estado es obligatorio")
-        EstadoExhibicion estado
+        EstadoExhibicion estado,
+
+        Set<Long> objetoIds
 ) {
+    public ExhibicionRequestDTO(String nombre, String descripcion, TipoExhibicion tipo, LocalDate fechaInicio, LocalDate fechaFin, EstadoExhibicion estado) {
+        this(nombre, descripcion, tipo, fechaInicio, fechaFin, estado, null);
+    }
 }

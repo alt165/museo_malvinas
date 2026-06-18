@@ -11,8 +11,7 @@ public final class ObjetoDigitalMapper {
     public static ObjetoDigital toEntity(ObjetoDigitalRequestDTO dto) {
         ObjetoDigital entity = new ObjetoDigital();
         entity.setNumeroInventario(dto.numeroInventario());
-        entity.setNombre(dto.nombre());
-        entity.setTipoObjeto(dto.tipoObjeto());
+        entity.setDenominacionObjeto(dto.denominacionObjeto());
         entity.setDescripcion(dto.descripcion());
         entity.setFormatoDigital(dto.formatoDigital());
         entity.setIdentificadorDigital(dto.identificadorDigital());
@@ -21,6 +20,6 @@ public final class ObjetoDigitalMapper {
     }
 
     public static ObjetoDigitalResponseDTO toResponse(ObjetoDigital entity) {
-        return new ObjetoDigitalResponseDTO(entity.getId(), entity.getNumeroInventario(), entity.getNombre(), entity.getTipoObjeto(), entity.getDescripcion(), entity.getFormatoDigital(), entity.getIdentificadorDigital(), entity.getMetadatos());
+        return new ObjetoDigitalResponseDTO(entity.getId(), entity.getNumeroInventario(), entity.getDenominacionObjeto(), entity.getDescripcion(), entity.getFormatoDigital(), entity.getIdentificadorDigital(), entity.getMetadatos());
     }
 }

@@ -13,6 +13,8 @@ public interface ExhibicionObjetoRepository extends JpaRepository<ExhibicionObje
 
     List<ExhibicionObjeto> findByObjetoMuseoIdAndEliminadoFalse(Long objetoMuseoId);
 
+    List<ExhibicionObjeto> findByObjetoMuseoIdInAndEliminadoFalse(List<Long> objetoMuseoIds);
+
     @Query("""
             select count(eo) > 0
             from ExhibicionObjeto eo

@@ -26,9 +26,23 @@ spring:
 app:
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+  keycloak:
+    admin:
+      server-url: ${KEYCLOAK_ADMIN_SERVER_URL:http://localhost:8081}
+      realm: ${KEYCLOAK_ADMIN_REALM:museo}
+      client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:museo-admin}
+      client-secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET:museo-admin-secret}
   security:
     keycloak:
       client-id: ${KEYCLOAK_CLIENT_ID:museo-backend}
+  storage:
+    object-files-dir: ${APP_STORAGE_OBJECT_FILES_DIR:${APP_STORAGE_OBJECT_PHOTOS_DIR:./storage/object-files}}
+    object-photos-dir: ${APP_STORAGE_OBJECT_PHOTOS_DIR:./storage/object-photos}
+    signed-receipts-dir: ${APP_STORAGE_SIGNED_RECEIPTS_DIR:./storage/signed-receipts}
+  upload:
+    max-photo-size-mb: ${APP_UPLOAD_MAX_PHOTO_SIZE_MB:5}
+    max-receipt-size-mb: ${APP_UPLOAD_MAX_RECEIPT_SIZE_MB:10}
+    max-signed-receipt-size-mb: ${APP_UPLOAD_MAX_SIGNED_RECEIPT_SIZE_MB:10}
 
 server:
   port: ${SERVER_PORT:8080}

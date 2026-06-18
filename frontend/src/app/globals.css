@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+:root {
+  --font-primary: "Gotham", "Montserrat", "Arial", sans-serif;
+  --color-primary: #163a61;
+  --color-secondary: #81d2f7;
+  --color-accent: #dbb060;
+  --color-background: #f5f8fb;
+  --color-surface: #ffffff;
+  --color-text: #142033;
+  --color-muted: #62748a;
+
+  --radius: 0.5rem;
+  --background: 210 43% 97%;
+  --foreground: 217 43% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 217 43% 14%;
+  --surface: 0 0% 100%;
+  --surface-foreground: 217 43% 14%;
+  --primary: 210 63% 23%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 198 91% 74%;
+  --secondary-foreground: 210 63% 18%;
+  --accent: 39 64% 62%;
+  --accent-foreground: 210 63% 18%;
+  --muted: 210 32% 92%;
+  --muted-foreground: 211 17% 46%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 210 27% 84%;
+  --input: 210 27% 84%;
+  --ring: 198 91% 55%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+html {
+  background: var(--color-background);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-primary);
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  border-color: hsl(var(--input));
+  background: hsl(var(--surface));
+  color: hsl(var(--foreground));
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: hsl(var(--primary));
+}
+
+table {
+  background: hsl(var(--surface));
+}
+
+thead {
+  color: hsl(var(--primary));
+}
+
+th {
+  color: hsl(var(--primary));
+}
+
+thead.bg-primary,
+thead.bg-primary th {
+  color: hsl(var(--primary-foreground));
+}
+
+tbody tr {
+  background: hsl(var(--surface));
+}
+
+tbody tr:hover {
+  background: hsl(var(--secondary) / 0.08);
+}
+
+.rounded-lg.border {
+  background-color: hsl(var(--surface));
+}
+
+.bg-primary {
+  background-color: hsl(var(--primary));
+}
+
+.text-primary-foreground {
+  color: hsl(var(--primary-foreground));
+}
+
+::selection {
+  background: hsl(var(--secondary) / 0.45);
+  color: hsl(var(--primary));
+}

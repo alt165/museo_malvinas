@@ -18,6 +18,18 @@ public final class RelacionObjetoMapper {
     }
 
     public static RelacionObjetoResponseDTO toResponse(RelacionObjeto entity) {
-        return new RelacionObjetoResponseDTO(entity.getId(), entity.getObjetoOrigen().getId(), entity.getObjetoOrigen().getNombre(), entity.getObjetoDestino().getId(), entity.getObjetoDestino().getNombre(), entity.getTipoRelacion(), entity.getDescripcion());
+        return new RelacionObjetoResponseDTO(
+                entity.getId(),
+                entity.getObjetoOrigen().getId(),
+                entity.getObjetoOrigen().getNumeroInventario(),
+                entity.getObjetoOrigen().getDenominacionObjeto(),
+                entity.getObjetoDestino().getId(),
+                entity.getObjetoDestino().getNumeroInventario(),
+                entity.getObjetoDestino().getDenominacionObjeto(),
+                entity.getTipoRelacion(),
+                entity.getDescripcion(),
+                entity.getFechaCreacion(),
+                entity.getCreadoPor()
+        );
     }
 }
