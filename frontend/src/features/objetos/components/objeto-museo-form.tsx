@@ -10,7 +10,7 @@ import type { DepositanteResponseDTO } from "@/features/depositantes/types";
 import { identificacionVisible, telefonoVisible } from "@/features/depositantes/utils";
 import { useUbicacionesQuery } from "@/features/ubicaciones/queries";
 import { ApiClientError } from "@/lib/errors/api-error";
-import type { ObjetoMuseoRequestDTO, ObjetoMuseoResponseDTO } from "../types";
+import type { DetalleEstadoConservacion, ObjetoMuseoRequestDTO, ObjetoMuseoResponseDTO, VisibilidadCampo } from "../types";
 import { objetoMuseoSchema, type ObjetoMuseoFormValues } from "../schemas";
 import { getValidationErrors } from "../utils";
 
@@ -43,14 +43,103 @@ const caracteresRecepcion = [
   ["OTRO", "Otro"]
 ] as const;
 
+const detallesConservacion = [
+  ["GRIETAS", "Grietas"],
+  ["RASGADURAS", "Rasgaduras"],
+  ["HONGOS", "Hongos"],
+  ["HUNDIMIENTOS", "Hundimientos"],
+  ["HUELLAS_DE_HUMEDAD", "Huellas de humedad"],
+  ["DESGASTE", "Desgaste"],
+  ["DESPRENDIMIENTOS", "Desprendimientos"],
+  ["ADHESION_DE_HOJAS", "Adhesión de hojas"],
+  ["SOBREPINTURA", "Sobrepintura"],
+  ["FRACTURAS", "Fracturas"],
+  ["DOBLECES", "Dobleces"],
+  ["MARCAS", "Marcas"],
+  ["QUEMADURAS", "Quemaduras"],
+  ["DESFASES", "Desfases"],
+  ["OXIDACION_DE_TINTA", "Oxidación de tinta"],
+  ["PERDIDA_DE_TINTA", "Pérdida de tinta"],
+  ["DESENCUADERNADO", "Desencuadernado"],
+  ["ROTURA", "Rotura"],
+  ["POLVO", "Polvo"],
+  ["DESTENSADOS", "Destensados"],
+  ["INSECTOS", "Insectos"],
+  ["CRAQUELADOS", "Craquelados"],
+  ["DEFORMACIONES", "Deformaciones"],
+  ["FALTA_DE_ADHESION", "Falta de adhesión"],
+  ["FALTANTE_DE_SOPORTE", "Faltante de soporte"],
+  ["FALTANTE_DE_TAPA", "Faltante de tapa"],
+  ["FALTANTE_DE_CUERPO", "Faltante de cuerpo"],
+  ["FALTANTE_DE_LOMO", "Faltante de lomo"],
+  ["DECOLORACION", "Decoloración"],
+  ["DESCOSIDO", "Descosido"],
+  ["ABOLSADOS", "Abolsados"],
+  ["LAGUNAS", "Lagunas"],
+  ["OXIDACION", "Oxidación"],
+  ["MICROORGANISMOS", "Microorganismos"],
+  ["SUCIEDAD_SUPERFICIAL", "Suciedad superficial"],
+  ["FALTANTE", "Faltante"],
+  ["MANCHAS", "Manchas"],
+  ["ANIMALES_MENORES", "Animales menores"],
+  ["EXFOLIACIONES", "Exfoliaciones"],
+  ["SALES", "Sales"],
+  ["GOLPES", "Golpes"],
+  ["RAYADURAS", "Rayaduras"],
+  ["SUCIO", "Sucio"]
+] as const satisfies readonly (readonly [DetalleEstadoConservacion, string])[];
+
+const camposVisibilidad = [
+  "numeroInventario", "denominacionObjeto", "descripcion", "descripcionTecnica", "materiales",
+  "alto", "ancho", "diametro", "espesor", "peso", "inscripciones", "regimenPropiedad",
+  "condicionLegalBien", "estadoConservacion", "detallesEstadoConservacion", "intervencionesInadecuadas",
+  "estadoIntegridad", "humedadConservacion", "temperaturaConservacion", "luzConservacion",
+  "conservacionExtintores", "conservacionMontaje", "conservacionSistemaElectrico", "conservacionAlarmas",
+  "conservacionCamaras", "ubicacion", "depositante", "caracterRecepcion", "fechaVencimiento", "categorias"
+] as const;
+
+function visibilidadesDefault(initialValue?: ObjetoMuseoResponseDTO) {
+  return Object.fromEntries(camposVisibilidad.map((campo) => [campo, initialValue?.visibilidades?.[campo] ?? "PUBLICO"])) as Record<string, VisibilidadCampo>;
+}
+
+function booleanFormValue(value?: boolean | null) {
+  if (value === true) return "true";
+  if (value === false) return "false";
+  return "";
+}
+
+function booleanPayload(value?: string) {
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return null;
+}
+
 const objetoMuseoFieldLabels: Partial<Record<keyof ObjetoMuseoFormValues, string>> = {
   numeroInventario: "Número de inventario",
   denominacionObjeto: "Denominación",
   descripcion: "Descripción breve",
   descripcionTecnica: "Descripción técnica",
   materiales: "Materiales",
-  dimensiones: "Dimensiones",
+  alto: "Alto",
+  ancho: "Ancho",
+  diametro: "Diámetro",
+  espesor: "Espesor",
+  peso: "Peso",
+  inscripciones: "Inscripciones",
+  regimenPropiedad: "Régimen de propiedad",
+  condicionLegalBien: "Condición legal del bien",
   estadoConservacion: "Estado de conservación",
+  detallesEstadoConservacion: "Detalles del estado de conservación",
+  intervencionesInadecuadas: "Intervenciones inadecuadas",
+  estadoIntegridad: "Estado de integridad",
+  humedadConservacion: "Humedad",
+  temperaturaConservacion: "Temperatura",
+  luzConservacion: "Luz",
+  conservacionExtintores: "Extintores",
+  conservacionMontaje: "Montaje",
+  conservacionSistemaElectrico: "Sistema eléctrico",
+  conservacionAlarmas: "Alarmas",
+  conservacionCamaras: "Cámaras",
   categoriaIds: "Categorías",
   ubicacionId: "Ubicación inicial",
   depositanteId: "Depositante",
@@ -124,8 +213,27 @@ export function ObjetoMuseoForm({
       descripcion: initialValue?.descripcion ?? "",
       descripcionTecnica: initialValue?.descripcionTecnica ?? "",
       materiales: initialValue?.materiales ?? "",
-      dimensiones: initialValue?.dimensiones ?? "",
+      alto: initialValue?.alto ?? "",
+      ancho: initialValue?.ancho ?? "",
+      diametro: initialValue?.diametro ?? "",
+      espesor: initialValue?.espesor ?? "",
+      peso: initialValue?.peso ?? "",
+      inscripciones: initialValue?.inscripciones ?? "",
+      regimenPropiedad: initialValue?.regimenPropiedad ?? "",
+      condicionLegalBien: initialValue?.condicionLegalBien ?? "",
       estadoConservacion: initialValue?.estadoConservacion ?? "",
+      detallesEstadoConservacion: initialValue?.detallesEstadoConservacion ?? [],
+      intervencionesInadecuadas: initialValue?.intervencionesInadecuadas ?? "",
+      estadoIntegridad: initialValue?.estadoIntegridad ?? "",
+      humedadConservacion: initialValue?.humedadConservacion ?? "",
+      temperaturaConservacion: initialValue?.temperaturaConservacion ?? "",
+      luzConservacion: initialValue?.luzConservacion ?? "",
+      conservacionExtintores: booleanFormValue(initialValue?.conservacionExtintores),
+      conservacionMontaje: booleanFormValue(initialValue?.conservacionMontaje),
+      conservacionSistemaElectrico: booleanFormValue(initialValue?.conservacionSistemaElectrico),
+      conservacionAlarmas: booleanFormValue(initialValue?.conservacionAlarmas),
+      conservacionCamaras: booleanFormValue(initialValue?.conservacionCamaras),
+      visibilidades: visibilidadesDefault(initialValue),
       categoriaIds: initialValue?.categorias?.map((categoria) => categoria.id) ?? [],
       ubicacionId: initialValue?.ubicacionId ?? 0,
       depositanteId: initialValue?.depositanteId ?? 0,
@@ -134,8 +242,10 @@ export function ObjetoMuseoForm({
     }
   });
   const watchedCategoriaIds = useWatch({ control, name: "categoriaIds", defaultValue: [] });
+  const watchedDetallesConservacion = useWatch({ control, name: "detallesEstadoConservacion", defaultValue: [] });
   const caracterRecepcion = useWatch({ control, name: "caracterRecepcion", defaultValue: initialValue?.caracterRecepcion === "RECEPCION" ? "" : initialValue?.caracterRecepcion ?? "" });
   const categoriaIds = useMemo(() => watchedCategoriaIds ?? [], [watchedCategoriaIds]);
+  const detallesSeleccionados = useMemo(() => watchedDetallesConservacion ?? [], [watchedDetallesConservacion]);
   const categoriasFiltradas = useMemo(() => {
     const busqueda = categoriaBusqueda.trim().toLowerCase();
     if (!busqueda) {
@@ -169,8 +279,27 @@ export function ObjetoMuseoForm({
       descripcion: "",
       descripcionTecnica: "",
       materiales: "",
-      dimensiones: "",
+      alto: "",
+      ancho: "",
+      diametro: "",
+      espesor: "",
+      peso: "",
+      inscripciones: "",
+      regimenPropiedad: "",
+      condicionLegalBien: "",
       estadoConservacion: "",
+      detallesEstadoConservacion: [],
+      intervencionesInadecuadas: "",
+      estadoIntegridad: "",
+      humedadConservacion: "",
+      temperaturaConservacion: "",
+      luzConservacion: "",
+      conservacionExtintores: "",
+      conservacionMontaje: "",
+      conservacionSistemaElectrico: "",
+      conservacionAlarmas: "",
+      conservacionCamaras: "",
+      visibilidades: visibilidadesDefault(),
       categoriaIds: [],
       ubicacionId: 0,
       depositanteId: 0,
@@ -210,8 +339,26 @@ export function ObjetoMuseoForm({
         field === "descripcion" ||
         field === "descripcionTecnica" ||
         field === "materiales" ||
-        field === "dimensiones" ||
+        field === "alto" ||
+        field === "ancho" ||
+        field === "diametro" ||
+        field === "espesor" ||
+        field === "peso" ||
+        field === "inscripciones" ||
+        field === "regimenPropiedad" ||
+        field === "condicionLegalBien" ||
         field === "estadoConservacion" ||
+        field === "detallesEstadoConservacion" ||
+        field === "intervencionesInadecuadas" ||
+        field === "estadoIntegridad" ||
+        field === "humedadConservacion" ||
+        field === "temperaturaConservacion" ||
+        field === "luzConservacion" ||
+        field === "conservacionExtintores" ||
+        field === "conservacionMontaje" ||
+        field === "conservacionSistemaElectrico" ||
+        field === "conservacionAlarmas" ||
+        field === "conservacionCamaras" ||
         field === "categoriaIds" ||
         field === "ubicacionId" ||
         field === "depositanteId" ||
@@ -237,6 +384,28 @@ export function ObjetoMuseoForm({
   function limpiarDepositante() {
     setDepositanteSeleccionado(null);
     setValue("depositanteId", 0, { shouldDirty: true, shouldValidate: true });
+  }
+
+  function visibilidadControl(campo: string) {
+    return (
+      <select
+        aria-label={`Visibilidad de ${campo}`}
+        className="h-8 rounded-md border bg-background px-2 text-xs outline-none focus:ring-2 focus:ring-ring"
+        {...register(`visibilidades.${campo}`)}
+      >
+        <option value="PUBLICO">Público</option>
+        <option value="PRIVADO">Privado</option>
+      </select>
+    );
+  }
+
+  function toggleDetalleConservacion(detalle: DetalleEstadoConservacion) {
+    const seleccionado = detallesSeleccionados.includes(detalle);
+    setValue(
+      "detallesEstadoConservacion",
+      seleccionado ? detallesSeleccionados.filter((item) => item !== detalle) : [...detallesSeleccionados, detalle],
+      { shouldDirty: true, shouldValidate: true }
+    );
   }
 
   function toggleCategoria(categoriaId: number) {
@@ -296,8 +465,27 @@ export function ObjetoMuseoForm({
             descripcion: values.descripcion?.trim() || null,
             descripcionTecnica: values.descripcionTecnica?.trim() || null,
             materiales: values.materiales?.trim() || null,
-            dimensiones: values.dimensiones?.trim() || null,
+            alto: values.alto?.trim() || null,
+            ancho: values.ancho?.trim() || null,
+            diametro: values.diametro?.trim() || null,
+            espesor: values.espesor?.trim() || null,
+            peso: values.peso?.trim() || null,
+            inscripciones: values.inscripciones?.trim() || null,
+            regimenPropiedad: values.regimenPropiedad || null,
+            condicionLegalBien: values.condicionLegalBien?.trim() || null,
             estadoConservacion: values.estadoConservacion || null,
+            detallesEstadoConservacion: values.detallesEstadoConservacion as DetalleEstadoConservacion[] ?? [],
+            intervencionesInadecuadas: values.intervencionesInadecuadas || null,
+            estadoIntegridad: values.estadoIntegridad || null,
+            humedadConservacion: values.humedadConservacion || null,
+            temperaturaConservacion: values.temperaturaConservacion?.trim() || null,
+            luzConservacion: values.luzConservacion?.trim() || null,
+            conservacionExtintores: booleanPayload(values.conservacionExtintores),
+            conservacionMontaje: booleanPayload(values.conservacionMontaje),
+            conservacionSistemaElectrico: booleanPayload(values.conservacionSistemaElectrico),
+            conservacionAlarmas: booleanPayload(values.conservacionAlarmas),
+            conservacionCamaras: booleanPayload(values.conservacionCamaras),
+            visibilidades: values.visibilidades,
             categoriaIds: values.categoriaIds ?? [],
             ubicacionId: values.ubicacionId && values.ubicacionId > 0 ? Number(values.ubicacionId) : null,
             depositanteId: values.depositanteId,
@@ -328,7 +516,7 @@ export function ObjetoMuseoForm({
         <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
           <p className="font-medium">Ficha pendiente de completar</p>
           <p className="mt-1">
-            Para cerrar la carga se requiere descripcion tecnica, materiales, dimensiones, estado de conservacion y al menos una categoria.
+            Para cerrar la carga se requiere descripcion tecnica, materiales, al menos una dimension, estado de conservacion y al menos una categoria.
           </p>
         </div>
       ) : null}
@@ -561,28 +749,180 @@ export function ObjetoMuseoForm({
           {...register("descripcionTecnica")}
         />
       </div>
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div className="space-y-2">
-          <label className="text-sm font-medium" htmlFor="materiales">
-            Materiales
-          </label>
-          <textarea
-            className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-            id="materiales"
-            {...register("materiales")}
-          />
+      <section className="space-y-4 rounded-md border bg-surface p-4">
+        <h2 className="text-base font-semibold">Información técnica</h2>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div className="space-y-2 sm:col-span-2">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-sm font-medium" htmlFor="materiales">Materiales</label>
+              {visibilidadControl("materiales")}
+            </div>
+            <textarea className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" id="materiales" {...register("materiales")} />
+          </div>
+          {[
+            ["alto", "Alto"],
+            ["ancho", "Ancho"],
+            ["diametro", "Diámetro"],
+            ["espesor", "Espesor"],
+            ["peso", "Peso"]
+          ].map(([field, label]) => (
+            <div className="space-y-2" key={field}>
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-sm font-medium" htmlFor={field}>{label}</label>
+                {visibilidadControl(field)}
+              </div>
+              <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id={field} {...register(field as keyof ObjetoMuseoFormValues)} />
+            </div>
+          ))}
+          <div className="space-y-2 sm:col-span-2">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-sm font-medium" htmlFor="inscripciones">Inscripciones</label>
+              {visibilidadControl("inscripciones")}
+            </div>
+            <textarea className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" id="inscripciones" {...register("inscripciones")} />
+            {errors.inscripciones ? <p className="text-sm text-destructive">{errors.inscripciones.message}</p> : null}
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-sm font-medium" htmlFor="regimenPropiedad">Régimen de propiedad</label>
+              {visibilidadControl("regimenPropiedad")}
+            </div>
+            <select className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id="regimenPropiedad" {...register("regimenPropiedad")}>
+              <option value="">Sin especificar</option>
+              <option value="PUBLICO">Público</option>
+              <option value="PRIVADO">Privado</option>
+            </select>
+          </div>
+          <div className="space-y-2 sm:col-span-2">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-sm font-medium" htmlFor="condicionLegalBien">Condición legal del bien</label>
+              {visibilidadControl("condicionLegalBien")}
+            </div>
+            <textarea className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" id="condicionLegalBien" {...register("condicionLegalBien")} />
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-4 rounded-md border bg-surface p-4">
+        <h2 className="text-base font-semibold">Estado de conservación</h2>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-sm font-medium" htmlFor="intervencionesInadecuadas">Intervenciones inadecuadas</label>
+              {visibilidadControl("intervencionesInadecuadas")}
+            </div>
+            <select className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id="intervencionesInadecuadas" {...register("intervencionesInadecuadas")}>
+              <option value="">Sin especificar</option>
+              <option value="SI">Sí</option>
+              <option value="NO">No</option>
+              <option value="ELEMENTOS_EXTRANOS">Elementos extraños</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-sm font-medium" htmlFor="estadoIntegridad">Estado de integridad</label>
+              {visibilidadControl("estadoIntegridad")}
+            </div>
+            <select className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id="estadoIntegridad" {...register("estadoIntegridad")}>
+              <option value="">Sin especificar</option>
+              <option value="COMPLETO">Completo</option>
+              <option value="INCOMPLETO">Incompleto</option>
+              <option value="FRAGMENTADO">Fragmentado</option>
+            </select>
+          </div>
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium" htmlFor="dimensiones">
-            Dimensiones
-          </label>
-          <textarea
-            className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-            id="dimensiones"
-            {...register("dimensiones")}
-          />
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-medium">Detalles del estado de conservación</span>
+            {visibilidadControl("detallesEstadoConservacion")}
+          </div>
+          <div className="max-h-52 overflow-y-auto rounded-md border bg-background p-2">
+            <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
+              {detallesConservacion.map(([value, label]) => (
+                <label className="flex min-h-9 items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted" key={value}>
+                  <input checked={detallesSeleccionados.includes(value)} className="h-4 w-4 accent-primary" disabled={isSubmitting} onChange={() => toggleDetalleConservacion(value)} type="checkbox" />
+                  <span className="min-w-0 flex-1 truncate">{label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
+
+      <section className="space-y-4 rounded-md border bg-surface p-4">
+        <h2 className="text-base font-semibold">Conservación Preventiva</h2>
+        <div className="grid gap-5 sm:grid-cols-3">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-sm font-medium" htmlFor="humedadConservacion">Humedad</label>
+              {visibilidadControl("humedadConservacion")}
+            </div>
+            <select className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id="humedadConservacion" {...register("humedadConservacion")}>
+              <option value="">Sin especificar</option>
+              <option value="ALTA">Alta</option>
+              <option value="BAJA">Baja</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-sm font-medium" htmlFor="temperaturaConservacion">Temperatura</label>
+              {visibilidadControl("temperaturaConservacion")}
+            </div>
+            <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id="temperaturaConservacion" {...register("temperaturaConservacion")} />
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-sm font-medium" htmlFor="luzConservacion">Luz</label>
+              {visibilidadControl("luzConservacion")}
+            </div>
+            <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id="luzConservacion" {...register("luzConservacion")} />
+          </div>
+        </div>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+          {[
+            ["conservacionExtintores", "Extintores"],
+            ["conservacionMontaje", "Montaje"],
+            ["conservacionSistemaElectrico", "Sistema eléctrico"],
+            ["conservacionAlarmas", "Alarmas"],
+            ["conservacionCamaras", "Cámaras"]
+          ].map(([field, label]) => (
+            <div className="space-y-2" key={field}>
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-sm font-medium" htmlFor={field}>{label}</label>
+                {visibilidadControl(field)}
+              </div>
+              <select className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id={field} {...register(field as keyof ObjetoMuseoFormValues)}>
+                <option value="">Sin especificar</option>
+                <option value="true">Sí</option>
+                <option value="false">No</option>
+              </select>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-3 rounded-md border bg-surface p-4">
+        <h2 className="text-base font-semibold">Visibilidad de datos generales</h2>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            ["numeroInventario", "Número de inventario"],
+            ["denominacionObjeto", "Denominación"],
+            ["descripcion", "Descripción breve"],
+            ["descripcionTecnica", "Descripción técnica"],
+            ["estadoConservacion", "Estado de conservación"],
+            ["categorias", "Categorías"],
+            ["ubicacion", "Ubicación"],
+            ["depositante", "Depositante"],
+            ["caracterRecepcion", "Carácter de recepción"],
+            ["fechaVencimiento", "Fecha de vencimiento"]
+          ].map(([field, label]) => (
+            <label className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm" key={field}>
+              <span>{label}</span>
+              {visibilidadControl(field)}
+            </label>
+          ))}
+        </div>
+      </section>
       {allowFileUploads ? (
         <>
           <section className="space-y-3 rounded-md border bg-surface p-4">

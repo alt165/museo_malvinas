@@ -23,7 +23,7 @@ class FlywayPostgresIntegrationTest extends IntegrationTestBase {
         Integer ubicacionesSembradas = jdbcTemplate.queryForObject("select count(*) from ubicaciones", Integer.class);
         Integer exhibicionesSembradas = jdbcTemplate.queryForObject("select count(*) from exhibiciones", Integer.class);
 
-        assertThat(versiones).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20");
+        assertThat(versiones).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22");
         assertThat(objetosSembrados).isGreaterThanOrEqualTo(6);
         assertThat(ubicacionesSembradas).isGreaterThanOrEqualTo(5);
         assertThat(jdbcTemplate.queryForObject("select count(*) from ubicaciones where nombre = 'Pre ingreso' and eliminado = false", Integer.class))
@@ -37,8 +37,18 @@ class FlywayPostgresIntegrationTest extends IntegrationTestBase {
                 .isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.tables where table_name = 'recibos_ingreso_objeto'", Integer.class))
                 .isEqualTo(1);
-        assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.columns where table_name = 'objetos_museo' and column_name in ('nombre', 'tipo_objeto')", Integer.class))
+        assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.columns where table_name = 'objetos_museo' and column_name in ('nombre', 'tipo_objeto', 'dimensiones')", Integer.class))
                 .isZero();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.columns where table_name = 'objetos_museo' and column_name in ('alto', 'ancho', 'diametro', 'espesor', 'peso', 'inscripciones', 'regimen_propiedad', 'condicion_legal_bien', 'intervenciones_inadecuadas', 'estado_integridad', 'humedad_conservacion', 'temperatura_conservacion', 'luz_conservacion', 'conservacion_extintores', 'conservacion_montaje', 'conservacion_sistema_electrico', 'conservacion_alarmas', 'conservacion_camaras')", Integer.class))
+                .isEqualTo(18);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.tables where table_name in ('objeto_museo_detalles_conservacion', 'objeto_museo_visibilidades')", Integer.class))
+                .isEqualTo(2);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.tables where table_name = 'embargos_objeto'", Integer.class))
+                .isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.columns where table_name = 'embargos_objeto' and column_name in ('objeto_museo_id', 'fecha_inicio', 'fecha_finalizacion', 'observaciones')", Integer.class))
+                .isEqualTo(4);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from pg_indexes where tablename = 'embargos_objeto' and indexname = 'uk_embargos_objeto_vigente'", Integer.class))
+                .isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.columns where table_name = 'ubicaciones' and column_name = 'tipo'", Integer.class))
                 .isZero();
         assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.columns where table_name = 'objetos_museo' and column_name = 'eliminado_por'", Integer.class))

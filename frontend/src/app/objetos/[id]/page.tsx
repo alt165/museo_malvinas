@@ -41,6 +41,26 @@ function descargarBlob(blob: Blob, nombre: string) {
   URL.revokeObjectURL(url);
 }
 
+function hasDisplayValue(value: React.ReactNode) {
+  if (value === null || value === undefined || value === "") {
+    return false;
+  }
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+  return true;
+}
+
+function enumLabel(value?: string | null) {
+  return value ? value.replaceAll("_", " ").toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase()) : null;
+}
+
+function boolLabel(value?: boolean | null) {
+  if (value === true) return "Sí";
+  if (value === false) return "No";
+  return null;
+}
+
 function formatFecha(value?: string | null) {
   if (!value) {
     return "No especificada";
@@ -374,25 +394,45 @@ export default function DetalleObjetoPage() {
 
   const datosDetalle: DatoDetalle[] = data ? [
     { label: "Numero de inventario", value: data.numeroInventario },
-    { label: "Estado de conservacion", value: data.estadoConservacion || "No especificado" },
-    { label: "Ubicacion actual", value: data.ubicacionNombre || "Sin ubicacion registrada" },
+    { label: "Estado de conservacion", value: enumLabel(data.estadoConservacion) },
+    { label: "Ubicacion actual", value: data.ubicacionNombre },
     {
       label: "Coleccion",
       value: data.coleccionId ? (
         <Link className="text-primary underline-offset-4 hover:underline" href={`/objetos/colecciones/${data.coleccionId}`}>
           {data.coleccionNombre}
         </Link>
-      ) : "Sin coleccion"
+      ) : null
     },
-    { label: "Categorias", value: data.categorias?.map((categoria) => categoria.nombre).join(", ") || "Sin categorias" },
-    { label: "Depositante", value: data.depositanteNombre || "Sin depositante registrado" },
-    { label: "Caracter de recepcion", value: data.caracterRecepcion || "No especificado" },
-    { label: "Fecha de ingreso", value: formatFecha(data.fechaIngreso) },
-    { label: "Fecha de vencimiento", value: formatFecha(data.fechaVencimiento) },
-    { label: "Materiales", value: data.materiales || "No especificado" },
-    { label: "Dimensiones", value: data.dimensiones || "No especificado" },
-    { label: "Descripcion", value: data.descripcion || "Sin descripcion", wide: true }
-  ] : [];
+    { label: "Categorias", value: data.categorias?.map((categoria) => categoria.nombre).join(", ") },
+    { label: "Depositante", value: data.depositanteNombre },
+    { label: "Caracter de recepcion", value: enumLabel(data.caracterRecepcion) },
+    { label: "Fecha de ingreso", value: data.fechaIngreso ? formatFecha(data.fechaIngreso) : null },
+    { label: "Fecha de vencimiento", value: data.fechaVencimiento ? formatFecha(data.fechaVencimiento) : null },
+    { label: "Materiales", value: data.materiales },
+    { label: "Alto", value: data.alto },
+    { label: "Ancho", value: data.ancho },
+    { label: "Diámetro", value: data.diametro },
+    { label: "Espesor", value: data.espesor },
+    { label: "Peso", value: data.peso },
+    { label: "Régimen de propiedad", value: enumLabel(data.regimenPropiedad) },
+    { label: "Intervenciones inadecuadas", value: enumLabel(data.intervencionesInadecuadas) },
+    { label: "Estado de integridad", value: enumLabel(data.estadoIntegridad) },
+    { label: "Descripcion", value: data.descripcion, wide: true }
+  ].filter((dato) => hasDisplayValue(dato.value)) : [];
+
+  const conservacionPreventiva: DatoDetalle[] = data ? [
+    { label: "Humedad", value: enumLabel(data.humedadConservacion) },
+    { label: "Temperatura", value: data.temperaturaConservacion },
+    { label: "Luz", value: data.luzConservacion },
+    { label: "Extintores", value: boolLabel(data.conservacionExtintores) },
+    { label: "Montaje", value: boolLabel(data.conservacionMontaje) },
+    { label: "Sistema eléctrico", value: boolLabel(data.conservacionSistemaElectrico) },
+    { label: "Alarmas", value: boolLabel(data.conservacionAlarmas) },
+    { label: "Cámaras", value: boolLabel(data.conservacionCamaras) }
+  ].filter((dato) => hasDisplayValue(dato.value)) : [];
+
+  const detallesConservacion = data?.detallesEstadoConservacion?.map(enumLabel).filter(Boolean).join(", ");
 
   return (
     <AppShell>
@@ -462,12 +502,32 @@ export default function DetalleObjetoPage() {
               </div>
             </section>
 
-            <section className="rounded-lg border p-5">
-              <h2 className="text-base font-semibold">Descripcion tecnica</h2>
-              <p className="mt-3 whitespace-pre-wrap text-sm font-medium">
-                {data.descripcionTecnica || "Sin descripcion tecnica registrada"}
-              </p>
-            </section>
+            {data.descripcionTecnica ? (
+              <section className="rounded-lg border p-5">
+                <h2 className="text-base font-semibold">Descripcion tecnica</h2>
+                <p className="mt-3 whitespace-pre-wrap text-sm font-medium">{data.descripcionTecnica}</p>
+              </section>
+            ) : null}
+
+            {[data.inscripciones, data.condicionLegalBien, detallesConservacion].some(Boolean) ? (
+              <section className="rounded-lg border p-5">
+                <h2 className="text-base font-semibold">Información descriptiva y legal</h2>
+                <dl className="mt-5 grid gap-5 text-sm sm:grid-cols-2">
+                  {data.inscripciones ? <ObjetoDato label="Inscripciones" value={data.inscripciones} wide /> : null}
+                  {data.condicionLegalBien ? <ObjetoDato label="Condición legal del bien" value={data.condicionLegalBien} wide /> : null}
+                  {detallesConservacion ? <ObjetoDato label="Detalles del estado de conservación" value={detallesConservacion} wide /> : null}
+                </dl>
+              </section>
+            ) : null}
+
+            {conservacionPreventiva.length > 0 ? (
+              <section className="rounded-lg border p-5">
+                <h2 className="text-base font-semibold">Conservación Preventiva</h2>
+                <dl className="mt-5 grid gap-5 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                  {conservacionPreventiva.map((dato) => <ObjetoDato key={dato.label} {...dato} />)}
+                </dl>
+              </section>
+            ) : null}
           </>
         ) : null}
         {data ? (

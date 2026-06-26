@@ -1,6 +1,7 @@
 import {
   Archive,
   FileClock,
+  Gavel,
   FolderTree,
   Handshake,
   History,
@@ -43,6 +44,7 @@ export const routes = {
   objetosCargaRapida: "/objetos/carga-rapida",
   objetosPendientes: "/objetos/pendientes",
   comodatosPrestamos: "/comodatos-prestamos",
+  objetosEmbargos: "/objetos/embargos",
   objetosColecciones: "/objetos/colecciones",
   objetosColeccionNueva: "/objetos/colecciones/nueva",
   objetoNuevo: "/objetos/nuevo",
@@ -113,6 +115,7 @@ export const navigationGroups: NavigationGroup[] = [
       { href: routes.objetosPendientes, label: "Pendientes de completar", icon: Archive, roles: writeRoles, requiresEditing: true },
       { href: routes.objetoNuevo, label: "Alta completa", icon: Archive, roles: writeRoles, requiresEditing: true },
       { href: routes.comodatosPrestamos, label: "Comodatos y préstamos", icon: FileClock, roles: adminRoles },
+      { href: routes.objetosEmbargos, label: "Embargos", icon: Gavel, roles: adminRoles },
       { href: routes.relacionesObjetos, label: "Relaciones entre objetos", icon: Link2, roles: readRoles }
     ]
   },

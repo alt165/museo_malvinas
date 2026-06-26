@@ -6,6 +6,8 @@ import type {
   ConfigAlertasVencimientoDTO,
   FotoObjetoMuseoResponseDTO,
   HistorialObjetoResponseDTO,
+  EmbargoObjetoRequestDTO,
+  EmbargoObjetoResponseDTO,
   BuscarObjetosParams,
   BuscarObjetosDisponiblesColeccionParams,
   MoverObjetoRequestDTO,
@@ -22,6 +24,7 @@ import type {
 
 const basePath = "/api/objetos";
 const adminComodatosPrestamosPath = "/api/admin/comodatos-prestamos";
+const adminEmbargosPath = "/api/admin/objetos/embargos";
 
 export function listarObjetos() {
   return apiRequest<ObjetoMuseoResponseDTO[]>(basePath);
@@ -81,6 +84,27 @@ export function obtenerObjetoPorId(id: number) {
 export function listarObjetosVencimientosProximos(dias?: number) {
   const query = dias ? `?dias=${dias}` : "";
   return apiRequest<ObjetoVencimientoProximoResponseDTO[]>(`${basePath}/vencimientos-proximos${query}`);
+}
+
+export function listarEmbargosObjetos(incluirHistoricos = false) {
+  return apiRequest<EmbargoObjetoResponseDTO[]>(`${adminEmbargosPath}?incluirHistoricos=${incluirHistoricos}`);
+}
+
+export function crearEmbargoObjeto(payload: EmbargoObjetoRequestDTO) {
+  return apiRequest<EmbargoObjetoResponseDTO>(adminEmbargosPath, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function levantarEmbargoObjeto(id: number) {
+  return apiRequest<EmbargoObjetoResponseDTO>(`${adminEmbargosPath}/${id}/levantar`, {
+    method: "PATCH"
+  });
+}
+
+export function exportarEmbargosObjetosPdf() {
+  return apiBlobRequest(`${adminEmbargosPath}/export/pdf`);
 }
 
 export function listarComodatosPrestamos() {

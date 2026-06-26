@@ -3,6 +3,13 @@ import type { CategoriaObjetoResponseDTO } from "@/features/categorias/types";
 export type EstadoConservacion = "EXCELENTE" | "BUENO" | "REGULAR" | "MALO" | "CRITICO";
 export type OrigenCargaObjeto = "RAPIDA" | "COMPLETA";
 export type CaracterRecepcionObjeto = "PRESTAMO" | "COMODATO" | "DONACION" | "COMPRA" | "ESTUDIO" | "OTRO" | "RECEPCION";
+export type DetalleEstadoConservacion = "GRIETAS" | "RASGADURAS" | "HONGOS" | "HUNDIMIENTOS" | "HUELLAS_DE_HUMEDAD" | "DESGASTE" | "DESPRENDIMIENTOS" | "ADHESION_DE_HOJAS" | "SOBREPINTURA" | "FRACTURAS" | "DOBLECES" | "MARCAS" | "QUEMADURAS" | "DESFASES" | "OXIDACION_DE_TINTA" | "PERDIDA_DE_TINTA" | "DESENCUADERNADO" | "ROTURA" | "POLVO" | "DESTENSADOS" | "INSECTOS" | "CRAQUELADOS" | "DEFORMACIONES" | "FALTA_DE_ADHESION" | "FALTANTE_DE_SOPORTE" | "FALTANTE_DE_TAPA" | "FALTANTE_DE_CUERPO" | "FALTANTE_DE_LOMO" | "DECOLORACION" | "DESCOSIDO" | "ABOLSADOS" | "LAGUNAS" | "OXIDACION" | "MICROORGANISMOS" | "SUCIEDAD_SUPERFICIAL" | "FALTANTE" | "MANCHAS" | "ANIMALES_MENORES" | "EXFOLIACIONES" | "SALES" | "GOLPES" | "RAYADURAS" | "SUCIO";
+export type RegimenPropiedad = "PUBLICO" | "PRIVADO";
+export type IntervencionesInadecuadas = "SI" | "NO" | "ELEMENTOS_EXTRANOS";
+export type EstadoIntegridad = "COMPLETO" | "INCOMPLETO" | "FRAGMENTADO";
+export type HumedadConservacion = "ALTA" | "BAJA";
+export type VisibilidadCampo = "PUBLICO" | "PRIVADO";
+export type VisibilidadesObjeto = Record<string, VisibilidadCampo>;
 
 export type ObjetoMuseoRequestDTO = {
   numeroInventario: string;
@@ -10,8 +17,27 @@ export type ObjetoMuseoRequestDTO = {
   descripcion?: string | null;
   descripcionTecnica?: string | null;
   materiales?: string | null;
-  dimensiones?: string | null;
+  alto?: string | null;
+  ancho?: string | null;
+  diametro?: string | null;
+  espesor?: string | null;
+  peso?: string | null;
+  inscripciones?: string | null;
+  regimenPropiedad?: RegimenPropiedad | null;
+  condicionLegalBien?: string | null;
   estadoConservacion?: EstadoConservacion | null;
+  detallesEstadoConservacion?: DetalleEstadoConservacion[];
+  intervencionesInadecuadas?: IntervencionesInadecuadas | null;
+  estadoIntegridad?: EstadoIntegridad | null;
+  humedadConservacion?: HumedadConservacion | null;
+  temperaturaConservacion?: string | null;
+  luzConservacion?: string | null;
+  conservacionExtintores?: boolean | null;
+  conservacionMontaje?: boolean | null;
+  conservacionSistemaElectrico?: boolean | null;
+  conservacionAlarmas?: boolean | null;
+  conservacionCamaras?: boolean | null;
+  visibilidades?: VisibilidadesObjeto;
   categoriaIds?: number[];
   ubicacionId?: number | null;
   depositanteId?: number | null;
@@ -26,8 +52,27 @@ export type ObjetoMuseoResponseDTO = {
   descripcion?: string | null;
   descripcionTecnica?: string | null;
   materiales?: string | null;
-  dimensiones?: string | null;
+  alto?: string | null;
+  ancho?: string | null;
+  diametro?: string | null;
+  espesor?: string | null;
+  peso?: string | null;
+  inscripciones?: string | null;
+  regimenPropiedad?: RegimenPropiedad | null;
+  condicionLegalBien?: string | null;
   estadoConservacion?: EstadoConservacion | null;
+  detallesEstadoConservacion?: DetalleEstadoConservacion[];
+  intervencionesInadecuadas?: IntervencionesInadecuadas | null;
+  estadoIntegridad?: EstadoIntegridad | null;
+  humedadConservacion?: HumedadConservacion | null;
+  temperaturaConservacion?: string | null;
+  luzConservacion?: string | null;
+  conservacionExtintores?: boolean | null;
+  conservacionMontaje?: boolean | null;
+  conservacionSistemaElectrico?: boolean | null;
+  conservacionAlarmas?: boolean | null;
+  conservacionCamaras?: boolean | null;
+  visibilidades?: VisibilidadesObjeto;
   fechaIngreso?: string | null;
   origenCarga?: OrigenCargaObjeto | null;
   datosCompletos?: boolean | null;
@@ -225,4 +270,24 @@ export type MovimientoObjetoResponseDTO = {
   tipoMovimiento?: string | null;
   estadoAnterior?: string | null;
   estadoNuevo?: string | null;
+};
+
+export type EmbargoObjetoRequestDTO = {
+  objetoMuseoId: number;
+  fechaInicio?: string | null;
+  fechaFinalizacion?: string | null;
+  observaciones?: string | null;
+};
+
+export type EstadoEmbargoObjeto = "VIGENTE" | "LEVANTADO";
+
+export type EmbargoObjetoResponseDTO = {
+  id: number;
+  objetoMuseoId: number;
+  numeroInventario: string;
+  denominacionObjeto: string;
+  fechaInicio: string;
+  fechaFinalizacion?: string | null;
+  estado: EstadoEmbargoObjeto;
+  observaciones?: string | null;
 };

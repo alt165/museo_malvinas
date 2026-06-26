@@ -124,7 +124,7 @@ public class ObjetoMuseoExportService {
         if (!hasText(objeto.materiales())) {
             pendientes.add("Materiales");
         }
-        if (!hasText(objeto.dimensiones())) {
+        if (!hasText(objeto.alto()) && !hasText(objeto.ancho()) && !hasText(objeto.diametro()) && !hasText(objeto.espesor()) && !hasText(objeto.peso())) {
             pendientes.add("Dimensiones");
         }
         if (objeto.estadoConservacion() == null) {

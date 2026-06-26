@@ -16,6 +16,7 @@ import com.proveedores.dto.ReciboIngresoObjetoResponseDTO;
 import com.proveedores.entity.CaracterRecepcionObjeto;
 import com.proveedores.entity.CategoriaObjeto;
 import com.proveedores.entity.Depositante;
+import com.proveedores.entity.EmbargoObjeto;
 import com.proveedores.entity.EstadoInventario;
 import com.proveedores.entity.Inventario;
 import com.proveedores.entity.MovimientoInventario;
@@ -26,6 +27,7 @@ import com.proveedores.entity.OrigenCargaObjeto;
 import com.proveedores.entity.ReciboIngresoObjeto;
 import com.proveedores.entity.TipoMovimientoInventario;
 import com.proveedores.entity.TipoOperacionAuditoria;
+import com.proveedores.entity.VisibilidadCampo;
 import com.proveedores.entity.Ubicacion;
 import com.proveedores.entity.Usuario;
 import com.proveedores.exception.BusinessException;
@@ -33,6 +35,7 @@ import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.mapper.ObjetoMuseoMapper;
 import com.proveedores.repository.CategoriaObjetoRepository;
 import com.proveedores.repository.DepositanteRepository;
+import com.proveedores.repository.EmbargoObjetoRepository;
 import com.proveedores.repository.FotoObjetoMuseoRepository;
 import com.proveedores.repository.InventarioRepository;
 import com.proveedores.repository.MovimientoInventarioRepository;
@@ -60,6 +63,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -75,6 +81,7 @@ public class ObjetoMuseoService {
     private final CategoriaObjetoRepository categoriaObjetoRepository;
     private final ObjetoCategoriaRepository objetoCategoriaRepository;
     private final DepositanteRepository depositanteRepository;
+    private final EmbargoObjetoRepository embargoObjetoRepository;
     private final ObjetoDepositanteRepository objetoDepositanteRepository;
     private final ReciboIngresoObjetoRepository reciboIngresoObjetoRepository;
     private final FotoObjetoMuseoRepository fotoObjetoMuseoRepository;
@@ -90,6 +97,7 @@ public class ObjetoMuseoService {
             CategoriaObjetoRepository categoriaObjetoRepository,
             ObjetoCategoriaRepository objetoCategoriaRepository,
             DepositanteRepository depositanteRepository,
+            EmbargoObjetoRepository embargoObjetoRepository,
             ObjetoDepositanteRepository objetoDepositanteRepository,
             ReciboIngresoObjetoRepository reciboIngresoObjetoRepository,
             FotoObjetoMuseoRepository fotoObjetoMuseoRepository,
@@ -104,6 +112,7 @@ public class ObjetoMuseoService {
         this.categoriaObjetoRepository = categoriaObjetoRepository;
         this.objetoCategoriaRepository = objetoCategoriaRepository;
         this.depositanteRepository = depositanteRepository;
+        this.embargoObjetoRepository = embargoObjetoRepository;
         this.objetoDepositanteRepository = objetoDepositanteRepository;
         this.reciboIngresoObjetoRepository = reciboIngresoObjetoRepository;
         this.fotoObjetoMuseoRepository = fotoObjetoMuseoRepository;
@@ -157,6 +166,7 @@ public class ObjetoMuseoService {
     public List<ObjetoMuseoResponseDTO> listar() {
         return objetoMuseoRepository.findAll().stream()
                 .filter(objeto -> !objeto.getEliminado())
+                .filter(this::objetoVisiblePorEmbargo)
                 .map(this::toResponse)
                 .toList();
     }
@@ -183,6 +193,7 @@ public class ObjetoMuseoService {
     @Transactional(readOnly = true)
     public List<ObjetoMuseoResponseDTO> listarSinColeccion() {
         return objetoMuseoRepository.findByColeccionObjetoIsNullAndEliminadoFalseOrderByNumeroInventarioAsc().stream()
+                .filter(this::objetoVisiblePorEmbargo)
                 .map(this::toResponse)
                 .toList();
     }
@@ -443,7 +454,7 @@ public class ObjetoMuseoService {
     private ObjetoMuseo buscarActivo(Long id) {
         ObjetoMuseo entity = objetoMuseoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Objeto de museo no encontrado"));
-        if (entity.getEliminado()) {
+        if (entity.getEliminado() || !objetoVisiblePorEmbargo(entity)) {
             throw new ResourceNotFoundException("Objeto de museo no encontrado");
         }
         return entity;
@@ -494,6 +505,7 @@ public class ObjetoMuseoService {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(criteriaBuilder.isFalse(root.get("eliminado")));
+            agregarFiltroEmbargoSiCorresponde(root, query, criteriaBuilder, predicates);
 
             if (nombre != null) {
                 String texto = "%" + nombre.toLowerCase(Locale.ROOT) + "%";
@@ -526,6 +538,21 @@ public class ObjetoMuseoService {
 
             return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
         };
+    }
+
+    private void agregarFiltroEmbargoSiCorresponde(Root<ObjetoMuseo> root, jakarta.persistence.criteria.CriteriaQuery<?> query, jakarta.persistence.criteria.CriteriaBuilder criteriaBuilder, List<Predicate> predicates) {
+        if (puedeVerObjetosEmbargados()) {
+            return;
+        }
+        Subquery<Long> subquery = query.subquery(Long.class);
+        Root<EmbargoObjeto> embargo = subquery.from(EmbargoObjeto.class);
+        subquery.select(criteriaBuilder.literal(1L));
+        subquery.where(
+                criteriaBuilder.equal(embargo.get("objetoMuseo"), root),
+                criteriaBuilder.isFalse(embargo.get("eliminado")),
+                criteriaBuilder.isNull(embargo.get("fechaFinalizacion"))
+        );
+        predicates.add(criteriaBuilder.not(criteriaBuilder.exists(subquery)));
     }
 
     private Specification<ObjetoMuseo> busquedaDisponiblesParaColeccionSpecification(String nombre, String numeroInventario, List<Long> categoriaIds, Long coleccionId) {
@@ -607,7 +634,7 @@ public class ObjetoMuseoService {
 
     private void validarFichaCompleta(ObjetoMuseoRequestDTO dto) {
         if (!tieneDatosCompletos(dto)) {
-            throw new BusinessException("Para completar la ficha se requieren denominacion, descripcion tecnica, materiales, dimensiones, estado de conservacion y al menos una categoria");
+            throw new BusinessException("Para completar la ficha se requieren denominacion, descripcion tecnica, materiales, al menos una dimension, estado de conservacion y al menos una categoria");
         }
     }
 
@@ -669,8 +696,27 @@ public class ObjetoMuseoService {
                 "descripcion", objeto.getDescripcion(),
                 "descripcionTecnica", objeto.getDescripcionTecnica(),
                 "materiales", objeto.getMateriales(),
-                "dimensiones", objeto.getDimensiones(),
+                "alto", objeto.getAlto(),
+                "ancho", objeto.getAncho(),
+                "diametro", objeto.getDiametro(),
+                "espesor", objeto.getEspesor(),
+                "peso", objeto.getPeso(),
+                "inscripciones", objeto.getInscripciones(),
+                "regimenPropiedad", objeto.getRegimenPropiedad(),
+                "condicionLegalBien", objeto.getCondicionLegalBien(),
                 "estadoConservacion", objeto.getEstadoConservacion(),
+                "detallesEstadoConservacion", objeto.getDetallesEstadoConservacion(),
+                "intervencionesInadecuadas", objeto.getIntervencionesInadecuadas(),
+                "estadoIntegridad", objeto.getEstadoIntegridad(),
+                "humedadConservacion", objeto.getHumedadConservacion(),
+                "temperaturaConservacion", objeto.getTemperaturaConservacion(),
+                "luzConservacion", objeto.getLuzConservacion(),
+                "conservacionExtintores", objeto.getConservacionExtintores(),
+                "conservacionMontaje", objeto.getConservacionMontaje(),
+                "conservacionSistemaElectrico", objeto.getConservacionSistemaElectrico(),
+                "conservacionAlarmas", objeto.getConservacionAlarmas(),
+                "conservacionCamaras", objeto.getConservacionCamaras(),
+                "visibilidades", objeto.getVisibilidades(),
                 "origenCarga", objeto.getOrigenCarga(),
                 "datosCompletos", objeto.getDatosCompletos(),
                 "ubicacionId", inventario == null || inventario.getUbicacion() == null ? null : inventario.getUbicacion().getId(),
@@ -687,10 +733,18 @@ public class ObjetoMuseoService {
         return tieneTexto(dto.denominacionObjeto())
                 && tieneTexto(dto.descripcionTecnica())
                 && tieneTexto(dto.materiales())
-                && tieneTexto(dto.dimensiones())
+                && tieneAlgunaDimension(dto)
                 && dto.estadoConservacion() != null
                 && dto.categoriaIds() != null
                 && !dto.categoriaIds().isEmpty();
+    }
+
+    private boolean tieneAlgunaDimension(ObjetoMuseoRequestDTO dto) {
+        return tieneTexto(dto.alto())
+                || tieneTexto(dto.ancho())
+                || tieneTexto(dto.diametro())
+                || tieneTexto(dto.espesor())
+                || tieneTexto(dto.peso());
     }
 
     private boolean tieneTexto(String value) {
@@ -752,6 +806,21 @@ public class ObjetoMuseoService {
         return toResponse(objeto);
     }
 
+    private boolean objetoVisiblePorEmbargo(ObjetoMuseo objeto) {
+        return puedeVerObjetosEmbargados()
+                || !embargoObjetoRepository.existsByObjetoMuseoIdAndFechaFinalizacionIsNullAndEliminadoFalse(objeto.getId());
+    }
+
+    private boolean puedeVerObjetosEmbargados() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return false;
+        }
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority) || "ROLE_OPERATOR".equals(authority));
+    }
+
     private ObjetoMuseoResponseDTO toResponse(ObjetoMuseo objeto) {
         List<CategoriaObjetoResponseDTO> categorias = objetoCategoriaRepository.findByObjetoMuseoIdAndEliminadoFalse(objeto.getId()).stream()
                 .map(ObjetoCategoria::getCategoriaObjeto)
@@ -794,7 +863,78 @@ public class ObjetoMuseoService {
         String depositanteNombre = objetoDepositante == null ? null : objetoDepositante.getDepositante().getNombre();
         CaracterRecepcionObjeto caracterRecepcion = objetoDepositante == null ? null : objetoDepositante.getTipoDeposito();
         LocalDate fechaVencimiento = objetoDepositante == null ? null : objetoDepositante.getFechaVencimiento();
-        return ObjetoMuseoMapper.toResponse(objeto, fechaIngreso, ubicacionId, ubicacionNombre, coleccionId, coleccionNombre, depositanteId, depositanteNombre, caracterRecepcion, fechaVencimiento, categorias, fotos, reciboEscaneado);
+        ObjetoMuseoResponseDTO response = ObjetoMuseoMapper.toResponse(objeto, fechaIngreso, ubicacionId, ubicacionNombre, coleccionId, coleccionNombre, depositanteId, depositanteNombre, caracterRecepcion, fechaVencimiento, categorias, fotos, reciboEscaneado);
+        return filtrarCamposPrivados(response);
+    }
+
+    private ObjetoMuseoResponseDTO filtrarCamposPrivados(ObjetoMuseoResponseDTO response) {
+        if (puedeVerCamposPrivados()) {
+            return response;
+        }
+        Map<String, VisibilidadCampo> visibilidades = response.visibilidades() == null ? Map.of() : response.visibilidades();
+        if (visibilidades.values().stream().noneMatch(VisibilidadCampo.PRIVADO::equals)) {
+            return response;
+        }
+        return new ObjetoMuseoResponseDTO(
+                response.id(),
+                visible(response, "numeroInventario") ? response.numeroInventario() : null,
+                visible(response, "denominacionObjeto") ? response.denominacionObjeto() : null,
+                visible(response, "descripcion") ? response.descripcion() : null,
+                visible(response, "descripcionTecnica") ? response.descripcionTecnica() : null,
+                visible(response, "materiales") ? response.materiales() : null,
+                visible(response, "alto") ? response.alto() : null,
+                visible(response, "ancho") ? response.ancho() : null,
+                visible(response, "diametro") ? response.diametro() : null,
+                visible(response, "espesor") ? response.espesor() : null,
+                visible(response, "peso") ? response.peso() : null,
+                visible(response, "inscripciones") ? response.inscripciones() : null,
+                visible(response, "regimenPropiedad") ? response.regimenPropiedad() : null,
+                visible(response, "condicionLegalBien") ? response.condicionLegalBien() : null,
+                visible(response, "estadoConservacion") ? response.estadoConservacion() : null,
+                visible(response, "detallesEstadoConservacion") ? response.detallesEstadoConservacion() : Set.of(),
+                visible(response, "intervencionesInadecuadas") ? response.intervencionesInadecuadas() : null,
+                visible(response, "estadoIntegridad") ? response.estadoIntegridad() : null,
+                visible(response, "humedadConservacion") ? response.humedadConservacion() : null,
+                visible(response, "temperaturaConservacion") ? response.temperaturaConservacion() : null,
+                visible(response, "luzConservacion") ? response.luzConservacion() : null,
+                visible(response, "conservacionExtintores") ? response.conservacionExtintores() : null,
+                visible(response, "conservacionMontaje") ? response.conservacionMontaje() : null,
+                visible(response, "conservacionSistemaElectrico") ? response.conservacionSistemaElectrico() : null,
+                visible(response, "conservacionAlarmas") ? response.conservacionAlarmas() : null,
+                visible(response, "conservacionCamaras") ? response.conservacionCamaras() : null,
+                Map.of(),
+                visible(response, "fechaIngreso") ? response.fechaIngreso() : null,
+                response.origenCarga(),
+                response.datosCompletos(),
+                response.fechaCargaRapida(),
+                response.cargaRapidaPor(),
+                visible(response, "ubicacion") ? response.ubicacionId() : null,
+                visible(response, "ubicacion") ? response.ubicacionNombre() : null,
+                visible(response, "coleccion") ? response.coleccionId() : null,
+                visible(response, "coleccion") ? response.coleccionNombre() : null,
+                visible(response, "depositante") ? response.depositanteId() : null,
+                visible(response, "depositante") ? response.depositanteNombre() : null,
+                visible(response, "caracterRecepcion") ? response.caracterRecepcion() : null,
+                visible(response, "fechaVencimiento") ? response.fechaVencimiento() : null,
+                visible(response, "categorias") ? response.categorias() : List.of(),
+                visible(response, "fotos") ? response.fotos() : List.of(),
+                visible(response, "reciboEscaneado") ? response.reciboEscaneado() : null
+        );
+    }
+
+    private boolean visible(ObjetoMuseoResponseDTO response, String campo) {
+        Map<String, VisibilidadCampo> visibilidades = response.visibilidades() == null ? Map.of() : response.visibilidades();
+        return visibilidades.getOrDefault(campo, VisibilidadCampo.PUBLICO) != VisibilidadCampo.PRIVADO;
+    }
+
+    private boolean puedeVerCamposPrivados() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return false;
+        }
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority) || "ROLE_OPERATOR".equals(authority));
     }
 
     private void crearInventarioInicial(ObjetoMuseo objeto, Ubicacion ubicacion, String observaciones, String usuarioMovimiento) {
