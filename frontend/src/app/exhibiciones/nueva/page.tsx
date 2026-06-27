@@ -22,7 +22,9 @@ export default function NuevaExhibicionPage() {
 function NuevaExhibicionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const repetirId = Number(searchParams.get("repetir"));
+  const repetirParam = searchParams.get("repetir");
+  const repetirId = repetirParam ? Number(repetirParam) : undefined;
+  const esRepeticion = repetirId !== undefined && Number.isFinite(repetirId) && repetirId > 0;
   const mutation = useCrearExhibicionMutation();
 
   return (
@@ -42,9 +44,9 @@ function NuevaExhibicionContent() {
               onSuccess: (exhibicion) => router.push(`/exhibiciones/${exhibicion.id}`)
             })
           }
-          repetirExhibicionId={Number.isFinite(repetirId) ? repetirId : undefined}
+          repetirExhibicionId={esRepeticion ? repetirId : undefined}
           submitError={mutation.error}
-          submitLabel={Number.isFinite(repetirId) ? "Crear exhibición repetida" : "Crear exhibición"}
+          submitLabel={esRepeticion ? "Crear exhibición repetida" : "Crear exhibición"}
         />
       </div>
     </AppShell>
