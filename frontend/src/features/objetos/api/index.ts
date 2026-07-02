@@ -2,6 +2,7 @@ export {
   actualizarConfigAlertasComodatosPrestamos,
   actualizarFechaVencimientoComodatoPrestamo,
   actualizarObjeto,
+  actualizarVisibilidadFotoObjeto,
   bajaLogicaObjeto,
   buscarObjetos,
   buscarObjetosDisponiblesParaColeccion,

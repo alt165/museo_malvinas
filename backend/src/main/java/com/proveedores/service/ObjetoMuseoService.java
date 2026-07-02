@@ -841,6 +841,7 @@ public class ObjetoMuseoService {
                         foto.getContentType(),
                         foto.getTamanioBytes(),
                         foto.getDescripcion(),
+                        foto.getVisibilidad(),
                         foto.getFechaCarga(),
                         foto.getCargadoPor()
                 ))
@@ -872,7 +873,10 @@ public class ObjetoMuseoService {
             return response;
         }
         Map<String, VisibilidadCampo> visibilidades = response.visibilidades() == null ? Map.of() : response.visibilidades();
-        if (visibilidades.values().stream().noneMatch(VisibilidadCampo.PRIVADO::equals)) {
+        boolean tieneCamposPrivados = visibilidades.values().stream().anyMatch(VisibilidadCampo.PRIVADO::equals);
+        boolean tieneFotosPrivadas = response.fotos().stream().anyMatch(foto -> foto.visibilidad() == VisibilidadCampo.PRIVADO);
+        boolean tieneReciboEscaneado = response.reciboEscaneado() != null;
+        if (!tieneCamposPrivados && !tieneFotosPrivadas && !tieneReciboEscaneado) {
             return response;
         }
         return new ObjetoMuseoResponseDTO(
@@ -917,9 +921,18 @@ public class ObjetoMuseoService {
                 visible(response, "caracterRecepcion") ? response.caracterRecepcion() : null,
                 visible(response, "fechaVencimiento") ? response.fechaVencimiento() : null,
                 visible(response, "categorias") ? response.categorias() : List.of(),
-                visible(response, "fotos") ? response.fotos() : List.of(),
-                visible(response, "reciboEscaneado") ? response.reciboEscaneado() : null
+                visible(response, "fotos") ? filtrarFotosPrivadas(response.fotos()) : List.of(),
+                null
         );
+    }
+
+    private List<FotoObjetoMuseoResponseDTO> filtrarFotosPrivadas(List<FotoObjetoMuseoResponseDTO> fotos) {
+        if (puedeVerCamposPrivados()) {
+            return fotos;
+        }
+        return fotos.stream()
+                .filter(foto -> foto.visibilidad() != VisibilidadCampo.PRIVADO)
+                .toList();
     }
 
     private boolean visible(ObjetoMuseoResponseDTO response, String campo) {

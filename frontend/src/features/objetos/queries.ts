@@ -3,6 +3,7 @@ import {
   actualizarConfigAlertasComodatosPrestamos,
   actualizarFechaVencimientoComodatoPrestamo,
   actualizarObjeto,
+  actualizarVisibilidadFotoObjeto,
   bajaLogicaObjeto,
   buscarObjetos,
   buscarObjetosDisponiblesParaColeccion,
@@ -265,11 +266,11 @@ export function useFotosObjetoQuery(id: number) {
   });
 }
 
-export function useRecibosObjetoQuery(id: number) {
+export function useRecibosObjetoQuery(id: number, enabled = true) {
   return useQuery({
     queryKey: objetosQueryKeys.recibos(id),
     queryFn: () => listarRecibosObjeto(id),
-    enabled: Number.isFinite(id)
+    enabled: enabled && Number.isFinite(id)
   });
 }
 
@@ -279,6 +280,19 @@ export function useReciboEscaneadoObjetoQuery(id: number) {
     queryFn: () => obtenerReciboEscaneadoObjeto(id),
     enabled: Number.isFinite(id),
     retry: false
+  });
+}
+
+export function useActualizarVisibilidadFotoObjetoMutation(id: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ fotoId, visibilidad }: { fotoId: number; visibilidad: "PUBLICO" | "PRIVADO" }) =>
+      actualizarVisibilidadFotoObjeto(id, fotoId, visibilidad),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.fotos(id) });
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.detail(id) });
+    }
   });
 }
 

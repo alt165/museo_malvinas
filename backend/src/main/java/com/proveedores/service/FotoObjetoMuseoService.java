@@ -3,6 +3,7 @@ package com.proveedores.service;
 import com.proveedores.dto.FotoObjetoMuseoResponseDTO;
 import com.proveedores.entity.FotoObjetoMuseo;
 import com.proveedores.entity.ObjetoMuseo;
+import com.proveedores.entity.VisibilidadCampo;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.FotoObjetoMuseoRepository;
@@ -10,6 +11,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import org.springframework.core.io.Resource;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -39,6 +43,11 @@ public class FotoObjetoMuseoService {
 
     @Transactional
     public FotoObjetoMuseoResponseDTO subir(Long objetoId, MultipartFile archivo, String descripcion, String cargadoPor) {
+        return subir(objetoId, archivo, descripcion, VisibilidadCampo.PUBLICO, cargadoPor);
+    }
+
+    @Transactional
+    public FotoObjetoMuseoResponseDTO subir(Long objetoId, MultipartFile archivo, String descripcion, VisibilidadCampo visibilidad, String cargadoPor) {
         ObjetoMuseo objeto = objetoMuseoService.buscarObjetoActivo(objetoId);
         validarArchivo(archivo);
 
@@ -54,6 +63,7 @@ public class FotoObjetoMuseoService {
         foto.setRutaAlmacenamiento(storedFile.absolutePath());
         foto.setRutaRelativa(storedFile.relativePath());
         foto.setDescripcion(descripcion);
+        foto.setVisibilidad(visibilidad == null ? VisibilidadCampo.PUBLICO : visibilidad);
         foto.setFechaCarga(LocalDateTime.now());
         foto.setCargadoPor(cargadoPor);
         return toResponse(fotoObjetoMuseoRepository.save(foto));
@@ -63,6 +73,7 @@ public class FotoObjetoMuseoService {
     public List<FotoObjetoMuseoResponseDTO> listar(Long objetoId) {
         objetoMuseoService.buscarObjetoActivo(objetoId);
         return fotoObjetoMuseoRepository.findByObjetoMuseoIdAndEliminadoFalse(objetoId).stream()
+                .filter(this::puedeVerFoto)
                 .map(this::toResponse)
                 .toList();
     }
@@ -70,6 +81,7 @@ public class FotoObjetoMuseoService {
     @Transactional(readOnly = true)
     public FotoArchivo descargar(Long objetoId, Long fotoId) {
         FotoObjetoMuseo foto = buscarFoto(objetoId, fotoId);
+        validarPuedeVerFoto(foto);
         Resource resource = StringUtils.hasText(foto.getRutaRelativa())
                 ? objectFileStorageService.load(foto.getRutaRelativa())
                 : new org.springframework.core.io.FileSystemResource(foto.getRutaAlmacenamiento());
@@ -77,6 +89,13 @@ public class FotoObjetoMuseoService {
             throw new ResourceNotFoundException("Archivo de foto no encontrado");
         }
         return new FotoArchivo(toResponse(foto), resource);
+    }
+
+    @Transactional
+    public FotoObjetoMuseoResponseDTO actualizarVisibilidad(Long objetoId, Long fotoId, VisibilidadCampo visibilidad) {
+        FotoObjetoMuseo foto = buscarFoto(objetoId, fotoId);
+        foto.setVisibilidad(visibilidad == null ? VisibilidadCampo.PUBLICO : visibilidad);
+        return toResponse(fotoObjetoMuseoRepository.save(foto));
     }
 
     @Transactional
@@ -92,6 +111,26 @@ public class FotoObjetoMuseoService {
         objetoMuseoService.buscarObjetoActivo(objetoId);
         return fotoObjetoMuseoRepository.findByIdAndObjetoMuseoIdAndEliminadoFalse(fotoId, objetoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Foto del objeto no encontrada"));
+    }
+
+    private void validarPuedeVerFoto(FotoObjetoMuseo foto) {
+        if (!puedeVerFoto(foto)) {
+            throw new ResourceNotFoundException("Foto del objeto no encontrada");
+        }
+    }
+
+    private boolean puedeVerFoto(FotoObjetoMuseo foto) {
+        return foto.getVisibilidad() != VisibilidadCampo.PRIVADO || puedeVerPrivados();
+    }
+
+    private boolean puedeVerPrivados() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return false;
+        }
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority) || "ROLE_OPERATOR".equals(authority));
     }
 
     private void validarArchivo(MultipartFile archivo) {
@@ -115,6 +154,7 @@ public class FotoObjetoMuseoService {
                 foto.getContentType(),
                 foto.getTamanioBytes(),
                 foto.getDescripcion(),
+                foto.getVisibilidad(),
                 foto.getFechaCarga(),
                 foto.getCargadoPor()
         );

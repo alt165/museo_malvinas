@@ -35,7 +35,7 @@ export default function NuevoObjetoPage() {
         setCreatedObjectId(objeto.id);
         try {
           if (archivos.fotos.length > 0) {
-            await subirFotosObjeto(objeto.id, archivos.fotos);
+            await subirFotosObjeto(objeto.id, archivos.fotos, undefined, archivos.fotoVisibilidades);
           }
           if (archivos.reciboEscaneado) {
             await subirReciboEscaneadoObjeto(objeto.id, archivos.reciboEscaneado);

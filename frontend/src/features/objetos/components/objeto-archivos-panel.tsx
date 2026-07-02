@@ -13,10 +13,11 @@ import {
 } from "@/features/objetos/api";
 import {
   objetosQueryKeys,
+  useActualizarVisibilidadFotoObjetoMutation,
   useEliminarFotoObjetoMutation,
   useFotosObjetoQuery
 } from "@/features/objetos/queries";
-import type { ObjetoMuseoResponseDTO } from "@/features/objetos/types";
+import type { ObjetoMuseoResponseDTO, VisibilidadCampo } from "@/features/objetos/types";
 
 type ObjetoArchivosPanelProps = {
   mode: "view" | "edit";
@@ -46,14 +47,17 @@ export function ObjetoArchivosPanel({ mode, objeto }: ObjetoArchivosPanelProps) 
   const editable = mode === "edit";
   const queryClient = useQueryClient();
   const [fotoDescripcion, setFotoDescripcion] = useState("");
+  const [fotoVisibilidad, setFotoVisibilidad] = useState<VisibilidadCampo>("PUBLICO");
   const [fotoThumbUrls, setFotoThumbUrls] = useState<Record<number, string>>({});
   const fotoThumbUrlsRef = useRef<Record<number, string>>({});
   const { data: fotos = [] } = useFotosObjetoQuery(objeto.id);
+  const actualizarVisibilidadFotoMutation = useActualizarVisibilidadFotoObjetoMutation(objeto.id);
   const eliminarFotoMutation = useEliminarFotoObjetoMutation(objeto.id);
   const subirFotoMutation = useMutation({
-    mutationFn: (archivo: File) => subirFotoObjeto(objeto.id, archivo, fotoDescripcion.trim() || undefined),
+    mutationFn: (archivo: File) => subirFotoObjeto(objeto.id, archivo, fotoDescripcion.trim() || undefined, fotoVisibilidad),
     onSuccess: () => {
       setFotoDescripcion("");
+      setFotoVisibilidad("PUBLICO");
       void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.fotos(objeto.id) });
       void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.detail(objeto.id) });
     }
@@ -119,7 +123,7 @@ export function ObjetoArchivosPanel({ mode, objeto }: ObjetoArchivosPanelProps) 
       <section className="rounded-lg border p-5">
         <h2 className="text-base font-semibold">Fotos</h2>
         {editable ? (
-          <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_2fr_auto]">
+          <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_2fr_auto_auto]">
             <input
               accept="image/jpeg,image/png,image/webp"
               capture="environment"
@@ -139,6 +143,16 @@ export function ObjetoArchivosPanel({ mode, objeto }: ObjetoArchivosPanelProps) 
               placeholder="Descripcion opcional"
               value={fotoDescripcion}
             />
+            <select
+              aria-label="Visibilidad de la foto"
+              className="h-10 rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+              disabled={subirFotoMutation.isPending}
+              onChange={(event) => setFotoVisibilidad(event.target.value as VisibilidadCampo)}
+              value={fotoVisibilidad}
+            >
+              <option value="PUBLICO">Público</option>
+              <option value="PRIVADO">Privado</option>
+            </select>
             <span className="self-center text-sm text-muted-foreground">{subirFotoMutation.isPending ? "Subiendo..." : ""}</span>
           </div>
         ) : null}
@@ -165,7 +179,19 @@ export function ObjetoArchivosPanel({ mode, objeto }: ObjetoArchivosPanelProps) 
                       <p className="truncate font-medium">{foto.nombreArchivo}</p>
                       <p className="truncate text-muted-foreground">{foto.descripcion || foto.contentType}</p>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {editable ? (
+                        <select
+                          aria-label={`Visibilidad de ${foto.nombreArchivo}`}
+                          className="h-9 rounded-md border bg-background px-2 text-xs outline-none focus:ring-2 focus:ring-ring"
+                          disabled={actualizarVisibilidadFotoMutation.isPending}
+                          onChange={(event) => actualizarVisibilidadFotoMutation.mutate({ fotoId: foto.id, visibilidad: event.target.value as VisibilidadCampo })}
+                          value={foto.visibilidad}
+                        >
+                          <option value="PUBLICO">Público</option>
+                          <option value="PRIVADO">Privado</option>
+                        </select>
+                      ) : null}
                       <button className="rounded-md border px-3 py-1.5 hover:bg-muted" onClick={async () => abrirBlobEnNuevaVentana(await descargarFotoObjeto(objeto.id, foto.id))} type="button">
                         Ver foto
                       </button>

@@ -7,12 +7,14 @@ import { Trash2, Upload, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { subirFotosObjeto } from "@/features/objetos/api";
 import { objetosQueryKeys } from "@/features/objetos/queries";
+import type { VisibilidadCampo } from "@/features/objetos/types";
 import { getApiErrorMessage } from "@/features/objetos/utils";
 
 type ImagenSeleccionada = {
   id: string;
   file: File;
   previewUrl: string;
+  visibilidad: VisibilidadCampo;
 };
 
 type ObjetoImagenesUploadModalProps = {
@@ -38,7 +40,12 @@ export function ObjetoImagenesUploadModal({ objetoId, open, onClose, onUploaded 
   }, []);
 
   const subirFotosMutation = useMutation({
-    mutationFn: (archivos: File[]) => subirFotosObjeto(objetoId, archivos),
+    mutationFn: (items: ImagenSeleccionada[]) => subirFotosObjeto(
+      objetoId,
+      items.map((item) => item.file),
+      undefined,
+      items.map((item) => item.visibilidad)
+    ),
     onSuccess: (fotosCargadas) => {
       limpiarImagenes();
       setError(null);
@@ -100,7 +107,8 @@ export function ObjetoImagenesUploadModal({ objetoId, open, onClose, onUploaded 
       nuevasImagenes.push({
         id: `${file.name}-${file.size}-${file.lastModified}-${Math.random()}`,
         file,
-        previewUrl: URL.createObjectURL(file)
+        previewUrl: URL.createObjectURL(file),
+        visibilidad: "PUBLICO"
       });
     });
 
@@ -108,6 +116,10 @@ export function ObjetoImagenesUploadModal({ objetoId, open, onClose, onUploaded 
       setImagenes((actuales) => [...actuales, ...nuevasImagenes]);
     }
     setError(errores.length > 0 ? errores.join(" ") : null);
+  }
+
+  function cambiarVisibilidadImagen(id: string, visibilidad: VisibilidadCampo) {
+    setImagenes((actuales) => actuales.map((item) => item.id === id ? { ...item, visibilidad } : item));
   }
 
   function quitarImagen(id: string) {
@@ -167,17 +179,29 @@ export function ObjetoImagenesUploadModal({ objetoId, open, onClose, onUploaded 
             {imagenes.map((imagen) => (
               <div className="overflow-hidden rounded-md border bg-background" key={imagen.id}>
                 <img alt={imagen.file.name} className="h-36 w-full bg-muted object-cover" src={imagen.previewUrl} />
-                <div className="flex items-center justify-between gap-2 p-3 text-sm">
+                <div className="space-y-2 p-3 text-sm">
                   <p className="truncate font-medium" title={imagen.file.name}>{imagen.file.name}</p>
-                  <button
-                    aria-label={`Quitar ${imagen.file.name}`}
-                    className="rounded-md border p-1.5 text-destructive hover:bg-destructive/10 disabled:opacity-60"
-                    disabled={subirFotosMutation.isPending}
-                    onClick={() => quitarImagen(imagen.id)}
-                    type="button"
-                  >
-                    <Trash2 className="h-4 w-4" aria-hidden="true" />
-                  </button>
+                  <div className="flex items-center justify-between gap-2">
+                    <select
+                      aria-label={`Visibilidad de ${imagen.file.name}`}
+                      className="h-8 rounded-md border bg-background px-2 text-xs outline-none focus:ring-2 focus:ring-ring"
+                      disabled={subirFotosMutation.isPending}
+                      onChange={(event) => cambiarVisibilidadImagen(imagen.id, event.target.value as VisibilidadCampo)}
+                      value={imagen.visibilidad}
+                    >
+                      <option value="PUBLICO">Público</option>
+                      <option value="PRIVADO">Privado</option>
+                    </select>
+                    <button
+                      aria-label={`Quitar ${imagen.file.name}`}
+                      className="rounded-md border p-1.5 text-destructive hover:bg-destructive/10 disabled:opacity-60"
+                      disabled={subirFotosMutation.isPending}
+                      onClick={() => quitarImagen(imagen.id)}
+                      type="button"
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -198,7 +222,7 @@ export function ObjetoImagenesUploadModal({ objetoId, open, onClose, onUploaded 
           <button
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
             disabled={imagenes.length === 0 || subirFotosMutation.isPending}
-            onClick={() => subirFotosMutation.mutate(imagenes.map((imagen) => imagen.file))}
+            onClick={() => subirFotosMutation.mutate(imagenes)}
             type="button"
           >
             {subirFotosMutation.isPending ? "Cargando..." : "Cargar imagenes"}

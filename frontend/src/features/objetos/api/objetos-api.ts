@@ -213,9 +213,12 @@ export function listarFotosObjeto(id: number) {
   return apiRequest<FotoObjetoMuseoResponseDTO[]>(`${basePath}/${id}/fotos`);
 }
 
-export function subirFotosObjeto(id: number, archivos: File[], descripcion?: string) {
+export function subirFotosObjeto(id: number, archivos: File[], descripcion?: string, visibilidades?: ("PUBLICO" | "PRIVADO")[]) {
   const formData = new FormData();
-  archivos.forEach((archivo) => formData.append("archivos", archivo));
+  archivos.forEach((archivo, index) => {
+    formData.append("archivos", archivo);
+    formData.append("visibilidades", visibilidades?.[index] ?? "PUBLICO");
+  });
   if (descripcion) {
     formData.append("descripcion", descripcion);
   }
@@ -225,9 +228,15 @@ export function subirFotosObjeto(id: number, archivos: File[], descripcion?: str
   });
 }
 
-export async function subirFotoObjeto(id: number, archivo: File, descripcion?: string) {
-  const [foto] = await subirFotosObjeto(id, [archivo], descripcion);
+export async function subirFotoObjeto(id: number, archivo: File, descripcion?: string, visibilidad: "PUBLICO" | "PRIVADO" = "PUBLICO") {
+  const [foto] = await subirFotosObjeto(id, [archivo], descripcion, [visibilidad]);
   return foto;
+}
+
+export function actualizarVisibilidadFotoObjeto(id: number, fotoId: number, visibilidad: "PUBLICO" | "PRIVADO") {
+  return apiRequest<FotoObjetoMuseoResponseDTO>(`${basePath}/${id}/fotos/${fotoId}/visibilidad?visibilidad=${visibilidad}`, {
+    method: "PATCH"
+  });
 }
 
 export function eliminarFotoObjeto(id: number, fotoId: number) {

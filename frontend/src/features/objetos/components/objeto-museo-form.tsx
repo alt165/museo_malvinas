@@ -26,6 +26,7 @@ type ObjetoMuseoFormProps = {
 
 export type ObjetoMuseoFormFiles = {
   fotos: File[];
+  fotoVisibilidades: VisibilidadCampo[];
   reciboEscaneado: File | null;
 };
 
@@ -177,6 +178,7 @@ export function ObjetoMuseoForm({
   const categoriasOrdenadas = [...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre));
   const [categoriaBusqueda, setCategoriaBusqueda] = useState("");
   const [fotos, setFotos] = useState<File[]>([]);
+  const [fotoVisibilidades, setFotoVisibilidades] = useState<VisibilidadCampo[]>([]);
   const [reciboEscaneado, setReciboEscaneado] = useState<File | null>(null);
   const [fileErrors, setFileErrors] = useState<string[]>([]);
   const [identificacion, setIdentificacion] = useState("");
@@ -308,6 +310,7 @@ export function ObjetoMuseoForm({
     });
     setCategoriaBusqueda("");
     setFotos([]);
+    setFotoVisibilidades([]);
     setReciboEscaneado(null);
     setFileErrors([]);
     setIdentificacion("");
@@ -435,6 +438,16 @@ export function ObjetoMuseoForm({
     });
     setFileErrors(errores);
     setFotos((current) => [...current, ...validas]);
+    setFotoVisibilidades((current) => [...current, ...validas.map(() => "PUBLICO" as VisibilidadCampo)]);
+  }
+
+  function cambiarVisibilidadFoto(index: number, visibilidad: VisibilidadCampo) {
+    setFotoVisibilidades((current) => current.map((item, itemIndex) => itemIndex === index ? visibilidad : item));
+  }
+
+  function quitarFoto(index: number) {
+    setFotos((current) => current.filter((_, itemIndex) => itemIndex !== index));
+    setFotoVisibilidades((current) => current.filter((_, itemIndex) => itemIndex !== index));
   }
 
   function seleccionarRecibo(file: File | undefined) {
@@ -491,7 +504,7 @@ export function ObjetoMuseoForm({
             depositanteId: values.depositanteId,
             caracterRecepcion: values.caracterRecepcion || null,
             fechaVencimiento: caracteresConVencimiento.has(values.caracterRecepcion) ? values.fechaVencimiento || null : null
-          }, { fotos, reciboEscaneado });
+          }, { fotos, fotoVisibilidades, reciboEscaneado });
         },
         (invalidErrors) => setValidationSummary(validationMessages(invalidErrors))
       )}
@@ -523,7 +536,10 @@ export function ObjetoMuseoForm({
       <input type="hidden" {...register("depositanteId", { valueAsNumber: true })} />
       <section className="space-y-3 rounded-md border bg-surface p-4">
         <div>
-          <h2 className="text-base font-semibold">Depositante y recepción</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-base font-semibold">Depositante y recepción</h2>
+            {visibilidadControl("depositante")}
+          </div>
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="space-y-2">
@@ -590,7 +606,10 @@ export function ObjetoMuseoForm({
         {errors.depositanteId ? <p className="text-sm text-destructive">{errors.depositanteId.message}</p> : null}
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="caracterRecepcion">Carácter de recepción</label>
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-sm font-medium" htmlFor="caracterRecepcion">Carácter de recepción</label>
+              {visibilidadControl("caracterRecepcion")}
+            </div>
             <select className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id="caracterRecepcion" {...register("caracterRecepcion")}>
               <option value="">Seleccionar carácter</option>
               {caracteresRecepcion.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -599,7 +618,10 @@ export function ObjetoMuseoForm({
           </div>
           {mostrarFechaVencimiento ? (
             <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="fechaVencimiento">Fecha de vencimiento</label>
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-sm font-medium" htmlFor="fechaVencimiento">Fecha de vencimiento</label>
+                {visibilidadControl("fechaVencimiento")}
+              </div>
               <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id="fechaVencimiento" type="date" min={fechaMinimaVencimiento} {...register("fechaVencimiento")} />
               {errors.fechaVencimiento ? <p className="text-sm text-destructive">{errors.fechaVencimiento.message}</p> : null}
             </div>
@@ -608,9 +630,10 @@ export function ObjetoMuseoForm({
       </section>
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-2">
-          <label className="text-sm font-medium" htmlFor="numeroInventario">
-            Numero de inventario
-          </label>
+          <div className="flex items-center justify-between gap-2">
+            <label className="text-sm font-medium" htmlFor="numeroInventario">Numero de inventario</label>
+            {visibilidadControl("numeroInventario")}
+          </div>
           <input
             className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
             id="numeroInventario"
@@ -623,9 +646,10 @@ export function ObjetoMuseoForm({
       </div>
       {!initialValue ? (
         <div className="space-y-2">
-          <label className="text-sm font-medium" htmlFor="ubicacionId">
-            Ubicacion inicial
-          </label>
+          <div className="flex items-center justify-between gap-2">
+            <label className="text-sm font-medium" htmlFor="ubicacionId">Ubicacion inicial</label>
+            {visibilidadControl("ubicacion")}
+          </div>
           <select
             className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
             disabled={isSubmitting || ubicacionesQuery.isLoading}
@@ -644,9 +668,10 @@ export function ObjetoMuseoForm({
         </div>
       ) : null}
       <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="denominacionObjeto">
-          Denominacion
-        </label>
+        <div className="flex items-center justify-between gap-2">
+          <label className="text-sm font-medium" htmlFor="denominacionObjeto">Denominacion</label>
+          {visibilidadControl("denominacionObjeto")}
+        </div>
         <input
           className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
           id="denominacionObjeto"
@@ -656,9 +681,10 @@ export function ObjetoMuseoForm({
       </div>
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <label className="text-sm font-medium" htmlFor="categoria-busqueda-form">
-            Categorias
-          </label>
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium" htmlFor="categoria-busqueda-form">Categorias</label>
+            {visibilidadControl("categorias")}
+          </div>
           <span className="text-xs text-muted-foreground">{categoriaIds.length} seleccionada(s)</span>
         </div>
         <input
@@ -710,9 +736,10 @@ export function ObjetoMuseoForm({
       </section>
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-2">
-          <label className="text-sm font-medium" htmlFor="estadoConservacion">
-            Estado de conservacion
-          </label>
+          <div className="flex items-center justify-between gap-2">
+            <label className="text-sm font-medium" htmlFor="estadoConservacion">Estado de conservacion</label>
+            {visibilidadControl("estadoConservacion")}
+          </div>
           <select
             className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
             id="estadoConservacion"
@@ -729,9 +756,10 @@ export function ObjetoMuseoForm({
         </div>
       </div>
       <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="descripcion">
-          Descripcion breve
-        </label>
+        <div className="flex items-center justify-between gap-2">
+          <label className="text-sm font-medium" htmlFor="descripcion">Descripcion breve</label>
+          {visibilidadControl("descripcion")}
+        </div>
         <textarea
           className="min-h-32 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
           id="descripcion"
@@ -740,9 +768,10 @@ export function ObjetoMuseoForm({
         {errors.descripcion ? <p className="text-sm text-destructive">{errors.descripcion.message}</p> : null}
       </div>
       <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="descripcionTecnica">
-          Descripcion tecnica
-        </label>
+        <div className="flex items-center justify-between gap-2">
+          <label className="text-sm font-medium" htmlFor="descripcionTecnica">Descripcion tecnica</label>
+          {visibilidadControl("descripcionTecnica")}
+        </div>
         <textarea
           className="min-h-32 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
           id="descripcionTecnica"
@@ -901,28 +930,6 @@ export function ObjetoMuseoForm({
         </div>
       </section>
 
-      <section className="space-y-3 rounded-md border bg-surface p-4">
-        <h2 className="text-base font-semibold">Visibilidad de datos generales</h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {[
-            ["numeroInventario", "Número de inventario"],
-            ["denominacionObjeto", "Denominación"],
-            ["descripcion", "Descripción breve"],
-            ["descripcionTecnica", "Descripción técnica"],
-            ["estadoConservacion", "Estado de conservación"],
-            ["categorias", "Categorías"],
-            ["ubicacion", "Ubicación"],
-            ["depositante", "Depositante"],
-            ["caracterRecepcion", "Carácter de recepción"],
-            ["fechaVencimiento", "Fecha de vencimiento"]
-          ].map(([field, label]) => (
-            <label className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm" key={field}>
-              <span>{label}</span>
-              {visibilidadControl(field)}
-            </label>
-          ))}
-        </div>
-      </section>
       {allowFileUploads ? (
         <>
           <section className="space-y-3 rounded-md border bg-surface p-4">
@@ -948,16 +955,28 @@ export function ObjetoMuseoForm({
                   <div className="overflow-hidden rounded-md border bg-background" key={`${preview.file.name}-${index}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img alt={preview.file.name} className="h-36 w-full object-cover" src={preview.url} />
-                    <div className="flex items-center justify-between gap-2 p-2 text-sm">
-                      <span className="min-w-0 truncate">{preview.file.name}</span>
-                      <button
-                        className="rounded-md border px-2 py-1 text-xs text-destructive hover:bg-destructive/10"
-                        disabled={isSubmitting}
-                        onClick={() => setFotos((current) => current.filter((_, itemIndex) => itemIndex !== index))}
-                        type="button"
-                      >
-                        Quitar
-                      </button>
+                    <div className="space-y-2 p-2 text-sm">
+                      <span className="block min-w-0 truncate">{preview.file.name}</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <select
+                          aria-label={`Visibilidad de ${preview.file.name}`}
+                          className="h-8 rounded-md border bg-background px-2 text-xs outline-none focus:ring-2 focus:ring-ring"
+                          disabled={isSubmitting}
+                          onChange={(event) => cambiarVisibilidadFoto(index, event.target.value as VisibilidadCampo)}
+                          value={fotoVisibilidades[index] ?? "PUBLICO"}
+                        >
+                          <option value="PUBLICO">Público</option>
+                          <option value="PRIVADO">Privado</option>
+                        </select>
+                        <button
+                          className="rounded-md border px-2 py-1 text-xs text-destructive hover:bg-destructive/10"
+                          disabled={isSubmitting}
+                          onClick={() => quitarFoto(index)}
+                          type="button"
+                        >
+                          Quitar
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}

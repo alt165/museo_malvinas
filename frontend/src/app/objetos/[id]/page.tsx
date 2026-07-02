@@ -389,8 +389,9 @@ export default function DetalleObjetoPage() {
   const { canEdit: puedeEscribir } = useEditingMode();
   const { roles } = useAuth();
   const esAdmin = hasRole(roles, "ADMIN");
+  const puedeVerRecibos = esAdmin || hasRole(roles, "OPERATOR");
   const { data, error, isError, isLoading } = useObjetoQuery(id);
-  const { data: recibos = [] } = useRecibosObjetoQuery(id);
+  const { data: recibos = [] } = useRecibosObjetoQuery(id, puedeVerRecibos);
 
   const datosDetalle: DatoDetalle[] = data ? [
     { label: "Numero de inventario", value: data.numeroInventario },
@@ -530,7 +531,7 @@ export default function DetalleObjetoPage() {
             ) : null}
           </>
         ) : null}
-        {data ? (
+        {data && puedeVerRecibos ? (
           <div className="rounded-lg border p-5">
             <h2 className="text-base font-semibold">Recibos</h2>
             <div className="mt-4 grid gap-3">

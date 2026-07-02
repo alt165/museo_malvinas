@@ -207,6 +207,7 @@ export type FotoObjetoMuseoResponseDTO = {
   contentType: string;
   tamanioBytes: number;
   descripcion?: string | null;
+  visibilidad: VisibilidadCampo;
   fechaCarga: string;
   cargadoPor?: string | null;
 };
