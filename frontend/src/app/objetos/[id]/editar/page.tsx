@@ -65,6 +65,7 @@ export default function EditarObjetoPage() {
         {data && !objetoCompletado ? (
           <>
             <ObjetoMuseoForm
+              footerContent={<ObjetoArchivosPanel mode="edit" objeto={data} />}
               initialValue={data}
               isSubmitting={mutation.isPending}
               onSubmit={(payload) =>
@@ -81,7 +82,6 @@ export default function EditarObjetoPage() {
               submitError={mutation.error}
               submitLabel="Guardar cambios"
             />
-            <ObjetoArchivosPanel mode="edit" objeto={data} />
           </>
         ) : null}
       </div>

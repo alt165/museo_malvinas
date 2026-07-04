@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { type FieldErrors, useForm, useWatch } from "react-hook-form";
 import { useCategoriasQuery } from "@/features/categorias/queries";
 import { useBuscarDepositantePorIdentificacionMutation, useBuscarDepositantesPorNombreQuery } from "@/features/depositantes/queries";
@@ -20,6 +20,7 @@ type ObjetoMuseoFormProps = {
   isSubmitting?: boolean;
   submitError?: unknown;
   submitLabel: string;
+  footerContent?: ReactNode;
   onSubmit: (payload: ObjetoMuseoRequestDTO, archivos: ObjetoMuseoFormFiles) => void;
   resetSignal?: number;
 };
@@ -163,6 +164,7 @@ function tipoDepositanteLabel(depositante: DepositanteResponseDTO) {
 export function ObjetoMuseoForm({
   allowFileUploads = false,
   initialValue,
+  footerContent,
   isSubmitting = false,
   onSubmit,
   resetSignal = 0,
@@ -468,7 +470,7 @@ export function ObjetoMuseoForm({
 
   return (
     <form
-      className="w-full space-y-5 rounded-lg border p-5"
+      className="w-full space-y-5"
       onSubmit={handleSubmit(
         (values) => {
           setValidationSummary(null);
@@ -534,12 +536,11 @@ export function ObjetoMuseoForm({
         </div>
       ) : null}
       <input type="hidden" {...register("depositanteId", { valueAsNumber: true })} />
-      <section className="space-y-3 rounded-md border bg-surface p-4">
-        <div>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-base font-semibold">Depositante y recepción</h2>
-            {visibilidadControl("depositante")}
-          </div>
+
+      <section className="space-y-4 rounded-md border bg-white p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-base font-semibold">Depositante</h2>
+          {visibilidadControl("depositante")}
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="space-y-2">
@@ -605,6 +606,29 @@ export function ObjetoMuseoForm({
         {buscarDepositanteMutation.isError && !depositanteNoEncontrado ? <p className="text-sm text-destructive">No se pudo buscar el depositante.</p> : null}
         {errors.depositanteId ? <p className="text-sm text-destructive">{errors.depositanteId.message}</p> : null}
         <div className="grid gap-4 sm:grid-cols-2">
+          {!initialValue ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-sm font-medium" htmlFor="ubicacionId">Ubicacion inicial</label>
+                {visibilidadControl("ubicacion")}
+              </div>
+              <select
+                className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                disabled={isSubmitting || ubicacionesQuery.isLoading}
+                id="ubicacionId"
+                {...register("ubicacionId", { valueAsNumber: true })}
+              >
+                <option value={0}>Seleccionar ubicacion</option>
+                {(ubicacionesQuery.data ?? []).map((ubicacion) => (
+                  <option key={ubicacion.id} value={ubicacion.id}>
+                    {ubicacion.nombre}
+                  </option>
+                ))}
+              </select>
+              {ubicacionesQuery.isError ? <p className="text-sm text-destructive">No se pudieron cargar las ubicaciones.</p> : null}
+              {errors.ubicacionId ? <p className="text-sm text-destructive">{errors.ubicacionId.message}</p> : null}
+            </div>
+          ) : null}
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <label className="text-sm font-medium" htmlFor="caracterRecepcion">Carácter de recepción</label>
@@ -628,61 +652,11 @@ export function ObjetoMuseoForm({
           ) : null}
         </div>
       </section>
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div className="space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <label className="text-sm font-medium" htmlFor="numeroInventario">Numero de inventario</label>
-            {visibilidadControl("numeroInventario")}
-          </div>
-          <input
-            className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-            id="numeroInventario"
-            {...register("numeroInventario")}
-          />
-          {errors.numeroInventario ? (
-            <p className="text-sm text-destructive">{errors.numeroInventario.message}</p>
-          ) : null}
-        </div>
-      </div>
-      {!initialValue ? (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <label className="text-sm font-medium" htmlFor="ubicacionId">Ubicacion inicial</label>
-            {visibilidadControl("ubicacion")}
-          </div>
-          <select
-            className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-            disabled={isSubmitting || ubicacionesQuery.isLoading}
-            id="ubicacionId"
-            {...register("ubicacionId", { valueAsNumber: true })}
-          >
-            <option value={0}>Seleccionar ubicacion</option>
-            {(ubicacionesQuery.data ?? []).map((ubicacion) => (
-              <option key={ubicacion.id} value={ubicacion.id}>
-                {ubicacion.nombre}
-              </option>
-            ))}
-          </select>
-          {ubicacionesQuery.isError ? <p className="text-sm text-destructive">No se pudieron cargar las ubicaciones.</p> : null}
-          {errors.ubicacionId ? <p className="text-sm text-destructive">{errors.ubicacionId.message}</p> : null}
-        </div>
-      ) : null}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <label className="text-sm font-medium" htmlFor="denominacionObjeto">Denominacion</label>
-          {visibilidadControl("denominacionObjeto")}
-        </div>
-        <input
-          className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-          id="denominacionObjeto"
-          {...register("denominacionObjeto")}
-        />
-        {errors.denominacionObjeto ? <p className="text-sm text-destructive">{errors.denominacionObjeto.message}</p> : null}
-      </div>
-      <section className="space-y-3">
+
+      <section className="space-y-3 rounded-md border bg-white p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium" htmlFor="categoria-busqueda-form">Categorias</label>
+            <h2 className="text-base font-semibold">Categorías</h2>
             {visibilidadControl("categorias")}
           </div>
           <span className="text-xs text-muted-foreground">{categoriaIds.length} seleccionada(s)</span>
@@ -734,51 +708,61 @@ export function ObjetoMuseoForm({
         {isCategoriasError ? <p className="text-sm text-destructive">No se pudieron cargar las categorias.</p> : null}
         {errors.categoriaIds ? <p className="text-sm text-destructive">{errors.categoriaIds.message}</p> : null}
       </section>
-      <div className="grid gap-5 sm:grid-cols-2">
+
+      <section className="space-y-4 rounded-md border bg-white p-4">
+        <h2 className="text-base font-semibold">Identificación del objeto</h2>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-sm font-medium" htmlFor="numeroInventario">Numero de inventario</label>
+              {visibilidadControl("numeroInventario")}
+            </div>
+            <input
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+              id="numeroInventario"
+              {...register("numeroInventario")}
+            />
+            {errors.numeroInventario ? <p className="text-sm text-destructive">{errors.numeroInventario.message}</p> : null}
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-sm font-medium" htmlFor="denominacionObjeto">Denominacion</label>
+              {visibilidadControl("denominacionObjeto")}
+            </div>
+            <input
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+              id="denominacionObjeto"
+              {...register("denominacionObjeto")}
+            />
+            {errors.denominacionObjeto ? <p className="text-sm text-destructive">{errors.denominacionObjeto.message}</p> : null}
+          </div>
+        </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <label className="text-sm font-medium" htmlFor="estadoConservacion">Estado de conservacion</label>
-            {visibilidadControl("estadoConservacion")}
+            <label className="text-sm font-medium" htmlFor="descripcion">Descripcion breve</label>
+            {visibilidadControl("descripcion")}
           </div>
-          <select
-            className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-            id="estadoConservacion"
-            {...register("estadoConservacion")}
-          >
-            <option value="">Sin especificar</option>
-            <option value="EXCELENTE">Excelente</option>
-            <option value="BUENO">Bueno</option>
-            <option value="REGULAR">Regular</option>
-            <option value="MALO">Malo</option>
-            <option value="CRITICO">Critico</option>
-          </select>
-          {errors.estadoConservacion ? <p className="text-sm text-destructive">{errors.estadoConservacion.message}</p> : null}
+          <textarea
+            className="min-h-32 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+            id="descripcion"
+            {...register("descripcion")}
+          />
+          {errors.descripcion ? <p className="text-sm text-destructive">{errors.descripcion.message}</p> : null}
         </div>
-      </div>
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <label className="text-sm font-medium" htmlFor="descripcion">Descripcion breve</label>
-          {visibilidadControl("descripcion")}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <label className="text-sm font-medium" htmlFor="descripcionTecnica">Descripcion tecnica</label>
+            {visibilidadControl("descripcionTecnica")}
+          </div>
+          <textarea
+            className="min-h-32 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+            id="descripcionTecnica"
+            {...register("descripcionTecnica")}
+          />
         </div>
-        <textarea
-          className="min-h-32 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-          id="descripcion"
-          {...register("descripcion")}
-        />
-        {errors.descripcion ? <p className="text-sm text-destructive">{errors.descripcion.message}</p> : null}
-      </div>
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <label className="text-sm font-medium" htmlFor="descripcionTecnica">Descripcion tecnica</label>
-          {visibilidadControl("descripcionTecnica")}
-        </div>
-        <textarea
-          className="min-h-32 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-          id="descripcionTecnica"
-          {...register("descripcionTecnica")}
-        />
-      </div>
-      <section className="space-y-4 rounded-md border bg-surface p-4">
+      </section>
+
+      <section className="space-y-4 rounded-md border bg-white p-4">
         <h2 className="text-base font-semibold">Información técnica</h2>
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="space-y-2 sm:col-span-2">
@@ -811,6 +795,12 @@ export function ObjetoMuseoForm({
             <textarea className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" id="inscripciones" {...register("inscripciones")} />
             {errors.inscripciones ? <p className="text-sm text-destructive">{errors.inscripciones.message}</p> : null}
           </div>
+        </div>
+      </section>
+
+      <section className="space-y-4 rounded-md border bg-white p-4">
+        <h2 className="text-base font-semibold">Régimen jurídico</h2>
+        <div className="grid gap-5 sm:grid-cols-2">
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <label className="text-sm font-medium" htmlFor="regimenPropiedad">Régimen de propiedad</label>
@@ -832,9 +822,28 @@ export function ObjetoMuseoForm({
         </div>
       </section>
 
-      <section className="space-y-4 rounded-md border bg-surface p-4">
+      <section className="space-y-4 rounded-md border bg-white p-4">
         <h2 className="text-base font-semibold">Estado de conservación</h2>
         <div className="grid gap-5 sm:grid-cols-2">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-sm font-medium" htmlFor="estadoConservacion">Estado de conservacion</label>
+              {visibilidadControl("estadoConservacion")}
+            </div>
+            <select
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+              id="estadoConservacion"
+              {...register("estadoConservacion")}
+            >
+              <option value="">Sin especificar</option>
+              <option value="EXCELENTE">Excelente</option>
+              <option value="BUENO">Bueno</option>
+              <option value="REGULAR">Regular</option>
+              <option value="MALO">Malo</option>
+              <option value="CRITICO">Critico</option>
+            </select>
+            {errors.estadoConservacion ? <p className="text-sm text-destructive">{errors.estadoConservacion.message}</p> : null}
+          </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <label className="text-sm font-medium" htmlFor="intervencionesInadecuadas">Intervenciones inadecuadas</label>
@@ -878,8 +887,8 @@ export function ObjetoMuseoForm({
         </div>
       </section>
 
-      <section className="space-y-4 rounded-md border bg-surface p-4">
-        <h2 className="text-base font-semibold">Conservación Preventiva</h2>
+      <section className="space-y-4 rounded-md border bg-white p-4">
+        <h2 className="text-base font-semibold">Conservación preventiva</h2>
         <div className="grid gap-5 sm:grid-cols-3">
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
@@ -932,7 +941,7 @@ export function ObjetoMuseoForm({
 
       {allowFileUploads ? (
         <>
-          <section className="space-y-3 rounded-md border bg-surface p-4">
+          <section className="space-y-3 rounded-md border bg-white p-4">
             <div>
               <h2 className="text-base font-semibold">Fotos del objeto</h2>
               <p className="mt-1 text-sm text-muted-foreground">JPEG, PNG o WebP. Maximo 5 MB por foto.</p>
@@ -983,9 +992,9 @@ export function ObjetoMuseoForm({
               </div>
             ) : null}
           </section>
-          <section className="space-y-3 rounded-md border bg-surface p-4">
+          <section className="space-y-3 rounded-md border bg-white p-4">
             <div>
-              <h2 className="text-base font-semibold">Recibo escaneado</h2>
+              <h2 className="text-base font-semibold">Recibo</h2>
               <p className="mt-1 text-sm text-muted-foreground">Opcional. PDF, JPEG, PNG o WebP. Maximo 10 MB.</p>
             </div>
             <input
@@ -1019,6 +1028,7 @@ export function ObjetoMuseoForm({
           ) : null}
         </>
       ) : null}
+      {footerContent}
       <div className="flex items-center gap-3">
         <button
           className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"

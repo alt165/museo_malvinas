@@ -120,7 +120,7 @@ export function ObjetoArchivosPanel({ mode, objeto }: ObjetoArchivosPanelProps) 
 
   return (
     <div className="space-y-6">
-      <section className="rounded-lg border p-5">
+      <section className="rounded-lg border bg-white p-5">
         <h2 className="text-base font-semibold">Fotos</h2>
         {editable ? (
           <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_2fr_auto_auto]">
@@ -212,8 +212,8 @@ export function ObjetoArchivosPanel({ mode, objeto }: ObjetoArchivosPanelProps) 
         </div>
       </section>
 
-      <section className="rounded-lg border p-5">
-        <h2 className="text-base font-semibold">Recibo escaneado</h2>
+      <section className="rounded-lg border bg-white p-5">
+        <h2 className="text-base font-semibold">Recibo</h2>
         <div className="mt-4 grid gap-3">
           {objeto.reciboEscaneado ? (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3 text-sm">
