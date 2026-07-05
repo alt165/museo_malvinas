@@ -365,7 +365,7 @@ public class ExhibicionService {
             return false;
         }
         if (exhibicion.getEstado() == EstadoExhibicion.FINALIZADA) {
-            return exhibicion.getFechaFin() != null;
+            return false;
         }
         return exhibicion.getEstado() == EstadoExhibicion.PLANIFICADA || exhibicion.getEstado() == EstadoExhibicion.ACTIVA;
     }

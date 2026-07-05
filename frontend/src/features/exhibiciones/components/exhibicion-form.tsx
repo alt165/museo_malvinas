@@ -41,6 +41,7 @@ export function ExhibicionForm({ initialValue, isSubmitting = false, repetirExhi
   const [textoAplicado, setTextoAplicado] = useState("");
   const [page, setPage] = useState(0);
   const repeticionPrecargadaIdRef = useRef<number | null>(null);
+  const objetosRepeticionPrecargadosIdRef = useRef<number | null>(null);
   const [mensajeRepeticion, setMensajeRepeticion] = useState<string | null>(null);
   const exhibicionARepetirId = repetirExhibicionId && Number.isFinite(repetirExhibicionId) ? repetirExhibicionId : undefined;
 
@@ -116,6 +117,29 @@ export function ExhibicionForm({ initialValue, isSubmitting = false, repetirExhi
       }
     });
   }, [setError, submitError]);
+
+  useEffect(() => {
+    if (!exhibicionARepetirId || initialValue || objetosRepeticionPrecargadosIdRef.current === exhibicionARepetirId || objetosParaRepetirQuery.isFetching) {
+      return;
+    }
+
+    objetosRepeticionPrecargadosIdRef.current = exhibicionARepetirId;
+    const disponibles = objetosParaRepetir.filter((objeto) => objeto.disponible);
+    if (disponibles.length === 0) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setObjetosIncluidos((actuales) => [
+        ...actuales,
+        ...disponibles
+          .filter((objeto) => !actuales.some((actual) => actual.id === objeto.objetoId))
+          .map((objeto) => ({ id: objeto.objetoId, numeroInventario: objeto.numeroInventario, denominacion: objeto.denominacion }))
+      ]);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [exhibicionARepetirId, initialValue, objetosParaRepetir, objetosParaRepetirQuery.isFetching]);
 
   function aplicarBusqueda() {
     setPage(0);
