@@ -15,7 +15,7 @@ export default function NuevaCategoriaPage() {
   const mutation = useCrearCategoriaMutation();
 
   return (
-    <AppShell requiredRoles={[...routePermissions.write]}>
+    <AppShell requiredRoles={[...routePermissions.admin]}>
       <div className="space-y-6">
         <PageHeader description="Alta de categoria de objetos." title="Nueva categoria" />
         {mutation.isError ? (

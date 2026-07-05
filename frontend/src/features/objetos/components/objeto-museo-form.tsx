@@ -8,9 +8,10 @@ import { useCategoriasQuery } from "@/features/categorias/queries";
 import { useBuscarDepositantePorIdentificacionMutation, useBuscarDepositantesPorNombreQuery } from "@/features/depositantes/queries";
 import type { DepositanteResponseDTO } from "@/features/depositantes/types";
 import { identificacionVisible, telefonoVisible } from "@/features/depositantes/utils";
+import { useDetallesConservacionQuery } from "@/features/tablas-auxiliares/queries";
 import { useUbicacionesQuery } from "@/features/ubicaciones/queries";
 import { ApiClientError } from "@/lib/errors/api-error";
-import type { DetalleEstadoConservacion, ObjetoMuseoRequestDTO, ObjetoMuseoResponseDTO, VisibilidadCampo } from "../types";
+import type { ObjetoMuseoRequestDTO, ObjetoMuseoResponseDTO, VisibilidadCampo } from "../types";
 import { objetoMuseoSchema, type ObjetoMuseoFormValues } from "../schemas";
 import { getValidationErrors } from "../utils";
 
@@ -44,52 +45,6 @@ const caracteresRecepcion = [
   ["ESTUDIO", "Estudio"],
   ["OTRO", "Otro"]
 ] as const;
-
-const detallesConservacion = [
-  ["ABOLSADOS", "Abolsados"],
-  ["ADHESION_DE_HOJAS", "Adhesión de hojas"],
-  ["ANIMALES_MENORES", "Animales menores"],
-  ["CRAQUELADOS", "Craquelados"],
-  ["DECOLORACION", "Decoloración"],
-  ["DEFORMACIONES", "Deformaciones"],
-  ["DESCOSIDO", "Descosido"],
-  ["DESENCUADERNADO", "Desencuadernado"],
-  ["DESFASES", "Desfases"],
-  ["DESGASTE", "Desgaste"],
-  ["DESPRENDIMIENTOS", "Desprendimientos"],
-  ["DESTENSADOS", "Destensados"],
-  ["DOBLECES", "Dobleces"],
-  ["EXFOLIACIONES", "Exfoliaciones"],
-  ["FALTA_DE_ADHESION", "Falta de adhesión"],
-  ["FALTANTE", "Faltante"],
-  ["FALTANTE_DE_CUERPO", "Faltante de cuerpo"],
-  ["FALTANTE_DE_LOMO", "Faltante de lomo"],
-  ["FALTANTE_DE_SOPORTE", "Faltante de soporte"],
-  ["FALTANTE_DE_TAPA", "Faltante de tapa"],
-  ["FRACTURAS", "Fracturas"],
-  ["GOLPES", "Golpes"],
-  ["GRIETAS", "Grietas"],
-  ["HONGOS", "Hongos"],
-  ["HUELLAS_DE_HUMEDAD", "Huellas de humedad"],
-  ["HUNDIMIENTOS", "Hundimientos"],
-  ["INSECTOS", "Insectos"],
-  ["LAGUNAS", "Lagunas"],
-  ["MANCHAS", "Manchas"],
-  ["MARCAS", "Marcas"],
-  ["MICROORGANISMOS", "Microorganismos"],
-  ["OXIDACION", "Oxidación"],
-  ["OXIDACION_DE_TINTA", "Oxidación de tinta"],
-  ["PERDIDA_DE_TINTA", "Pérdida de tinta"],
-  ["POLVO", "Polvo"],
-  ["QUEMADURAS", "Quemaduras"],
-  ["RASGADURAS", "Rasgaduras"],
-  ["RAYADURAS", "Rayaduras"],
-  ["ROTURA", "Rotura"],
-  ["SALES", "Sales"],
-  ["SOBREPINTURA", "Sobrepintura"],
-  ["SUCIEDAD_SUPERFICIAL", "Suciedad superficial"],
-  ["SUCIO", "Sucio"]
-] as const satisfies readonly (readonly [DetalleEstadoConservacion, string])[];
 
 const camposVisibilidad = [
   "numeroInventario", "denominacionObjeto", "descripcion", "descripcionTecnica", "materiales",
@@ -176,8 +131,10 @@ export function ObjetoMuseoForm({
     isError: isCategoriasError,
     isLoading: isCategoriasLoading
   } = useCategoriasQuery();
+  const detallesConservacionQuery = useDetallesConservacionQuery();
   const ubicacionesQuery = useUbicacionesQuery();
   const categoriasOrdenadas = [...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const detallesConservacion = detallesConservacionQuery.data ?? [];
   const [categoriaBusqueda, setCategoriaBusqueda] = useState("");
   const [fotos, setFotos] = useState<File[]>([]);
   const [fotoVisibilidades, setFotoVisibilidades] = useState<VisibilidadCampo[]>([]);
@@ -404,7 +361,7 @@ export function ObjetoMuseoForm({
     );
   }
 
-  function toggleDetalleConservacion(detalle: DetalleEstadoConservacion) {
+  function toggleDetalleConservacion(detalle: string) {
     const seleccionado = detallesSeleccionados.includes(detalle);
     setValue(
       "detallesEstadoConservacion",
@@ -489,7 +446,7 @@ export function ObjetoMuseoForm({
             regimenPropiedad: values.regimenPropiedad || null,
             condicionLegalBien: values.condicionLegalBien?.trim() || null,
             estadoConservacion: values.estadoConservacion || null,
-            detallesEstadoConservacion: values.detallesEstadoConservacion as DetalleEstadoConservacion[] ?? [],
+            detallesEstadoConservacion: values.detallesEstadoConservacion ?? [],
             intervencionesInadecuadas: values.intervencionesInadecuadas || null,
             estadoIntegridad: values.estadoIntegridad || null,
             humedadConservacion: values.humedadConservacion || null,
@@ -876,13 +833,16 @@ export function ObjetoMuseoForm({
           </div>
           <div className="max-h-52 overflow-y-auto rounded-md border bg-background p-2">
             <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
-              {detallesConservacion.map(([value, label]) => (
-                <label className="flex min-h-9 items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted" key={value}>
-                  <input checked={detallesSeleccionados.includes(value)} className="h-4 w-4 accent-primary" disabled={isSubmitting} onChange={() => toggleDetalleConservacion(value)} type="checkbox" />
-                  <span className="min-w-0 flex-1 truncate">{label}</span>
+              {detallesConservacion.map((detalle) => (
+                <label className="flex min-h-9 items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted" key={detalle.codigo}>
+                  <input checked={detallesSeleccionados.includes(detalle.codigo)} className="h-4 w-4 accent-primary" disabled={isSubmitting} onChange={() => toggleDetalleConservacion(detalle.codigo)} type="checkbox" />
+                  <span className="min-w-0 flex-1 truncate">{detalle.nombre}</span>
                 </label>
               ))}
+              {detallesConservacionQuery.isLoading ? <p className="px-2 py-2 text-sm text-muted-foreground">Cargando detalles...</p> : null}
+              {!detallesConservacionQuery.isLoading && detallesConservacion.length === 0 ? <p className="px-2 py-2 text-sm text-muted-foreground">Sin detalles disponibles.</p> : null}
             </div>
+          {detallesConservacionQuery.isError ? <p className="text-sm text-destructive">No se pudieron cargar los detalles de conservación.</p> : null}
           </div>
         </div>
       </section>

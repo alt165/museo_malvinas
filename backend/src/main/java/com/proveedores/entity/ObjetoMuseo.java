@@ -15,6 +15,8 @@ import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
@@ -87,11 +89,13 @@ public class ObjetoMuseo extends EntidadBase {
     @Column(name = "estado_conservacion", length = 40)
     private EstadoConservacion estadoConservacion;
 
-    @ElementCollection(targetClass = DetalleEstadoConservacion.class, fetch = FetchType.EAGER)
-    @CollectionTable(name = "objeto_museo_detalles_conservacion", joinColumns = @JoinColumn(name = "objeto_museo_id"))
-    @Enumerated(EnumType.STRING)
-    @Column(name = "detalle", length = 80, nullable = false)
-    private Set<DetalleEstadoConservacion> detallesEstadoConservacion = new LinkedHashSet<>();
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "objeto_museo_detalles_conservacion",
+            joinColumns = @JoinColumn(name = "objeto_museo_id"),
+            inverseJoinColumns = @JoinColumn(name = "detalle_id")
+    )
+    private Set<DetalleConservacion> detallesEstadoConservacion = new LinkedHashSet<>();
 
     @Enumerated(EnumType.STRING)
     @Column(name = "intervenciones_inadecuadas", length = 30)

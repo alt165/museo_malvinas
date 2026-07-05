@@ -24,7 +24,7 @@ export default function UbicacionesPage() {
   }
 
   return (
-    <AppShell requiredRoles={[...routePermissions.write]}>
+    <AppShell requiredRoles={[...routePermissions.admin]}>
       <div className="space-y-6">
         <PageHeader
           actions={esAdmin ? <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/ubicaciones/nueva">Nueva ubicacion</Link> : null}

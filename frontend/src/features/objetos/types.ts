@@ -3,7 +3,7 @@ import type { CategoriaObjetoResponseDTO } from "@/features/categorias/types";
 export type EstadoConservacion = "EXCELENTE" | "BUENO" | "REGULAR" | "MALO" | "CRITICO";
 export type OrigenCargaObjeto = "RAPIDA" | "COMPLETA";
 export type CaracterRecepcionObjeto = "PRESTAMO" | "COMODATO" | "DONACION" | "COMPRA" | "ESTUDIO" | "OTRO" | "RECEPCION";
-export type DetalleEstadoConservacion = "GRIETAS" | "RASGADURAS" | "HONGOS" | "HUNDIMIENTOS" | "HUELLAS_DE_HUMEDAD" | "DESGASTE" | "DESPRENDIMIENTOS" | "ADHESION_DE_HOJAS" | "SOBREPINTURA" | "FRACTURAS" | "DOBLECES" | "MARCAS" | "QUEMADURAS" | "DESFASES" | "OXIDACION_DE_TINTA" | "PERDIDA_DE_TINTA" | "DESENCUADERNADO" | "ROTURA" | "POLVO" | "DESTENSADOS" | "INSECTOS" | "CRAQUELADOS" | "DEFORMACIONES" | "FALTA_DE_ADHESION" | "FALTANTE_DE_SOPORTE" | "FALTANTE_DE_TAPA" | "FALTANTE_DE_CUERPO" | "FALTANTE_DE_LOMO" | "DECOLORACION" | "DESCOSIDO" | "ABOLSADOS" | "LAGUNAS" | "OXIDACION" | "MICROORGANISMOS" | "SUCIEDAD_SUPERFICIAL" | "FALTANTE" | "MANCHAS" | "ANIMALES_MENORES" | "EXFOLIACIONES" | "SALES" | "GOLPES" | "RAYADURAS" | "SUCIO";
+export type DetalleEstadoConservacion = string;
 export type RegimenPropiedad = "PUBLICO" | "PRIVADO";
 export type IntervencionesInadecuadas = "SI" | "NO" | "ELEMENTOS_EXTRANOS";
 export type EstadoIntegridad = "COMPLETO" | "INCOMPLETO" | "FRAGMENTADO";

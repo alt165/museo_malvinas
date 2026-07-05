@@ -95,6 +95,7 @@ public class ObjetoMuseoService {
     private final UbicacionRepository ubicacionRepository;
     private final UsuarioRepository usuarioRepository;
     private final AuditoriaObjetoService auditoriaObjetoService;
+    private final DetalleConservacionService detalleConservacionService;
 
     public ObjetoMuseoService(
             ObjetoMuseoRepository objetoMuseoRepository,
@@ -110,7 +111,8 @@ public class ObjetoMuseoService {
             MovimientoInventarioRepository movimientoInventarioRepository,
             UbicacionRepository ubicacionRepository,
             UsuarioRepository usuarioRepository,
-            AuditoriaObjetoService auditoriaObjetoService
+            AuditoriaObjetoService auditoriaObjetoService,
+            DetalleConservacionService detalleConservacionService
     ) {
         this.objetoMuseoRepository = objetoMuseoRepository;
         this.categoriaObjetoRepository = categoriaObjetoRepository;
@@ -126,6 +128,7 @@ public class ObjetoMuseoService {
         this.ubicacionRepository = ubicacionRepository;
         this.usuarioRepository = usuarioRepository;
         this.auditoriaObjetoService = auditoriaObjetoService;
+        this.detalleConservacionService = detalleConservacionService;
     }
 
     @Transactional
@@ -138,6 +141,7 @@ public class ObjetoMuseoService {
         validarNumeroInventarioDisponible(dto.numeroInventario(), null);
         validarRecepcionObligatoria(dto);
         ObjetoMuseo entity = ObjetoMuseoMapper.toEntity(dto);
+        entity.setDetallesEstadoConservacion(detalleConservacionService.buscarActivosPorCodigos(dto.detallesEstadoConservacion()));
         entity.setOrigenCarga(OrigenCargaObjeto.COMPLETA);
         entity.setDatosCompletos(tieneDatosCompletos(dto));
         ObjetoMuseo saved = objetoMuseoRepository.save(entity);
@@ -274,6 +278,7 @@ public class ObjetoMuseoService {
             validarRecepcionObligatoria(dto);
         }
         ObjetoMuseoMapper.updateEntity(entity, dto);
+        entity.setDetallesEstadoConservacion(detalleConservacionService.buscarActivosPorCodigos(dto.detallesEstadoConservacion()));
         if (pendienteRapida || tieneDatosCompletos(dto)) {
             entity.setDatosCompletos(true);
         }

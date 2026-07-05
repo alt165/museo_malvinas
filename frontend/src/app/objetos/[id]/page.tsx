@@ -10,6 +10,7 @@ import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
+import { useDetallesConservacionQuery } from "@/features/tablas-auxiliares/queries";
 import { hasRole, useAuth } from "@/lib/auth";
 import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
@@ -391,6 +392,8 @@ export default function DetalleObjetoPage() {
   const esAdmin = hasRole(roles, "ADMIN");
   const puedeVerRecibos = esAdmin || hasRole(roles, "OPERATOR");
   const { data, error, isError, isLoading } = useObjetoQuery(id);
+  const detallesConservacionQuery = useDetallesConservacionQuery();
+  const detallesConservacionLabels = useMemo(() => new Map((detallesConservacionQuery.data ?? []).map((detalle) => [detalle.codigo, detalle.nombre])), [detallesConservacionQuery.data]);
   const { data: recibos = [] } = useRecibosObjetoQuery(id, puedeVerRecibos);
 
   const datosDetalle: DatoDetalle[] = data ? [
@@ -433,7 +436,7 @@ export default function DetalleObjetoPage() {
     { label: "Cámaras", value: boolLabel(data.conservacionCamaras) }
   ].filter((dato) => hasDisplayValue(dato.value)) : [];
 
-  const detallesConservacion = data?.detallesEstadoConservacion?.map(enumLabel).filter(Boolean).join(", ");
+  const detallesConservacion = data?.detallesEstadoConservacion?.map((codigo) => detallesConservacionLabels.get(codigo) ?? enumLabel(codigo)).filter(Boolean).join(", ");
 
   return (
     <AppShell>

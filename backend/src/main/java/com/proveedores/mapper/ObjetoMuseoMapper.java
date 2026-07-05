@@ -6,11 +6,12 @@ import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
 import com.proveedores.dto.ReciboEscaneadoObjetoMuseoResponseDTO;
 import com.proveedores.entity.CaracterRecepcionObjeto;
-import com.proveedores.entity.DetalleEstadoConservacion;
+import com.proveedores.entity.DetalleConservacion;
 import com.proveedores.entity.ObjetoMuseo;
 import com.proveedores.entity.VisibilidadCampo;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -69,7 +70,10 @@ public final class ObjetoMuseoMapper {
                 entity.getRegimenPropiedad(),
                 entity.getCondicionLegalBien(),
                 entity.getEstadoConservacion(),
-                entity.getDetallesEstadoConservacion() == null ? Set.of() : Set.copyOf(entity.getDetallesEstadoConservacion()),
+                entity.getDetallesEstadoConservacion() == null ? Set.of() : entity.getDetallesEstadoConservacion().stream()
+                        .sorted(Comparator.comparing(DetalleConservacion::getNombre, String.CASE_INSENSITIVE_ORDER))
+                        .map(DetalleConservacion::getCodigo)
+                        .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new)),
                 entity.getIntervencionesInadecuadas(),
                 entity.getEstadoIntegridad(),
                 entity.getHumedadConservacion(),
@@ -115,7 +119,6 @@ public final class ObjetoMuseoMapper {
         entity.setRegimenPropiedad(dto.regimenPropiedad());
         entity.setCondicionLegalBien(dto.condicionLegalBien());
         entity.setEstadoConservacion(dto.estadoConservacion());
-        entity.setDetallesEstadoConservacion(normalizarDetalles(dto.detallesEstadoConservacion()));
         entity.setIntervencionesInadecuadas(dto.intervencionesInadecuadas());
         entity.setEstadoIntegridad(dto.estadoIntegridad());
         entity.setHumedadConservacion(dto.humedadConservacion());
@@ -127,10 +130,6 @@ public final class ObjetoMuseoMapper {
         entity.setConservacionAlarmas(dto.conservacionAlarmas());
         entity.setConservacionCamaras(dto.conservacionCamaras());
         entity.setVisibilidades(normalizarVisibilidades(dto.visibilidades()));
-    }
-
-    private static Set<DetalleEstadoConservacion> normalizarDetalles(Set<DetalleEstadoConservacion> detalles) {
-        return detalles == null ? new LinkedHashSet<>() : new LinkedHashSet<>(detalles);
     }
 
     private static Map<String, VisibilidadCampo> normalizarVisibilidades(Map<String, VisibilidadCampo> visibilidades) {

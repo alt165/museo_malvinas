@@ -1,7 +1,6 @@
 package com.proveedores.dto;
 
 import com.proveedores.entity.CaracterRecepcionObjeto;
-import com.proveedores.entity.DetalleEstadoConservacion;
 import com.proveedores.entity.EstadoConservacion;
 import com.proveedores.entity.EstadoIntegridad;
 import com.proveedores.entity.HumedadConservacion;
@@ -33,7 +32,7 @@ public record ObjetoMuseoResponseDTO(
         RegimenPropiedad regimenPropiedad,
         String condicionLegalBien,
         EstadoConservacion estadoConservacion,
-        Set<DetalleEstadoConservacion> detallesEstadoConservacion,
+        Set<String> detallesEstadoConservacion,
         IntervencionesInadecuadas intervencionesInadecuadas,
         EstadoIntegridad estadoIntegridad,
         HumedadConservacion humedadConservacion,

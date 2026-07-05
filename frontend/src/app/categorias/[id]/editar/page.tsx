@@ -25,7 +25,7 @@ export default function EditarCategoriaPage() {
   const mutation = useActualizarCategoriaMutation(id);
 
   return (
-    <AppShell requiredRoles={[...routePermissions.write]}>
+    <AppShell requiredRoles={[...routePermissions.admin]}>
       <div className="space-y-6">
         <PageHeader description="Actualizar categoria de objetos." title="Editar categoria" />
         {isLoading ? <LoadingState label="Cargando categoria..." /> : null}

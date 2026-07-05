@@ -10,6 +10,7 @@ import { useBajaLogicaCategoriaMutation, useCategoriaQuery } from "@/features/ca
 import { getApiErrorMessage } from "@/features/categorias/utils";
 import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
+import { routePermissions } from "@/lib/routes";
 
 function getParamId(value: string | string[] | undefined) {
   const raw = Array.isArray(value) ? value[0] : value;
@@ -21,7 +22,7 @@ export default function DetalleCategoriaPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const id = getParamId(params.id);
-  const { canEdit: puedeEscribir } = useEditingMode();
+  const { canAdminEdit: puedeEscribir } = useEditingMode();
   const { data, error, isError, isLoading } = useCategoriaQuery(id);
   const bajaMutation = useBajaLogicaCategoriaMutation();
 
@@ -32,7 +33,7 @@ export default function DetalleCategoriaPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell requiredRoles={[...routePermissions.admin]}>
       <div className="space-y-6">
         <PageHeader
           actions={<div className="flex gap-2"><Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/categorias">Volver</Link>{puedeEscribir && data ? <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href={`/categorias/${data.id}/editar`}>Editar</Link> : null}{puedeEscribir && data ? <button className="rounded-md border px-4 py-2 text-sm font-medium text-destructive hover:bg-muted disabled:opacity-60" disabled={bajaMutation.isPending} onClick={handleDelete} type="button">Baja</button> : null}</div>}

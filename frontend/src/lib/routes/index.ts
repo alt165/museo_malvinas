@@ -57,6 +57,9 @@ export const routes = {
   ubicacionNueva: "/ubicaciones/nueva",
   categorias: "/categorias",
   categoriaNueva: "/categorias/nueva",
+  rangosMilitares: "/rangos-militares",
+  unidadesMilitares: "/unidades-militares",
+  detallesConservacion: "/detalles-conservacion",
   depositantes: "/depositantes",
   depositanteNuevo: "/depositantes/nuevo",
   veteranos: "/veteranos",
@@ -104,6 +107,21 @@ export const navigationGroups: NavigationGroup[] = [
     ]
   },
   {
+    key: "tablas-auxiliares",
+    label: "Tablas Auxiliares",
+    icon: FolderTree,
+    roles: adminRoles,
+    items: [
+      { href: routes.categorias, label: "Categorias", icon: FolderTree, roles: adminRoles },
+      { href: routes.categoriaNueva, label: "Alta de categoria", icon: FolderTree, roles: adminRoles, requiresEditing: true },
+      { href: routes.ubicaciones, label: "Ubicaciones", icon: MapPin, roles: adminRoles },
+      { href: routes.ubicacionNueva, label: "Alta de ubicacion", icon: MapPin, roles: adminRoles, requiresEditing: true },
+      { href: routes.rangosMilitares, label: "Rangos militares", icon: IdCard, roles: adminRoles },
+      { href: routes.unidadesMilitares, label: "Unidades militares", icon: Landmark, roles: adminRoles },
+      { href: routes.detallesConservacion, label: "Detalles de conservacion", icon: Archive, roles: adminRoles }
+    ]
+  },
+  {
     key: "objetos",
     label: "Objetos",
     icon: Archive,
@@ -117,26 +135,6 @@ export const navigationGroups: NavigationGroup[] = [
       { href: routes.comodatosPrestamos, label: "Comodatos y préstamos", icon: FileClock, roles: adminRoles },
       { href: routes.objetosEmbargos, label: "Embargos", icon: Gavel, roles: adminRoles },
       { href: routes.relacionesObjetos, label: "Relaciones entre objetos", icon: Link2, roles: readRoles }
-    ]
-  },
-  {
-    key: "categorias",
-    label: "Categorias",
-    icon: FolderTree,
-    roles: readRoles,
-    items: [
-      { href: routes.categorias, label: "Consulta", icon: FolderTree, roles: readRoles },
-      { href: routes.categoriaNueva, label: "Alta", icon: FolderTree, roles: writeRoles, requiresEditing: true }
-    ]
-  },
-  {
-    key: "ubicaciones",
-    label: "Ubicaciones",
-    icon: MapPin,
-    roles: writeRoles,
-    items: [
-      { href: routes.ubicaciones, label: "Consulta", icon: MapPin, roles: writeRoles },
-      { href: routes.ubicacionNueva, label: "Alta", icon: MapPin, roles: adminRoles, requiresEditing: true }
     ]
   },
   {

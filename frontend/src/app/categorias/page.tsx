@@ -11,9 +11,10 @@ import { useBajaLogicaCategoriaMutation, useCategoriasQuery } from "@/features/c
 import { getApiErrorMessage } from "@/features/categorias/utils";
 import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
+import { routePermissions } from "@/lib/routes";
 
 export default function CategoriasPage() {
-  const { canEdit: puedeEscribir } = useEditingMode();
+  const { canAdminEdit: puedeEscribir } = useEditingMode();
   const categoriasQuery = useCategoriasQuery();
   const bajaMutation = useBajaLogicaCategoriaMutation();
 
@@ -24,7 +25,7 @@ export default function CategoriasPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell requiredRoles={[...routePermissions.admin]}>
       <div className="space-y-6">
         <PageHeader
           actions={puedeEscribir ? <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/categorias/nueva">Nueva categoria</Link> : null}
