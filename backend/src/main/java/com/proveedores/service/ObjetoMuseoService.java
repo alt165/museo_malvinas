@@ -53,6 +53,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -825,6 +826,7 @@ public class ObjetoMuseoService {
         List<CategoriaObjetoResponseDTO> categorias = objetoCategoriaRepository.findByObjetoMuseoIdAndEliminadoFalse(objeto.getId()).stream()
                 .map(ObjetoCategoria::getCategoriaObjeto)
                 .map(categoria -> new CategoriaObjetoResponseDTO(categoria.getId(), categoria.getNombre(), categoria.getDescripcion()))
+                .sorted(Comparator.comparing(CategoriaObjetoResponseDTO::nombre, String.CASE_INSENSITIVE_ORDER))
                 .toList();
         Inventario inventario = inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(objeto.getId()).orElse(null);
         LocalDate fechaIngreso = inventario == null ? null : inventario.getFechaIngreso();
@@ -1033,6 +1035,7 @@ public class ObjetoMuseoService {
         List<CategoriaObjetoResponseDTO> categorias = objetoCategoriaRepository.findByObjetoMuseoIdAndEliminadoFalse(objeto.getId()).stream()
                 .map(ObjetoCategoria::getCategoriaObjeto)
                 .map(categoria -> new CategoriaObjetoResponseDTO(categoria.getId(), categoria.getNombre(), categoria.getDescripcion()))
+                .sorted(Comparator.comparing(CategoriaObjetoResponseDTO::nombre, String.CASE_INSENSITIVE_ORDER))
                 .toList();
         return new ObjetoMuseoEliminadoResponseDTO(
                 objeto.getId(),

@@ -7,6 +7,7 @@ import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.mapper.CategoriaObjetoMapper;
 import com.proveedores.repository.CategoriaObjetoRepository;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +33,11 @@ public class CategoriaObjetoService {
 
     @Transactional(readOnly = true)
     public List<CategoriaObjetoResponseDTO> listar() {
-        return categoriaObjetoRepository.findAll().stream().filter(e -> !e.getEliminado()).map(CategoriaObjetoMapper::toResponse).toList();
+        return categoriaObjetoRepository.findAll().stream()
+                .filter(e -> !e.getEliminado())
+                .map(CategoriaObjetoMapper::toResponse)
+                .sorted(Comparator.comparing(CategoriaObjetoResponseDTO::nombre, String.CASE_INSENSITIVE_ORDER))
+                .toList();
     }
 
     @Transactional

@@ -1,3 +1,4 @@
+import type { CategoriaObjetoResponseDTO } from "./types";
 import { ApiClientError, getUserFacingErrorMessage } from "@/lib/errors/api-error";
 
 export function getApiErrorMessage(error: unknown) {
@@ -18,4 +19,8 @@ export function resumenDescripcion(value?: string | null) {
   }
 
   return value.length > 120 ? `${value.slice(0, 117)}...` : value;
+}
+
+export function ordenarCategoriasPorNombre<T extends Pick<CategoriaObjetoResponseDTO, "nombre">>(categorias: T[]) {
+  return [...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }));
 }
