@@ -9,6 +9,7 @@ export type IntervencionesInadecuadas = "SI" | "NO" | "ELEMENTOS_EXTRANOS";
 export type EstadoIntegridad = "COMPLETO" | "INCOMPLETO" | "FRAGMENTADO";
 export type HumedadConservacion = "ALTA" | "BAJA";
 export type VisibilidadCampo = "PUBLICO" | "PRIVADO";
+export type ModoBusquedaTexto = "ALGUNA_PALABRA" | "TODAS_LAS_PALABRAS" | "FRASE_COMPLETA";
 export type VisibilidadesObjeto = Record<string, VisibilidadCampo>;
 
 export type ObjetoMuseoRequestDTO = {
@@ -160,6 +161,10 @@ export type BuscarObjetosParams = {
   nombre?: string;
   numeroInventario?: string;
   categoriaIds?: number[];
+  descripcionBreve?: string;
+  descripcionBreveModo?: ModoBusquedaTexto;
+  descripcionTecnica?: string;
+  descripcionTecnicaModo?: ModoBusquedaTexto;
   page?: number;
   size?: number;
   sort?: string;

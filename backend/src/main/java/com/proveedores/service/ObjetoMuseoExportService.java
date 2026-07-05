@@ -1,5 +1,6 @@
 package com.proveedores.service;
 
+import com.proveedores.dto.ModoBusquedaTexto;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
 import com.proveedores.entity.CategoriaObjeto;
 import com.proveedores.report.ObjetoMuseoReportColumns;
@@ -49,10 +50,33 @@ public class ObjetoMuseoExportService {
             Sort sort,
             String usuario
     ) {
-        List<ObjetoMuseoResponseDTO> objetos = objetoMuseoService.buscarParaExportacion(nombre, numeroInventario, categoriaIds, sort);
+        return exportarListadoPdf(nombre, numeroInventario, categoriaIds, null, null, null, null, sort, usuario);
+    }
+
+    public byte[] exportarListadoPdf(
+            String nombre,
+            String numeroInventario,
+            List<Long> categoriaIds,
+            String descripcionBreve,
+            ModoBusquedaTexto descripcionBreveModo,
+            String descripcionTecnica,
+            ModoBusquedaTexto descripcionTecnicaModo,
+            Sort sort,
+            String usuario
+    ) {
+        List<ObjetoMuseoResponseDTO> objetos = objetoMuseoService.buscarParaExportacion(
+                nombre,
+                numeroInventario,
+                categoriaIds,
+                descripcionBreve,
+                descripcionBreveModo,
+                descripcionTecnica,
+                descripcionTecnicaModo,
+                sort
+        );
         TabularReport<ObjetoMuseoResponseDTO> report = new TabularReport<>(
                 "Listado de Objetos",
-                filtros(nombre, numeroInventario, categoriaIds),
+                filtros(nombre, numeroInventario, categoriaIds, descripcionBreve, descripcionBreveModo, descripcionTecnica, descripcionTecnicaModo),
                 objetoMuseoReportColumns.columns(),
                 objetos
         );
@@ -72,7 +96,15 @@ public class ObjetoMuseoExportService {
         return pdfReportService.generate(report, new ReportMetadata(INSTITUTION_NAME, LocalDateTime.now(), usuario));
     }
 
-    private List<ReportFilter> filtros(String nombre, String numeroInventario, List<Long> categoriaIds) {
+    private List<ReportFilter> filtros(
+            String nombre,
+            String numeroInventario,
+            List<Long> categoriaIds,
+            String descripcionBreve,
+            ModoBusquedaTexto descripcionBreveModo,
+            String descripcionTecnica,
+            ModoBusquedaTexto descripcionTecnicaModo
+    ) {
         List<ReportFilter> filtros = new ArrayList<>();
         if (hasText(nombre)) {
             filtros.add(new ReportFilter("Nombre / denominación", nombre.trim()));
@@ -80,11 +112,26 @@ public class ObjetoMuseoExportService {
         if (hasText(numeroInventario)) {
             filtros.add(new ReportFilter("Número de inventario", numeroInventario.trim()));
         }
+        if (hasText(descripcionBreve)) {
+            filtros.add(new ReportFilter("Descripción breve", descripcionBreve.trim() + " (" + modoTexto(descripcionBreveModo) + ")"));
+        }
+        if (hasText(descripcionTecnica)) {
+            filtros.add(new ReportFilter("Descripción técnica", descripcionTecnica.trim() + " (" + modoTexto(descripcionTecnicaModo) + ")"));
+        }
         List<Long> ids = categoriaIds == null ? List.of() : categoriaIds.stream().filter(java.util.Objects::nonNull).distinct().toList();
         if (!ids.isEmpty()) {
             filtros.add(new ReportFilter("Categorías", nombresCategorias(ids)));
         }
         return filtros;
+    }
+
+    private String modoTexto(ModoBusquedaTexto modo) {
+        ModoBusquedaTexto modoNormalizado = modo == null ? ModoBusquedaTexto.ALGUNA_PALABRA : modo;
+        return switch (modoNormalizado) {
+            case ALGUNA_PALABRA -> "alguna palabra";
+            case TODAS_LAS_PALABRAS -> "todas las palabras";
+            case FRASE_COMPLETA -> "frase completa";
+        };
     }
 
     private String nombresCategorias(List<Long> categoriaIds) {

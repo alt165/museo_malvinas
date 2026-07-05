@@ -7,6 +7,7 @@ import com.proveedores.dto.CategoriaObjetoResponseDTO;
 import com.proveedores.dto.FotoObjetoMuseoResponseDTO;
 import com.proveedores.dto.MoverObjetoRequestDTO;
 import com.proveedores.dto.MovimientoObjetoResponseDTO;
+import com.proveedores.dto.ModoBusquedaTexto;
 import com.proveedores.dto.ObjetoMuseoEliminadoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
@@ -46,6 +47,8 @@ import com.proveedores.repository.ReciboEscaneadoObjetoMuseoRepository;
 import com.proveedores.repository.ReciboIngresoObjetoRepository;
 import com.proveedores.repository.UbicacionRepository;
 import com.proveedores.repository.UsuarioRepository;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
@@ -201,19 +204,55 @@ public class ObjetoMuseoService {
 
     @Transactional(readOnly = true)
     public Page<ObjetoMuseoResponseDTO> buscar(String nombre, String numeroInventario, List<Long> categoriaIds, Pageable pageable) {
+        return buscar(nombre, numeroInventario, categoriaIds, null, null, null, null, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ObjetoMuseoResponseDTO> buscar(
+            String nombre,
+            String numeroInventario,
+            List<Long> categoriaIds,
+            String descripcionBreve,
+            ModoBusquedaTexto descripcionBreveModo,
+            String descripcionTecnica,
+            ModoBusquedaTexto descripcionTecnicaModo,
+            Pageable pageable
+    ) {
         return objetoMuseoRepository.findAll(busquedaSpecification(
                         normalizarFiltro(nombre),
                         normalizarFiltro(numeroInventario),
-                        normalizarCategoriaIds(categoriaIds)
+                        normalizarCategoriaIds(categoriaIds),
+                        normalizarTextoBusqueda(descripcionBreve),
+                        descripcionBreveModo,
+                        normalizarTextoBusqueda(descripcionTecnica),
+                        descripcionTecnicaModo
                 ), normalizarPageableBusqueda(pageable)).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
     public List<ObjetoMuseoResponseDTO> buscarParaExportacion(String nombre, String numeroInventario, List<Long> categoriaIds, Sort sort) {
+        return buscarParaExportacion(nombre, numeroInventario, categoriaIds, null, null, null, null, sort);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ObjetoMuseoResponseDTO> buscarParaExportacion(
+            String nombre,
+            String numeroInventario,
+            List<Long> categoriaIds,
+            String descripcionBreve,
+            ModoBusquedaTexto descripcionBreveModo,
+            String descripcionTecnica,
+            ModoBusquedaTexto descripcionTecnicaModo,
+            Sort sort
+    ) {
         return objetoMuseoRepository.findAll(busquedaSpecification(
                         normalizarFiltro(nombre),
                         normalizarFiltro(numeroInventario),
-                        normalizarCategoriaIds(categoriaIds)
+                        normalizarCategoriaIds(categoriaIds),
+                        normalizarTextoBusqueda(descripcionBreve),
+                        descripcionBreveModo,
+                        normalizarTextoBusqueda(descripcionTecnica),
+                        descripcionTecnicaModo
                 ), normalizarSortBusqueda(sort)).stream()
                 .map(this::toResponse)
                 .toList();
@@ -496,13 +535,28 @@ public class ObjetoMuseoService {
         return valor.trim();
     }
 
+    private String normalizarTextoBusqueda(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return null;
+        }
+        return valor.trim().replaceAll("\\s+", " ");
+    }
+
     private List<Long> normalizarCategoriaIds(List<Long> categoriaIds) {
         return categoriaIds == null
                 ? List.of()
                 : categoriaIds.stream().filter(java.util.Objects::nonNull).distinct().toList();
     }
 
-    private Specification<ObjetoMuseo> busquedaSpecification(String nombre, String numeroInventario, List<Long> categoriaIds) {
+    private Specification<ObjetoMuseo> busquedaSpecification(
+            String nombre,
+            String numeroInventario,
+            List<Long> categoriaIds,
+            String descripcionBreve,
+            ModoBusquedaTexto descripcionBreveModo,
+            String descripcionTecnica,
+            ModoBusquedaTexto descripcionTecnicaModo
+    ) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(criteriaBuilder.isFalse(root.get("eliminado")));
@@ -524,6 +578,9 @@ public class ObjetoMuseoService {
                 ));
             }
 
+            agregarFiltroTexto(predicates, criteriaBuilder, root, "descripcion", descripcionBreve, descripcionBreveModo);
+            agregarFiltroTexto(predicates, criteriaBuilder, root, "descripcionTecnica", descripcionTecnica, descripcionTecnicaModo);
+
             if (!categoriaIds.isEmpty()) {
                 Subquery<Long> subquery = query.subquery(Long.class);
                 Root<ObjetoCategoria> objetoCategoria = subquery.from(ObjetoCategoria.class);
@@ -539,6 +596,47 @@ public class ObjetoMuseoService {
 
             return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
         };
+    }
+
+    private void agregarFiltroTexto(
+            List<Predicate> predicates,
+            CriteriaBuilder criteriaBuilder,
+            Root<ObjetoMuseo> root,
+            String campo,
+            String texto,
+            ModoBusquedaTexto modo
+    ) {
+        if (texto == null) {
+            return;
+        }
+        Expression<String> campoNormalizado = normalizarTextoSql(criteriaBuilder, criteriaBuilder.lower(root.get(campo)));
+        ModoBusquedaTexto modoNormalizado = modo == null ? ModoBusquedaTexto.ALGUNA_PALABRA : modo;
+
+        if (modoNormalizado == ModoBusquedaTexto.FRASE_COMPLETA) {
+            predicates.add(criteriaBuilder.like(campoNormalizado, patronBusqueda(criteriaBuilder, texto)));
+            return;
+        }
+
+        List<Predicate> palabras = java.util.Arrays.stream(texto.split(" "))
+                .filter(palabra -> !palabra.isBlank())
+                .map(palabra -> criteriaBuilder.like(campoNormalizado, patronBusqueda(criteriaBuilder, palabra)))
+                .toList();
+        if (palabras.isEmpty()) {
+            return;
+        }
+
+        Predicate[] palabrasArray = palabras.toArray(Predicate[]::new);
+        predicates.add(modoNormalizado == ModoBusquedaTexto.TODAS_LAS_PALABRAS
+                ? criteriaBuilder.and(palabrasArray)
+                : criteriaBuilder.or(palabrasArray));
+    }
+
+    private Expression<String> patronBusqueda(CriteriaBuilder criteriaBuilder, String texto) {
+        return normalizarTextoSql(criteriaBuilder, criteriaBuilder.literal("%" + texto.toLowerCase(Locale.ROOT) + "%"));
+    }
+
+    private Expression<String> normalizarTextoSql(CriteriaBuilder criteriaBuilder, Expression<String> texto) {
+        return criteriaBuilder.function("unaccent", String.class, texto);
     }
 
     private void agregarFiltroEmbargoSiCorresponde(Root<ObjetoMuseo> root, jakarta.persistence.criteria.CriteriaQuery<?> query, jakarta.persistence.criteria.CriteriaBuilder criteriaBuilder, List<Predicate> predicates) {
@@ -558,7 +656,7 @@ public class ObjetoMuseoService {
 
     private Specification<ObjetoMuseo> busquedaDisponiblesParaColeccionSpecification(String nombre, String numeroInventario, List<Long> categoriaIds, Long coleccionId) {
         return (root, query, criteriaBuilder) -> {
-            Predicate base = busquedaSpecification(nombre, numeroInventario, categoriaIds).toPredicate(root, query, criteriaBuilder);
+            Predicate base = busquedaSpecification(nombre, numeroInventario, categoriaIds, null, null, null, null).toPredicate(root, query, criteriaBuilder);
             Predicate activos = criteriaBuilder.isTrue(root.get("activo"));
             Predicate sinColeccion = criteriaBuilder.isNull(root.get("coleccionObjeto"));
             Predicate disponibles = coleccionId == null

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.proveedores.dto.CategoriaObjetoRequestDTO;
 import com.proveedores.dto.CargaRapidaObjetoRequestDTO;
+import com.proveedores.dto.ModoBusquedaTexto;
 import com.proveedores.dto.MoverObjetoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.entity.CaracterRecepcionObjeto;
@@ -122,6 +123,78 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
         var resultado = objetoMuseoService.buscar(null, "INV-XYZ", null, PageRequest.of(0, 20));
 
         assertThat(resultado.getContent()).extracting("id").contains(objeto.id());
+    }
+
+    @Test
+    void buscaObjetosPorDescripcionBreveConModalidades() {
+        var objetoAlguna = crearObjetoCompleto(new ObjetoMuseoRequestDTO(
+                "IT-BUS-DESC-BREVE-001",
+                "Objeto descripcion breve alguna",
+                "árbolunico betaunica",
+                null, null, null, null, null
+        ));
+        var objetoOtraPalabra = crearObjetoCompleto(new ObjetoMuseoRequestDTO(
+                "IT-BUS-DESC-BREVE-002",
+                "Objeto descripcion breve otra",
+                "gammaunica",
+                null, null, null, null, null
+        ));
+        var objetoFrase = crearObjetoCompleto(new ObjetoMuseoRequestDTO(
+                "IT-BUS-DESC-BREVE-003",
+                "Objeto descripcion breve frase",
+                "frase exacta única",
+                null, null, null, null, null
+        ));
+        crearObjetoCompleto(new ObjetoMuseoRequestDTO(
+                "IT-BUS-DESC-BREVE-004",
+                "Objeto descripcion breve fuera",
+                "frase muy exacta única",
+                null, null, null, null, null
+        ));
+
+        var alguna = objetoMuseoService.buscar(null, null, null, "arbolunico gammaunica", ModoBusquedaTexto.ALGUNA_PALABRA, null, null, PageRequest.of(0, 20));
+        var todas = objetoMuseoService.buscar(null, null, null, "arbolunico betaunica", ModoBusquedaTexto.TODAS_LAS_PALABRAS, null, null, PageRequest.of(0, 20));
+        var frase = objetoMuseoService.buscar(null, null, null, "FRASE   EXACTA UNICA", ModoBusquedaTexto.FRASE_COMPLETA, null, null, PageRequest.of(0, 20));
+
+        assertThat(alguna.getContent()).extracting("id").contains(objetoAlguna.id(), objetoOtraPalabra.id());
+        assertThat(todas.getContent()).extracting("id").containsExactly(objetoAlguna.id());
+        assertThat(frase.getContent()).extracting("id").containsExactly(objetoFrase.id());
+    }
+
+    @Test
+    void buscaObjetosPorDescripcionTecnicaConModalidades() {
+        var objetoAlguna = crearObjetoCompleto(new ObjetoMuseoRequestDTO(
+                "IT-BUS-DESC-TEC-001",
+                "Objeto descripcion tecnica alguna",
+                null,
+                "cañonunico tecnicabeta", null, null, null, null
+        ));
+        var objetoOtraPalabra = crearObjetoCompleto(new ObjetoMuseoRequestDTO(
+                "IT-BUS-DESC-TEC-002",
+                "Objeto descripcion tecnica otra",
+                null,
+                "tecnicagamma", null, null, null, null
+        ));
+        var objetoFrase = crearObjetoCompleto(new ObjetoMuseoRequestDTO(
+                "IT-BUS-DESC-TEC-003",
+                "Objeto descripcion tecnica frase",
+                null,
+                "ensamble precisión única", null, null, null, null
+        ));
+        crearObjetoCompleto(new ObjetoMuseoRequestDTO(
+                "IT-BUS-DESC-TEC-004",
+                "Objeto descripcion tecnica fuera",
+                null,
+                "ensamble muy precisión única", null, null, null, null
+        ));
+
+        var alguna = objetoMuseoService.buscar(null, null, null, null, null, "canonunico tecnicagamma", ModoBusquedaTexto.ALGUNA_PALABRA, PageRequest.of(0, 20));
+        var todas = objetoMuseoService.buscar(null, null, null, null, null, "canonunico tecnicabeta", ModoBusquedaTexto.TODAS_LAS_PALABRAS, PageRequest.of(0, 20));
+        var frase = objetoMuseoService.buscar(null, null, null, null, null, "ENSAMBLE   PRECISION UNICA", ModoBusquedaTexto.FRASE_COMPLETA, PageRequest.of(0, 20));
+
+        assertThat(alguna.getContent()).extracting("id").contains(objetoAlguna.id(), objetoOtraPalabra.id());
+        assertThat(todas.getContent()).extracting("id").containsExactly(objetoAlguna.id());
+        assertThat(frase.getContent()).extracting("id").containsExactly(objetoFrase.id());
     }
 
     @Test

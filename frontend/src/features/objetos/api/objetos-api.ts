@@ -45,6 +45,20 @@ function buildBuscarObjetosSearchParams(params: BuscarObjetosParams, includePagi
     searchParams.set("numeroInventario", params.numeroInventario.trim());
   }
 
+  if (params.descripcionBreve?.trim()) {
+    searchParams.set("descripcionBreve", params.descripcionBreve.trim());
+    if (params.descripcionBreveModo) {
+      searchParams.set("descripcionBreveModo", params.descripcionBreveModo);
+    }
+  }
+
+  if (params.descripcionTecnica?.trim()) {
+    searchParams.set("descripcionTecnica", params.descripcionTecnica.trim());
+    if (params.descripcionTecnicaModo) {
+      searchParams.set("descripcionTecnicaModo", params.descripcionTecnicaModo);
+    }
+  }
+
   params.categoriaIds?.forEach((categoriaId) => {
     searchParams.append("categoriaIds", String(categoriaId));
   });

@@ -64,7 +64,7 @@ class ObjetoPendienteCompletarSecurityTest {
 
     @Test
     void viewerPuedeExportarPdfObjetos() throws Exception {
-        when(objetoMuseoExportService.exportarListadoPdf(any(), any(), any(), any(), any())).thenReturn(new byte[] { 1, 2, 3 });
+        when(objetoMuseoExportService.exportarListadoPdf(any(), any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(new byte[] { 1, 2, 3 });
 
         mockMvc.perform(get("/api/objetos/export/pdf").with(user("viewer").roles("VIEWER")))
                 .andExpect(status().isOk());

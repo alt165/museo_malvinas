@@ -5,6 +5,7 @@ import com.proveedores.dto.CargaRapidaObjetoRequestDTO;
 import com.proveedores.dto.CargaRapidaObjetoResponseDTO;
 import com.proveedores.dto.FotoObjetoMuseoResponseDTO;
 import com.proveedores.dto.MoverObjetoRequestDTO;
+import com.proveedores.dto.ModoBusquedaTexto;
 import com.proveedores.dto.MovimientoObjetoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
@@ -116,9 +117,22 @@ public class ObjetoMuseoController {
             @RequestParam(required = false) String nombre,
             @RequestParam(required = false) String numeroInventario,
             @RequestParam(required = false) List<Long> categoriaIds,
+            @RequestParam(required = false) String descripcionBreve,
+            @RequestParam(required = false) ModoBusquedaTexto descripcionBreveModo,
+            @RequestParam(required = false) String descripcionTecnica,
+            @RequestParam(required = false) ModoBusquedaTexto descripcionTecnicaModo,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable
     ) {
-        return ResponseEntity.ok(objetoMuseoService.buscar(nombre, numeroInventario, categoriaIds, pageable));
+        return ResponseEntity.ok(objetoMuseoService.buscar(
+                nombre,
+                numeroInventario,
+                categoriaIds,
+                descripcionBreve,
+                descripcionBreveModo,
+                descripcionTecnica,
+                descripcionTecnicaModo,
+                pageable
+        ));
     }
 
     @Operation(summary = "Buscar objetos disponibles para coleccion")
@@ -141,6 +155,10 @@ public class ObjetoMuseoController {
             @RequestParam(required = false) String nombre,
             @RequestParam(required = false) String numeroInventario,
             @RequestParam(required = false) List<Long> categoriaIds,
+            @RequestParam(required = false) String descripcionBreve,
+            @RequestParam(required = false) ModoBusquedaTexto descripcionBreveModo,
+            @RequestParam(required = false) String descripcionTecnica,
+            @RequestParam(required = false) ModoBusquedaTexto descripcionTecnicaModo,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable,
             Authentication authentication
     ) {
@@ -148,6 +166,10 @@ public class ObjetoMuseoController {
                 nombre,
                 numeroInventario,
                 categoriaIds,
+                descripcionBreve,
+                descripcionBreveModo,
+                descripcionTecnica,
+                descripcionTecnicaModo,
                 pageable.getSort(),
                 usuario(authentication)
         );

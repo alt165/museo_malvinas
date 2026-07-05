@@ -2,6 +2,7 @@ package com.proveedores.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -85,7 +86,7 @@ class ObjetoMuseoControllerTest {
 
     @Test
     void exportarPdfDevuelveArchivo() throws Exception {
-        when(objetoMuseoExportService.exportarListadoPdf(eq("Casco"), eq("INV"), eq(java.util.List.of(2L)), any(), any()))
+        when(objetoMuseoExportService.exportarListadoPdf(eq("Casco"), eq("INV"), eq(java.util.List.of(2L)), isNull(), isNull(), isNull(), isNull(), any(), any()))
                 .thenReturn("%PDF-1.7".getBytes(java.nio.charset.StandardCharsets.UTF_8));
 
         mockMvc.perform(get("/api/objetos/export/pdf")
@@ -101,7 +102,7 @@ class ObjetoMuseoControllerTest {
     @Test
     void buscarObjetosPaginadosDevuelvePage() throws Exception {
         ObjetoMuseoResponseDTO response = new ObjetoMuseoResponseDTO(1L, "INV-1", "Casco", null, null, null, null, null, null, null, null, null, null, java.util.List.of(), java.util.List.of(), null);
-        when(objetoMuseoService.buscar(eq("Casco"), eq("INV"), eq(java.util.List.of(2L)), any(Pageable.class)))
+        when(objetoMuseoService.buscar(eq("Casco"), eq("INV"), eq(java.util.List.of(2L)), isNull(), isNull(), isNull(), isNull(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(java.util.List.of(response)));
 
         mockMvc.perform(get("/api/objetos/buscar")
