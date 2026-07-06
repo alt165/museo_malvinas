@@ -76,16 +76,6 @@ export const routes = {
 
 export const navigationGroups: NavigationGroup[] = [
   {
-    key: "colecciones",
-    label: "Colecciones",
-    icon: FolderTree,
-    roles: readRoles,
-    items: [
-      { href: routes.objetosColecciones, label: "Consulta", icon: FolderTree, roles: readRoles },
-      { href: routes.objetosColeccionNueva, label: "Alta", icon: FolderTree, roles: writeRoles, requiresEditing: true }
-    ]
-  },
-  {
     key: "veteranos",
     label: "Veteranos",
     icon: IdCard,
@@ -94,31 +84,6 @@ export const navigationGroups: NavigationGroup[] = [
       { href: routes.veteranos, label: "Consulta", icon: IdCard, roles: readRoles },
       { href: routes.veteranoNuevo, label: "Alta de veterano", icon: IdCard, roles: writeRoles, requiresEditing: true },
       { href: routes.actuacionesVeteranos, label: "Actuaciones de veteranos", icon: History, roles: writeRoles, requiresEditing: true }
-    ]
-  },
-  {
-    key: "usuarios",
-    label: "Usuarios",
-    icon: UserCog,
-    roles: adminRoles,
-    items: [
-      { href: routes.usuarios, label: "Consulta", icon: UserCog, roles: adminRoles },
-      { href: routes.usuarioNuevo, label: "Alta", icon: UserCog, roles: adminRoles, requiresEditing: true }
-    ]
-  },
-  {
-    key: "tablas-auxiliares",
-    label: "Tablas Auxiliares",
-    icon: FolderTree,
-    roles: adminRoles,
-    items: [
-      { href: routes.categorias, label: "Categorias", icon: FolderTree, roles: adminRoles },
-      { href: routes.categoriaNueva, label: "Alta de categoria", icon: FolderTree, roles: adminRoles, requiresEditing: true },
-      { href: routes.ubicaciones, label: "Ubicaciones", icon: MapPin, roles: adminRoles },
-      { href: routes.ubicacionNueva, label: "Alta de ubicacion", icon: MapPin, roles: adminRoles, requiresEditing: true },
-      { href: routes.rangosMilitares, label: "Rangos militares", icon: IdCard, roles: adminRoles },
-      { href: routes.unidadesMilitares, label: "Unidades militares", icon: Landmark, roles: adminRoles },
-      { href: routes.detallesConservacion, label: "Detalles de conservacion", icon: Archive, roles: adminRoles }
     ]
   },
   {
@@ -138,13 +103,13 @@ export const navigationGroups: NavigationGroup[] = [
     ]
   },
   {
-    key: "depositantes",
-    label: "Depositantes",
-    icon: Handshake,
+    key: "colecciones",
+    label: "Colecciones",
+    icon: FolderTree,
     roles: readRoles,
     items: [
-      { href: routes.depositantes, label: "Consulta", icon: Handshake, roles: readRoles },
-      { href: routes.depositanteNuevo, label: "Alta", icon: Handshake, roles: writeRoles, requiresEditing: true }
+      { href: routes.objetosColecciones, label: "Consulta", icon: FolderTree, roles: readRoles },
+      { href: routes.objetosColeccionNueva, label: "Alta", icon: FolderTree, roles: writeRoles, requiresEditing: true }
     ]
   },
   {
@@ -156,6 +121,39 @@ export const navigationGroups: NavigationGroup[] = [
       { href: routes.exhibiciones, label: "Consulta", icon: Landmark, roles: readRoles },
       { href: routes.exhibicionNueva, label: "Alta", icon: Landmark, roles: writeRoles, requiresEditing: true },
       { href: routes.exhibicionesFinalizadas, label: "Repetir", icon: Landmark, roles: writeRoles, requiresEditing: true }
+    ]
+  },
+  {
+    key: "depositantes",
+    label: "Depositantes",
+    icon: Handshake,
+    roles: readRoles,
+    items: [
+      { href: routes.depositantes, label: "Consulta", icon: Handshake, roles: readRoles },
+      { href: routes.depositanteNuevo, label: "Alta", icon: Handshake, roles: writeRoles, requiresEditing: true }
+    ]
+  },
+  {
+    key: "usuarios",
+    label: "Usuarios",
+    icon: UserCog,
+    roles: adminRoles,
+    items: [
+      { href: routes.usuarios, label: "Consulta", icon: UserCog, roles: adminRoles },
+      { href: routes.usuarioNuevo, label: "Alta", icon: UserCog, roles: adminRoles, requiresEditing: true }
+    ]
+  },
+  {
+    key: "tablas-auxiliares",
+    label: "Tablas Auxiliares",
+    icon: FolderTree,
+    roles: adminRoles,
+    items: [
+      { href: routes.categorias, label: "Categorias", icon: FolderTree, roles: adminRoles },
+      { href: routes.ubicaciones, label: "Ubicaciones", icon: MapPin, roles: adminRoles },
+      { href: routes.rangosMilitares, label: "Rangos militares", icon: IdCard, roles: adminRoles },
+      { href: routes.unidadesMilitares, label: "Unidades militares", icon: Landmark, roles: adminRoles },
+      { href: routes.detallesConservacion, label: "Detalles de conservacion", icon: Archive, roles: adminRoles }
     ]
   }
 ];
