@@ -1,12 +1,13 @@
 "use client";
 
-import { Download, Gavel, Search } from "lucide-react";
+import { CheckCircle, Download, Gavel, Search, Unlock } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, type FormEvent } from "react";
 import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
+import { RowActionButton, RowActionLink, RowActions } from "@/components/common/row-actions";
 import { AppShell } from "@/components/layout/app-shell";
 import { exportarEmbargosObjetosPdf } from "@/features/objetos/api";
 import {
@@ -196,9 +197,9 @@ export default function EmbargosObjetosPage() {
                       <td className="px-4 py-3 font-medium">{objeto.numeroInventario}</td>
                       <td className="px-4 py-3">{objeto.denominacionObjeto}</td>
                       <td className="px-4 py-3">
-                        <button className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted" onClick={() => setObjetoSeleccionado(objeto)} type="button">
-                          Seleccionar
-                        </button>
+                        <RowActions className="justify-start">
+                          <RowActionButton icon={CheckCircle} label="Seleccionar" onClick={() => setObjetoSeleccionado(objeto)} />
+                        </RowActions>
                       </td>
                     </tr>
                   ))}
@@ -275,21 +276,12 @@ export default function EmbargosObjetosPage() {
                       <td className="px-4 py-3">{formatearFecha(embargo.fechaFinalizacion)}</td>
                       <td className="px-4 py-3">{embargo.estado === "VIGENTE" ? "Vigente" : "Levantado"}</td>
                       <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-2">
-                          <Link className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted" href={`/objetos/${embargo.objetoMuseoId}`}>
-                            Ver objeto
-                          </Link>
+                        <RowActions className="justify-start">
+                          <RowActionLink href={`/objetos/${embargo.objetoMuseoId}`} icon={Search} label="Ver objeto" />
                           {embargo.estado === "VIGENTE" ? (
-                            <button
-                              className="rounded-md border border-red-200 px-3 py-1.5 text-xs text-red-700 hover:bg-red-50 disabled:opacity-60"
-                              disabled={levantarEmbargo.isPending}
-                              onClick={() => handleLevantar(embargo)}
-                              type="button"
-                            >
-                              Levantar embargo
-                            </button>
+                            <RowActionButton disabled={levantarEmbargo.isPending} icon={Unlock} label="Levantar embargo" onClick={() => handleLevantar(embargo)} variant="destructive" />
                           ) : null}
-                        </div>
+                        </RowActions>
                       </td>
                     </tr>
                   ))}

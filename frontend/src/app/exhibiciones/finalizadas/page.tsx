@@ -1,12 +1,14 @@
 
 "use client";
 
+import { CopyPlus, Search } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
+import { RowActionLink, RowActions } from "@/components/common/row-actions";
 import { AppShell } from "@/components/layout/app-shell";
 import { useExhibicionesFinalizadasQuery } from "@/features/exhibiciones/queries";
 import { formatDate, getApiErrorMessage } from "@/features/exhibiciones/utils";
@@ -77,14 +79,10 @@ export default function ExhibicionesFinalizadasPage() {
                     <td className="px-4 py-3 align-top">{exhibicion.tipo}</td>
                     <td className="px-4 py-3 align-top">{formatDate(exhibicion.fechaInicio)} - {formatDate(exhibicion.fechaFin)}</td>
                     <td className="px-4 py-3 align-top">
-                      <div className="flex justify-end gap-2">
-                        <Link className="inline-flex h-8 items-center rounded-md border px-2 text-xs hover:bg-muted" href={`/exhibiciones/${exhibicion.id}`}>
-                          Ver
-                        </Link>
-                        <Link className="inline-flex h-8 items-center rounded-md border px-2 text-xs hover:bg-muted" href={`/exhibiciones/repetir/${exhibicion.id}`}>
-                          Repetir
-                        </Link>
-                      </div>
+                      <RowActions>
+                        <RowActionLink href={`/exhibiciones/${exhibicion.id}`} icon={Search} label="Ver" />
+                        <RowActionLink href={`/exhibiciones/repetir/${exhibicion.id}`} icon={CopyPlus} label="Repetir" />
+                      </RowActions>
                     </td>
                   </tr>
                 ))}

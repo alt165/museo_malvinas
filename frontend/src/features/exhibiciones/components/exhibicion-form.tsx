@@ -2,12 +2,14 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
+import { RowActionButton, RowActions } from "@/components/common/row-actions";
 import { useExhibicionQuery, useObjetosDisponibilidadExhibicionQuery, useObjetosParaRepetirExhibicionQuery } from "../queries";
 import type { ExhibicionRequestDTO, ExhibicionResponseDTO, ObjetoDisponibilidadExhibicionResponseDTO } from "../types";
 import { estadosExhibicion, tiposExhibicion } from "../types";
@@ -260,7 +262,7 @@ export function ExhibicionForm({ initialValue, isSubmitting = false, repetirExhi
           <div className="overflow-hidden rounded-md border">
             <table className="w-full border-collapse text-sm">
               <thead className="bg-muted/60"><tr><th className="px-4 py-3 text-left font-medium">Inventario</th><th className="px-4 py-3 text-left font-medium">Denominación</th><th className="px-4 py-3 text-right font-medium">Acciones</th></tr></thead>
-              <tbody>{objetosIncluidos.map((objeto) => <tr className="border-t" key={objeto.id}><td className="px-4 py-3 align-top font-medium">{objeto.numeroInventario}</td><td className="px-4 py-3 align-top">{objeto.denominacion}</td><td className="px-4 py-3 text-right align-top"><button className="rounded-md border px-3 py-1.5 text-xs text-destructive hover:bg-muted disabled:opacity-60" disabled={isSubmitting} onClick={() => quitarObjeto(objeto.id)} type="button">Quitar</button></td></tr>)}</tbody>
+              <tbody>{objetosIncluidos.map((objeto) => <tr className="border-t" key={objeto.id}><td className="px-4 py-3 align-top font-medium">{objeto.numeroInventario}</td><td className="px-4 py-3 align-top">{objeto.denominacion}</td><td className="px-4 py-3 text-right align-top"><RowActions><RowActionButton disabled={isSubmitting} icon={X} label="Quitar" onClick={() => quitarObjeto(objeto.id)} variant="destructive" /></RowActions></td></tr>)}</tbody>
             </table>
           </div>
         )}
@@ -310,7 +312,7 @@ function ObjetoDisponibilidadRow({ disabled, objeto, onAgregar, yaIncluido }: { 
         <p className="font-medium">{objeto.numeroInventario} - {objeto.denominacion}</p>
         {objeto.disponible ? <p className="text-emerald-700">Disponible</p> : <p className="text-destructive">No disponible: incluido en “{objeto.exhibicionConflictoNombre}” desde {formatDate(objeto.exhibicionConflictoFechaInicio)} hasta {objeto.exhibicionConflictoPermanente ? "permanente" : formatDate(objeto.exhibicionConflictoFechaFin)}</p>}
       </div>
-      <button className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted disabled:opacity-60" disabled={!objeto.disponible || yaIncluido || disabled} onClick={() => onAgregar(objeto)} type="button">{yaIncluido ? "Incluido" : "Agregar"}</button>
+      <RowActions><RowActionButton disabled={!objeto.disponible || yaIncluido || disabled} icon={Plus} label={yaIncluido ? "Incluido" : "Agregar"} onClick={() => onAgregar(objeto)} /></RowActions>
     </div>
   );
 }

@@ -1,11 +1,12 @@
 "use client";
 
-import Link from "next/link";
+import { Pencil, Trash2 } from "lucide-react";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
+import { RowActionButton, RowActionLink, RowActions } from "@/components/common/row-actions";
 import { AppShell } from "@/components/layout/app-shell";
 import { useBajaLogicaUbicacionMutation, useCrearUbicacionMutation, useUbicacionesQuery } from "@/features/ubicaciones/queries";
 import type { UbicacionRequestDTO } from "@/features/ubicaciones/types";
@@ -107,10 +108,10 @@ export default function UbicacionesPage() {
                     <td className="px-4 py-3 align-top text-muted-foreground">{ubicacion.descripcion || "Sin descripcion"}</td>
                     {esAdmin ? (
                       <td className="px-4 py-3 align-top">
-                        <div className="flex justify-end gap-2">
-                          <Link className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted" href={`/ubicaciones/${ubicacion.id}/editar`}>Editar</Link>
-                          <button className="rounded-md border border-red-200 px-3 py-1.5 text-xs text-red-700 hover:bg-red-50 disabled:opacity-60" disabled={baja.variables === ubicacion.id} onClick={() => handleBaja(ubicacion.id, ubicacion.nombre)} type="button">Baja</button>
-                        </div>
+                        <RowActions>
+                          <RowActionLink href={`/ubicaciones/${ubicacion.id}/editar`} icon={Pencil} label="Editar" />
+                          <RowActionButton disabled={baja.variables === ubicacion.id} icon={Trash2} label="Baja" onClick={() => handleBaja(ubicacion.id, ubicacion.nombre)} variant="destructive" />
+                        </RowActions>
                       </td>
                     ) : null}
                   </tr>

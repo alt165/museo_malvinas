@@ -1,5 +1,6 @@
 "use client";
 
+import { Search } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -7,6 +8,7 @@ import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
+import { RowActionLink, RowActions } from "@/components/common/row-actions";
 import { AppShell } from "@/components/layout/app-shell";
 import { useObjetoQuery } from "@/features/objetos/queries";
 import { getApiErrorMessage as getObjetoApiErrorMessage } from "@/features/objetos/utils";
@@ -137,9 +139,9 @@ export default function RelacionesObjetoPage() {
                       <td className="px-4 py-3 align-top">{relacion.tipoRelacion}</td>
                       <td className="px-4 py-3 align-top text-muted-foreground">{relacion.descripcion || "Sin descripcion"}</td>
                       <td className="px-4 py-3 align-top">
-                        <Link className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted" href={`/relaciones-objetos/${relacion.idRelacion}`}>
-                          Ver
-                        </Link>
+                        <RowActions className="justify-start">
+                          <RowActionLink href={`/relaciones-objetos/${relacion.idRelacion}`} icon={Search} label="Ver" />
+                        </RowActions>
                       </td>
                     </tr>
                   );

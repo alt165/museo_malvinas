@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
+import { RowActionButton, RowActions } from "@/components/common/row-actions";
 import { AppShell } from "@/components/layout/app-shell";
 import { routePermissions } from "@/lib/routes";
 import {
@@ -24,14 +26,15 @@ export function DetallesConservacionAdminPage() {
   const error = crear.error || actualizar.error || baja.error || query.error;
   const isSubmitting = crear.isPending || actualizar.isPending;
 
-  useEffect(() => {
-    if (editing) setForm({ nombre: editing.nombre, codigo: editing.codigo, descripcion: editing.descripcion ?? "" });
-  }, [editing]);
-
   function resetForm() {
     setEditing(null);
     setForm({ nombre: "", codigo: "", descripcion: "" });
   }
+  function startEditing(detalle: DetalleConservacionResponseDTO) {
+    setEditing(detalle);
+    setForm({ nombre: detalle.nombre, codigo: detalle.codigo, descripcion: detalle.descripcion ?? "" });
+  }
+
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -68,7 +71,7 @@ export function DetallesConservacionAdminPage() {
         <div className="overflow-hidden rounded-lg border bg-white">
           <table className="w-full border-collapse text-sm">
             <thead className="bg-primary text-primary-foreground"><tr><Th>Nombre</Th><Th>Código</Th><Th>Descripción</Th><Th align="right">Acciones</Th></tr></thead>
-            <tbody>{(query.data ?? []).map((detalle) => <tr className="border-t" key={detalle.id}><Td>{detalle.nombre}</Td><Td>{detalle.codigo}</Td><Td>{detalle.descripcion || "-"}</Td><Td align="right"><div className="flex justify-end gap-2"><button className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted" onClick={() => setEditing(detalle)} type="button">Editar</button><button className="rounded-md border border-red-200 px-3 py-1.5 text-xs text-red-700 hover:bg-red-50" onClick={() => confirmarBaja(detalle)} type="button">Baja</button></div></Td></tr>)}</tbody>
+            <tbody>{(query.data ?? []).map((detalle) => <tr className="border-t" key={detalle.id}><Td>{detalle.nombre}</Td><Td>{detalle.codigo}</Td><Td>{detalle.descripcion || "-"}</Td><Td align="right"><RowActions><RowActionButton icon={Pencil} label="Editar" onClick={() => startEditing(detalle)} /><RowActionButton icon={Trash2} label="Baja" onClick={() => confirmarBaja(detalle)} variant="destructive" /></RowActions></Td></tr>)}</tbody>
           </table>
         </div>
       </div>

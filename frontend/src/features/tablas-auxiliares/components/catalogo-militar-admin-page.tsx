@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
+import { RowActionButton, RowActions } from "@/components/common/row-actions";
 import { AppShell } from "@/components/layout/app-shell";
 import { fuerzas, type Fuerza } from "@/features/veteranos/types";
 import { routePermissions } from "@/lib/routes";
@@ -44,10 +46,6 @@ function RangosPage() {
   const [editing, setEditing] = useState<RangoMilitarResponseDTO | null>(null);
   const [form, setForm] = useState<RangoMilitarRequestDTO>({ fuerza: "EJERCITO", nombre: "", ordenJerarquico: 0 });
 
-  useEffect(() => {
-    if (editing) setForm({ fuerza: editing.fuerza, nombre: editing.nombre, ordenJerarquico: editing.ordenJerarquico });
-  }, [editing]);
-
   const isSubmitting = crear.isPending || actualizar.isPending;
   const error = crear.error || actualizar.error || baja.error || query.error;
 
@@ -55,6 +53,11 @@ function RangosPage() {
     setEditing(null);
     setForm({ fuerza: "EJERCITO", nombre: "", ordenJerarquico: 0 });
   }
+  function startEditing(rango: RangoMilitarResponseDTO) {
+    setEditing(rango);
+    setForm({ fuerza: rango.fuerza, nombre: rango.nombre, ordenJerarquico: rango.ordenJerarquico });
+  }
+
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -85,7 +88,7 @@ function RangosPage() {
         <div className="overflow-hidden rounded-lg border bg-white">
           <table className="w-full border-collapse text-sm">
             <thead className="bg-primary text-primary-foreground"><tr><Th>Fuerza</Th><Th>Nombre</Th><Th>Orden</Th><Th align="right">Acciones</Th></tr></thead>
-            <tbody>{(query.data ?? []).map((rango) => <tr className="border-t" key={rango.id}><Td>{fuerzaLabels[rango.fuerza]}</Td><Td>{rango.nombre}</Td><Td>{rango.ordenJerarquico}</Td><Td align="right"><RowActions onEdit={() => setEditing(rango)} onDelete={() => confirmarBaja(rango)} /></Td></tr>)}</tbody>
+            <tbody>{(query.data ?? []).map((rango) => <tr className="border-t" key={rango.id}><Td>{fuerzaLabels[rango.fuerza]}</Td><Td>{rango.nombre}</Td><Td>{rango.ordenJerarquico}</Td><Td align="right"><CatalogoRowActions onEdit={() => startEditing(rango)} onDelete={() => confirmarBaja(rango)} /></Td></tr>)}</tbody>
           </table>
         </div>
       </div>
@@ -103,14 +106,15 @@ function UnidadesPage() {
   const error = crear.error || actualizar.error || baja.error || query.error;
   const isSubmitting = crear.isPending || actualizar.isPending;
 
-  useEffect(() => {
-    if (editing) setForm({ fuerza: editing.fuerza, nombre: editing.nombre, sigla: editing.sigla ?? "", tipoUnidad: editing.tipoUnidad ?? "", descripcion: editing.descripcion ?? "" });
-  }, [editing]);
-
   function resetForm() {
     setEditing(null);
     setForm({ fuerza: "EJERCITO", nombre: "", sigla: "", tipoUnidad: "", descripcion: "" });
   }
+  function startEditing(unidad: UnidadMilitarResponseDTO) {
+    setEditing(unidad);
+    setForm({ fuerza: unidad.fuerza, nombre: unidad.nombre, sigla: unidad.sigla ?? "", tipoUnidad: unidad.tipoUnidad ?? "", descripcion: unidad.descripcion ?? "" });
+  }
+
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -143,7 +147,7 @@ function UnidadesPage() {
           <Actions isEditing={Boolean(editing)} isSubmitting={isSubmitting} onCancel={resetForm} />
         </form>
         {query.isLoading ? <LoadingState label="Cargando unidades..." /> : null}
-        <div className="overflow-hidden rounded-lg border bg-white"><table className="w-full border-collapse text-sm"><thead className="bg-primary text-primary-foreground"><tr><Th>Fuerza</Th><Th>Nombre</Th><Th>Sigla</Th><Th>Tipo</Th><Th align="right">Acciones</Th></tr></thead><tbody>{(query.data ?? []).map((unidad) => <tr className="border-t" key={unidad.id}><Td>{fuerzaLabels[unidad.fuerza]}</Td><Td>{unidad.nombre}</Td><Td>{unidad.sigla || "-"}</Td><Td>{unidad.tipoUnidad || "-"}</Td><Td align="right"><RowActions onEdit={() => setEditing(unidad)} onDelete={() => confirmarBaja(unidad)} /></Td></tr>)}</tbody></table></div>
+        <div className="overflow-hidden rounded-lg border bg-white"><table className="w-full border-collapse text-sm"><thead className="bg-primary text-primary-foreground"><tr><Th>Fuerza</Th><Th>Nombre</Th><Th>Sigla</Th><Th>Tipo</Th><Th align="right">Acciones</Th></tr></thead><tbody>{(query.data ?? []).map((unidad) => <tr className="border-t" key={unidad.id}><Td>{fuerzaLabels[unidad.fuerza]}</Td><Td>{unidad.nombre}</Td><Td>{unidad.sigla || "-"}</Td><Td>{unidad.tipoUnidad || "-"}</Td><Td align="right"><CatalogoRowActions onEdit={() => startEditing(unidad)} onDelete={() => confirmarBaja(unidad)} /></Td></tr>)}</tbody></table></div>
       </div>
     </AppShell>
   );
@@ -161,8 +165,8 @@ function Actions({ isEditing, isSubmitting, onCancel }: { isEditing: boolean; is
   return <div className="flex gap-2"><button className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60" disabled={isSubmitting} type="submit">{isSubmitting ? "Guardando..." : isEditing ? "Guardar cambios" : "Crear"}</button>{isEditing ? <button className="h-10 rounded-md border px-4 text-sm hover:bg-muted" onClick={onCancel} type="button">Cancelar</button> : null}</div>;
 }
 
-function RowActions({ onDelete, onEdit }: { onDelete: () => void; onEdit: () => void }) {
-  return <div className="flex justify-end gap-2"><button className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted" onClick={onEdit} type="button">Editar</button><button className="rounded-md border border-red-200 px-3 py-1.5 text-xs text-red-700 hover:bg-red-50" onClick={onDelete} type="button">Baja</button></div>;
+function CatalogoRowActions({ onDelete, onEdit }: { onDelete: () => void; onEdit: () => void }) {
+  return <RowActions><RowActionButton icon={Pencil} label="Editar" onClick={onEdit} /><RowActionButton icon={Trash2} label="Baja" onClick={onDelete} variant="destructive" /></RowActions>;
 }
 
 function Th({ align = "left", children }: { align?: "left" | "right"; children: React.ReactNode }) {
