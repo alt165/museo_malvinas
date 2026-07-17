@@ -3,15 +3,19 @@ import {
   actualizarConfigAlertasComodatosPrestamos,
   actualizarFechaVencimientoComodatoPrestamo,
   actualizarObjeto,
+  actualizarVisibilidadFotoObjeto,
   bajaLogicaObjeto,
   buscarObjetos,
   buscarObjetosDisponiblesParaColeccion,
+  crearEmbargoObjeto,
   cargaRapidaObjeto,
   crearObjeto,
   eliminarFotoObjeto,
+  levantarEmbargoObjeto,
   listarComodatosPrestamos,
   listarFotosObjeto,
   listarHistorialObjeto,
+  listarEmbargosObjetos,
   listarMovimientosObjeto,
   listarObjetos,
   listarObjetosEliminados,
@@ -24,7 +28,7 @@ import {
   obtenerReciboEscaneadoObjeto,
   restaurarObjeto
 } from "./api";
-import type { BuscarObjetosDisponiblesColeccionParams, BuscarObjetosParams, CargaRapidaObjetoRequestDTO, MoverObjetoRequestDTO, ObjetoMuseoRequestDTO } from "./types";
+import type { BuscarObjetosDisponiblesColeccionParams, BuscarObjetosParams, CargaRapidaObjetoRequestDTO, EmbargoObjetoRequestDTO, MoverObjetoRequestDTO, ObjetoMuseoRequestDTO } from "./types";
 
 export const objetosQueryKeys = {
   all: ["objetos"] as const,
@@ -35,6 +39,7 @@ export const objetosQueryKeys = {
   pending: (params: { page?: number; size?: number; sort?: string }) => [...objetosQueryKeys.all, "pending", params] as const,
   vencimientosProximos: (dias?: number) => [...objetosQueryKeys.all, "vencimientos-proximos", dias ?? "config"] as const,
   comodatosPrestamos: () => [...objetosQueryKeys.all, "comodatos-prestamos"] as const,
+  embargos: (incluirHistoricos: boolean) => [...objetosQueryKeys.all, "embargos", incluirHistoricos] as const,
   configAlertasComodatosPrestamos: () => [...objetosQueryKeys.all, "comodatos-prestamos", "config-alertas"] as const,
   detail: (id: number) => [...objetosQueryKeys.all, "detail", id] as const,
   fotos: (id: number) => [...objetosQueryKeys.all, "detail", id, "fotos"] as const,
@@ -79,6 +84,35 @@ export function useObjetosVencimientosProximosQuery(dias: number | undefined, en
     queryKey: objetosQueryKeys.vencimientosProximos(dias),
     queryFn: () => listarObjetosVencimientosProximos(dias),
     enabled
+  });
+}
+
+export function useEmbargosObjetosQuery(incluirHistoricos = false) {
+  return useQuery({
+    queryKey: objetosQueryKeys.embargos(incluirHistoricos),
+    queryFn: () => listarEmbargosObjetos(incluirHistoricos)
+  });
+}
+
+export function useCrearEmbargoObjetoMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: EmbargoObjetoRequestDTO) => crearEmbargoObjeto(payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.all });
+    }
+  });
+}
+
+export function useLevantarEmbargoObjetoMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: levantarEmbargoObjeto,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.all });
+    }
   });
 }
 
@@ -232,11 +266,11 @@ export function useFotosObjetoQuery(id: number) {
   });
 }
 
-export function useRecibosObjetoQuery(id: number) {
+export function useRecibosObjetoQuery(id: number, enabled = true) {
   return useQuery({
     queryKey: objetosQueryKeys.recibos(id),
     queryFn: () => listarRecibosObjeto(id),
-    enabled: Number.isFinite(id)
+    enabled: enabled && Number.isFinite(id)
   });
 }
 
@@ -246,6 +280,19 @@ export function useReciboEscaneadoObjetoQuery(id: number) {
     queryFn: () => obtenerReciboEscaneadoObjeto(id),
     enabled: Number.isFinite(id),
     retry: false
+  });
+}
+
+export function useActualizarVisibilidadFotoObjetoMutation(id: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ fotoId, visibilidad }: { fotoId: number; visibilidad: "PUBLICO" | "PRIVADO" }) =>
+      actualizarVisibilidadFotoObjeto(id, fotoId, visibilidad),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.fotos(id) });
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.detail(id) });
+    }
   });
 }
 

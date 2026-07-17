@@ -1,9 +1,12 @@
 package com.proveedores.entity;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.MapKeyColumn;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -12,10 +15,16 @@ import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -51,12 +60,82 @@ public class ObjetoMuseo extends EntidadBase {
     @Column(columnDefinition = "TEXT")
     private String materiales;
 
-    @Column(columnDefinition = "TEXT")
-    private String dimensiones;
+    @Column(length = 80)
+    private String alto;
+
+    @Column(length = 80)
+    private String ancho;
+
+    @Column(length = 80)
+    private String diametro;
+
+    @Column(length = 80)
+    private String espesor;
+
+    @Column(length = 80)
+    private String peso;
+
+    @Column(length = 500)
+    private String inscripciones;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "regimen_propiedad", length = 20)
+    private RegimenPropiedad regimenPropiedad;
+
+    @Column(name = "condicion_legal_bien", columnDefinition = "TEXT")
+    private String condicionLegalBien;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "estado_conservacion", length = 40)
     private EstadoConservacion estadoConservacion;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "objeto_museo_detalles_conservacion",
+            joinColumns = @JoinColumn(name = "objeto_museo_id"),
+            inverseJoinColumns = @JoinColumn(name = "detalle_id")
+    )
+    private Set<DetalleConservacion> detallesEstadoConservacion = new LinkedHashSet<>();
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "intervenciones_inadecuadas", length = 30)
+    private IntervencionesInadecuadas intervencionesInadecuadas;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado_integridad", length = 30)
+    private EstadoIntegridad estadoIntegridad;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "humedad_conservacion", length = 20)
+    private HumedadConservacion humedadConservacion;
+
+    @Column(name = "temperatura_conservacion", length = 80)
+    private String temperaturaConservacion;
+
+    @Column(name = "luz_conservacion", length = 80)
+    private String luzConservacion;
+
+    @Column(name = "conservacion_extintores")
+    private Boolean conservacionExtintores;
+
+    @Column(name = "conservacion_montaje")
+    private Boolean conservacionMontaje;
+
+    @Column(name = "conservacion_sistema_electrico")
+    private Boolean conservacionSistemaElectrico;
+
+    @Column(name = "conservacion_alarmas")
+    private Boolean conservacionAlarmas;
+
+    @Column(name = "conservacion_camaras")
+    private Boolean conservacionCamaras;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "objeto_museo_visibilidades", joinColumns = @JoinColumn(name = "objeto_museo_id"))
+    @MapKeyColumn(name = "campo", length = 80)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "visibilidad", length = 20, nullable = false)
+    private Map<String, VisibilidadCampo> visibilidades = new HashMap<>();
 
     @Enumerated(EnumType.STRING)
     @Column(name = "origen_carga", nullable = false, length = 20)

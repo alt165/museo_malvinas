@@ -36,6 +36,7 @@ export default function CargaRapidaObjetoPage() {
     formState: { errors },
     handleSubmit,
     register,
+    reset,
     setError,
     setValue
   } = useForm<CargaRapidaObjetoFormValues>({
@@ -131,6 +132,17 @@ export default function CargaRapidaObjetoPage() {
               { onSuccess: (data) => {
                 setDownloadError(null);
                 setResultado(data);
+                reset({
+                  depositanteId: 0,
+                  denominacionObjeto: "",
+                  numeroInventario: "",
+                  descripcionBreve: ""
+                });
+                setIdentificacion("");
+                setNombreDepositante("");
+                setNombreDepositanteDebounced("");
+                setDepositanteSeleccionado(null);
+                buscarDepositanteMutation.reset();
               } }
             )
           )}

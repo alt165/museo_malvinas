@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,6 +33,7 @@ public class CategoriaObjetoController {
 
     @Operation(summary = "Crear recurso")
     @ApiResponse(responseCode = "201", description = "Recurso creado")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<CategoriaObjetoResponseDTO> crear(@RequestBody @Valid CategoriaObjetoRequestDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(categoriaObjetoService.crear(dto));
@@ -53,6 +55,7 @@ public class CategoriaObjetoController {
 
     @Operation(summary = "Actualizar recurso")
     @ApiResponse(responseCode = "200", description = "Recurso actualizado")
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<CategoriaObjetoResponseDTO> actualizar(@PathVariable Long id, @RequestBody @Valid CategoriaObjetoRequestDTO dto) {
         return ResponseEntity.ok(categoriaObjetoService.actualizar(id, dto));
@@ -60,6 +63,7 @@ public class CategoriaObjetoController {
 
     @Operation(summary = "Dar de baja recurso")
     @ApiResponse(responseCode = "204", description = "Recurso dado de baja")
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> bajaLogica(@PathVariable Long id) {
         categoriaObjetoService.bajaLogica(id);

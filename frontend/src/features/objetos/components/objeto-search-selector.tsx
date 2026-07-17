@@ -1,8 +1,10 @@
 "use client";
 
+import { CheckCircle } from "lucide-react";
 import { useId, useMemo, useState, type KeyboardEvent, type ReactNode } from "react";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
+import { RowActionButton, RowActions } from "@/components/common/row-actions";
 import { useCategoriasQuery } from "@/features/categorias/queries";
 import { useBuscarObjetosDisponiblesParaColeccionQuery, useBuscarObjetosQuery } from "@/features/objetos/queries";
 import type { ObjetoMuseoResponseDTO, ObjetoSortField, ObjetosSort } from "@/features/objetos/types";
@@ -288,13 +290,9 @@ export function ObjetoSearchSelector({
                       {renderActions ? (
                         renderActions(objeto)
                       ) : onSelect ? (
-                        <button
-                          className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted"
-                          onClick={() => onSelect(objeto)}
-                          type="button"
-                        >
-                          {selectLabel}
-                        </button>
+                        <RowActions>
+                          <RowActionButton icon={CheckCircle} label={selectLabel} onClick={() => onSelect(objeto)} />
+                        </RowActions>
                       ) : null}
                     </td>
                   </tr>

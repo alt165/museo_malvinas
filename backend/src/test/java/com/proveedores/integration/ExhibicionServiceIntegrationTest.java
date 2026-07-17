@@ -107,6 +107,59 @@ class ExhibicionServiceIntegrationTest extends IntegrationTestBase {
                 .satisfies(entity -> assertThat(entity.getEstado()).isEqualTo(EstadoExhibicion.FINALIZADA));
     }
 
+    @Test
+    void objetoQuedaDisponibleParaNuevaExhibicionAlFinalizarElMismoDia() {
+        var objeto = objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
+                "IT-EXH-REUSE",
+                "Pelota historica",
+                null,
+                null, null, null, null, null,
+                null,
+                1L,
+                CaracterRecepcionObjeto.DONACION,
+                null
+        ));
+        var exhibicion = crearExhibicion("IT Exhibicion finalizada hoy");
+
+        exhibicionObjetoService.crear(new ExhibicionObjetoRequestDTO(
+                exhibicion.id(),
+                objeto.id(),
+                LocalDate.now(),
+                null,
+                EstadoExhibicionObjeto.EN_EXHIBICION,
+                false,
+                null,
+                null,
+                null
+        ));
+
+        exhibicionService.finalizar(exhibicion.id());
+
+        var disponibilidad = exhibicionService.buscarObjetosDisponibilidad(
+                objeto.numeroInventario(),
+                LocalDate.now(),
+                null,
+                null,
+                org.springframework.data.domain.PageRequest.of(0, 10)
+        );
+        assertThat(disponibilidad.getContent())
+                .extracting(com.proveedores.dto.ObjetoDisponibilidadExhibicionResponseDTO::disponible)
+                .contains(true);
+
+        var nueva = exhibicionService.crear(new ExhibicionRequestDTO(
+                "IT Exhibicion reutiliza objeto",
+                "Nueva exhibicion con objeto liberado",
+                TipoExhibicion.PERMANENTE,
+                LocalDate.now(),
+                null,
+                EstadoExhibicion.ACTIVA,
+                java.util.Set.of(objeto.id())
+        ));
+
+        assertThat(nueva.objetos()).singleElement()
+                .satisfies(relacion -> assertThat(relacion.objetoMuseoId()).isEqualTo(objeto.id()));
+    }
+
     private com.proveedores.dto.ExhibicionResponseDTO crearExhibicion(String nombre) {
         return exhibicionService.crear(new ExhibicionRequestDTO(
                 nombre,

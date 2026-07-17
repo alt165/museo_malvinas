@@ -59,8 +59,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       return;
     }
 
-    setExpandedGroups((current) => (current.includes(key) ? current : [...current, key]));
-    setCollapsedActiveGroups((current) => current.filter((item) => item !== key));
+    const activeGroupKeys = visibleGroups.filter((group) => groupHasRoute(pathname, group)).map((group) => group.key);
+
+    setExpandedGroups([key]);
+    setCollapsedActiveGroups(activeGroupKeys.filter((activeKey) => activeKey !== key));
   }
 
   return (

@@ -1,11 +1,13 @@
 "use client";
 
+import { RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
+import { RowActionButton, RowActions } from "@/components/common/row-actions";
 import { AppShell } from "@/components/layout/app-shell";
 import { ApiClientError } from "@/lib/errors/api-error";
 import { routePermissions } from "@/lib/routes";
@@ -91,14 +93,9 @@ export default function ObjetosEliminadosPage() {
                         {objeto.fechaEliminacion ? new Date(objeto.fechaEliminacion).toLocaleString("es-AR") : "Sin dato"}
                       </td>
                       <td className="px-4 py-3 text-right align-top">
-                        <button
-                          className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
-                          disabled={restaurar.isPending}
-                          onClick={() => handleRestaurar(objeto)}
-                          type="button"
-                        >
-                          Restaurar
-                        </button>
+                        <RowActions>
+                          <RowActionButton disabled={restaurar.isPending} icon={RotateCcw} label="Restaurar" onClick={() => handleRestaurar(objeto)} />
+                        </RowActions>
                       </td>
                     </tr>
                   ))}

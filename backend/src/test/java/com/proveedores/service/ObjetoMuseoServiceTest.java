@@ -17,6 +17,7 @@ import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.CategoriaObjetoRepository;
 import com.proveedores.repository.DepositanteRepository;
+import com.proveedores.repository.EmbargoObjetoRepository;
 import com.proveedores.repository.FotoObjetoMuseoRepository;
 import com.proveedores.repository.InventarioRepository;
 import com.proveedores.repository.MovimientoInventarioRepository;
@@ -49,6 +50,9 @@ class ObjetoMuseoServiceTest {
 
     @Mock
     private DepositanteRepository depositanteRepository;
+
+    @Mock
+    private EmbargoObjetoRepository embargoObjetoRepository;
 
     @Mock
     private ObjetoDepositanteRepository objetoDepositanteRepository;

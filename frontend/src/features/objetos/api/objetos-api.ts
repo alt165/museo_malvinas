@@ -6,6 +6,8 @@ import type {
   ConfigAlertasVencimientoDTO,
   FotoObjetoMuseoResponseDTO,
   HistorialObjetoResponseDTO,
+  EmbargoObjetoRequestDTO,
+  EmbargoObjetoResponseDTO,
   BuscarObjetosParams,
   BuscarObjetosDisponiblesColeccionParams,
   MoverObjetoRequestDTO,
@@ -22,6 +24,7 @@ import type {
 
 const basePath = "/api/objetos";
 const adminComodatosPrestamosPath = "/api/admin/comodatos-prestamos";
+const adminEmbargosPath = "/api/admin/objetos/embargos";
 
 export function listarObjetos() {
   return apiRequest<ObjetoMuseoResponseDTO[]>(basePath);
@@ -40,6 +43,20 @@ function buildBuscarObjetosSearchParams(params: BuscarObjetosParams, includePagi
 
   if (params.numeroInventario?.trim()) {
     searchParams.set("numeroInventario", params.numeroInventario.trim());
+  }
+
+  if (params.descripcionBreve?.trim()) {
+    searchParams.set("descripcionBreve", params.descripcionBreve.trim());
+    if (params.descripcionBreveModo) {
+      searchParams.set("descripcionBreveModo", params.descripcionBreveModo);
+    }
+  }
+
+  if (params.descripcionTecnica?.trim()) {
+    searchParams.set("descripcionTecnica", params.descripcionTecnica.trim());
+    if (params.descripcionTecnicaModo) {
+      searchParams.set("descripcionTecnicaModo", params.descripcionTecnicaModo);
+    }
   }
 
   params.categoriaIds?.forEach((categoriaId) => {
@@ -81,6 +98,27 @@ export function obtenerObjetoPorId(id: number) {
 export function listarObjetosVencimientosProximos(dias?: number) {
   const query = dias ? `?dias=${dias}` : "";
   return apiRequest<ObjetoVencimientoProximoResponseDTO[]>(`${basePath}/vencimientos-proximos${query}`);
+}
+
+export function listarEmbargosObjetos(incluirHistoricos = false) {
+  return apiRequest<EmbargoObjetoResponseDTO[]>(`${adminEmbargosPath}?incluirHistoricos=${incluirHistoricos}`);
+}
+
+export function crearEmbargoObjeto(payload: EmbargoObjetoRequestDTO) {
+  return apiRequest<EmbargoObjetoResponseDTO>(adminEmbargosPath, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function levantarEmbargoObjeto(id: number) {
+  return apiRequest<EmbargoObjetoResponseDTO>(`${adminEmbargosPath}/${id}/levantar`, {
+    method: "PATCH"
+  });
+}
+
+export function exportarEmbargosObjetosPdf() {
+  return apiBlobRequest(`${adminEmbargosPath}/export/pdf`);
 }
 
 export function listarComodatosPrestamos() {
@@ -189,9 +227,12 @@ export function listarFotosObjeto(id: number) {
   return apiRequest<FotoObjetoMuseoResponseDTO[]>(`${basePath}/${id}/fotos`);
 }
 
-export function subirFotosObjeto(id: number, archivos: File[], descripcion?: string) {
+export function subirFotosObjeto(id: number, archivos: File[], descripcion?: string, visibilidades?: ("PUBLICO" | "PRIVADO")[]) {
   const formData = new FormData();
-  archivos.forEach((archivo) => formData.append("archivos", archivo));
+  archivos.forEach((archivo, index) => {
+    formData.append("archivos", archivo);
+    formData.append("visibilidades", visibilidades?.[index] ?? "PUBLICO");
+  });
   if (descripcion) {
     formData.append("descripcion", descripcion);
   }
@@ -201,9 +242,15 @@ export function subirFotosObjeto(id: number, archivos: File[], descripcion?: str
   });
 }
 
-export async function subirFotoObjeto(id: number, archivo: File, descripcion?: string) {
-  const [foto] = await subirFotosObjeto(id, [archivo], descripcion);
+export async function subirFotoObjeto(id: number, archivo: File, descripcion?: string, visibilidad: "PUBLICO" | "PRIVADO" = "PUBLICO") {
+  const [foto] = await subirFotosObjeto(id, [archivo], descripcion, [visibilidad]);
   return foto;
+}
+
+export function actualizarVisibilidadFotoObjeto(id: number, fotoId: number, visibilidad: "PUBLICO" | "PRIVADO") {
+  return apiRequest<FotoObjetoMuseoResponseDTO>(`${basePath}/${id}/fotos/${fotoId}/visibilidad?visibilidad=${visibilidad}`, {
+    method: "PATCH"
+  });
 }
 
 export function eliminarFotoObjeto(id: number, fotoId: number) {

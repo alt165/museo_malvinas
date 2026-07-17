@@ -18,17 +18,31 @@ import { ObjetosTable } from "@/features/objetos/components/objetos-table";
 import { getApiErrorMessage } from "@/features/objetos/utils";
 import { ApiClientError } from "@/lib/errors/api-error";
 import { useCategoriasQuery } from "@/features/categorias/queries";
-import type { ObjetoMuseoResponseDTO, ObjetoSortField, ObjetosSort } from "@/features/objetos/types";
+import type { ModoBusquedaTexto, ObjetoMuseoResponseDTO, ObjetoSortField, ObjetosSort } from "@/features/objetos/types";
 
 type FiltrosObjetos = {
   nombre: string;
   numeroInventario: string;
+  descripcionBreve: string;
+  descripcionBreveModo: ModoBusquedaTexto;
+  descripcionTecnica: string;
+  descripcionTecnicaModo: ModoBusquedaTexto;
   categoriaIds: number[];
 };
+
+const modosBusquedaTexto: { value: ModoBusquedaTexto; label: string }[] = [
+  { value: "ALGUNA_PALABRA", label: "Alguna palabra" },
+  { value: "TODAS_LAS_PALABRAS", label: "Todas las palabras" },
+  { value: "FRASE_COMPLETA", label: "Frase completa" }
+];
 
 const filtrosIniciales: FiltrosObjetos = {
   nombre: "",
   numeroInventario: "",
+  descripcionBreve: "",
+  descripcionBreveModo: "ALGUNA_PALABRA",
+  descripcionTecnica: "",
+  descripcionTecnicaModo: "ALGUNA_PALABRA",
   categoriaIds: []
 };
 
@@ -72,7 +86,11 @@ export default function ObjetosPage() {
   const bajaLogica = useBajaLogicaObjetoMutation();
   const objetos = data?.content ?? [];
   const hayFiltros = Boolean(
-    filtrosAplicados.nombre || filtrosAplicados.numeroInventario || filtrosAplicados.categoriaIds.length > 0
+    filtrosAplicados.nombre ||
+      filtrosAplicados.numeroInventario ||
+      filtrosAplicados.descripcionBreve ||
+      filtrosAplicados.descripcionTecnica ||
+      filtrosAplicados.categoriaIds.length > 0
   );
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -81,6 +99,10 @@ export default function ObjetosPage() {
     setFiltrosAplicados({
       nombre: filtrosFormulario.nombre.trim(),
       numeroInventario: filtrosFormulario.numeroInventario.trim(),
+      descripcionBreve: filtrosFormulario.descripcionBreve.trim(),
+      descripcionBreveModo: filtrosFormulario.descripcionBreveModo,
+      descripcionTecnica: filtrosFormulario.descripcionTecnica.trim(),
+      descripcionTecnicaModo: filtrosFormulario.descripcionTecnicaModo,
       categoriaIds: filtrosFormulario.categoriaIds
     });
   }
@@ -208,6 +230,54 @@ export default function ObjetosPage() {
               >
                 Limpiar filtros
               </button>
+            </div>
+            <div className="grid gap-4 lg:col-span-3 lg:grid-cols-2">
+              <label className="space-y-1 text-sm font-medium text-primary">
+                <span>Descripción breve</span>
+                <input
+                  className="h-10 w-full rounded-md border bg-white px-3 text-sm outline-none focus:border-primary"
+                  onChange={(event) => setFiltrosFormulario((current) => ({ ...current, descripcionBreve: event.target.value }))}
+                  type="text"
+                  value={filtrosFormulario.descripcionBreve}
+                />
+              </label>
+              <label className="space-y-1 text-sm font-medium text-primary">
+                <span>Modalidad descripción breve</span>
+                <select
+                  className="h-10 w-full rounded-md border bg-white px-3 text-sm outline-none focus:border-primary"
+                  onChange={(event) =>
+                    setFiltrosFormulario((current) => ({ ...current, descripcionBreveModo: event.target.value as ModoBusquedaTexto }))
+                  }
+                  value={filtrosFormulario.descripcionBreveModo}
+                >
+                  {modosBusquedaTexto.map((modo) => (
+                    <option key={modo.value} value={modo.value}>{modo.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-1 text-sm font-medium text-primary">
+                <span>Descripción técnica</span>
+                <input
+                  className="h-10 w-full rounded-md border bg-white px-3 text-sm outline-none focus:border-primary"
+                  onChange={(event) => setFiltrosFormulario((current) => ({ ...current, descripcionTecnica: event.target.value }))}
+                  type="text"
+                  value={filtrosFormulario.descripcionTecnica}
+                />
+              </label>
+              <label className="space-y-1 text-sm font-medium text-primary">
+                <span>Modalidad descripción técnica</span>
+                <select
+                  className="h-10 w-full rounded-md border bg-white px-3 text-sm outline-none focus:border-primary"
+                  onChange={(event) =>
+                    setFiltrosFormulario((current) => ({ ...current, descripcionTecnicaModo: event.target.value as ModoBusquedaTexto }))
+                  }
+                  value={filtrosFormulario.descripcionTecnicaModo}
+                >
+                  {modosBusquedaTexto.map((modo) => (
+                    <option key={modo.value} value={modo.value}>{modo.label}</option>
+                  ))}
+                </select>
+              </label>
             </div>
             <section className="space-y-3 lg:col-span-3">
               <div className="flex flex-wrap items-center justify-between gap-2">

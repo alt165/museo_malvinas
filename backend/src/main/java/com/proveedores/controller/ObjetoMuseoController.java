@@ -5,6 +5,7 @@ import com.proveedores.dto.CargaRapidaObjetoRequestDTO;
 import com.proveedores.dto.CargaRapidaObjetoResponseDTO;
 import com.proveedores.dto.FotoObjetoMuseoResponseDTO;
 import com.proveedores.dto.MoverObjetoRequestDTO;
+import com.proveedores.dto.ModoBusquedaTexto;
 import com.proveedores.dto.MovimientoObjetoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
@@ -14,6 +15,7 @@ import com.proveedores.dto.ObjetoVencimientoProximoResponseDTO;
 import com.proveedores.dto.ReciboEscaneadoObjetoMuseoResponseDTO;
 import com.proveedores.dto.ReciboIngresoObjetoResponseDTO;
 import com.proveedores.dto.RelacionObjetoPorObjetoResponseDTO;
+import com.proveedores.entity.VisibilidadCampo;
 import com.proveedores.service.ComodatoPrestamoService;
 import com.proveedores.service.FotoObjetoMuseoService;
 import com.proveedores.service.ObjetoMuseoExportService;
@@ -44,6 +46,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -114,9 +117,22 @@ public class ObjetoMuseoController {
             @RequestParam(required = false) String nombre,
             @RequestParam(required = false) String numeroInventario,
             @RequestParam(required = false) List<Long> categoriaIds,
+            @RequestParam(required = false) String descripcionBreve,
+            @RequestParam(required = false) ModoBusquedaTexto descripcionBreveModo,
+            @RequestParam(required = false) String descripcionTecnica,
+            @RequestParam(required = false) ModoBusquedaTexto descripcionTecnicaModo,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable
     ) {
-        return ResponseEntity.ok(objetoMuseoService.buscar(nombre, numeroInventario, categoriaIds, pageable));
+        return ResponseEntity.ok(objetoMuseoService.buscar(
+                nombre,
+                numeroInventario,
+                categoriaIds,
+                descripcionBreve,
+                descripcionBreveModo,
+                descripcionTecnica,
+                descripcionTecnicaModo,
+                pageable
+        ));
     }
 
     @Operation(summary = "Buscar objetos disponibles para coleccion")
@@ -139,6 +155,10 @@ public class ObjetoMuseoController {
             @RequestParam(required = false) String nombre,
             @RequestParam(required = false) String numeroInventario,
             @RequestParam(required = false) List<Long> categoriaIds,
+            @RequestParam(required = false) String descripcionBreve,
+            @RequestParam(required = false) ModoBusquedaTexto descripcionBreveModo,
+            @RequestParam(required = false) String descripcionTecnica,
+            @RequestParam(required = false) ModoBusquedaTexto descripcionTecnicaModo,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable,
             Authentication authentication
     ) {
@@ -146,6 +166,10 @@ public class ObjetoMuseoController {
                 nombre,
                 numeroInventario,
                 categoriaIds,
+                descripcionBreve,
+                descripcionBreveModo,
+                descripcionTecnica,
+                descripcionTecnicaModo,
                 pageable.getSort(),
                 usuario(authentication)
         );
@@ -268,6 +292,8 @@ public class ObjetoMuseoController {
             @RequestParam(value = "archivos", required = false) List<MultipartFile> archivos,
             @RequestParam(value = "archivo", required = false) MultipartFile archivo,
             @RequestParam(value = "descripcion", required = false) String descripcion,
+            @RequestParam(value = "visibilidades", required = false) List<VisibilidadCampo> visibilidades,
+            @RequestParam(value = "visibilidad", required = false) VisibilidadCampo visibilidad,
             Authentication authentication
     ) {
         List<MultipartFile> archivosParaSubir = new ArrayList<>();
@@ -278,8 +304,14 @@ public class ObjetoMuseoController {
             archivosParaSubir.add(archivo);
         }
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(archivosParaSubir.stream()
-                        .map(item -> fotoObjetoMuseoService.subir(id, item, descripcion, usuario(authentication)))
+                .body(java.util.stream.IntStream.range(0, archivosParaSubir.size())
+                        .mapToObj(index -> fotoObjetoMuseoService.subir(
+                                id,
+                                archivosParaSubir.get(index),
+                                descripcion,
+                                visibilidadFoto(index, visibilidades, visibilidad),
+                                usuario(authentication)
+                        ))
                         .toList());
     }
 
@@ -304,6 +336,16 @@ public class ObjetoMuseoController {
                 .contentType(MediaType.parseMediaType(foto.metadata().contentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + foto.metadata().nombreArchivo() + "\"")
                 .body(foto.resource());
+    }
+
+    @Operation(summary = "Actualizar visibilidad de foto del objeto")
+    @PatchMapping("/{id}/fotos/{fotoId}/visibilidad")
+    public ResponseEntity<FotoObjetoMuseoResponseDTO> actualizarVisibilidadFoto(
+            @PathVariable Long id,
+            @PathVariable Long fotoId,
+            @RequestParam("visibilidad") VisibilidadCampo visibilidad
+    ) {
+        return ResponseEntity.ok(fotoObjetoMuseoService.actualizarVisibilidad(id, fotoId, visibilidad));
     }
 
     @Operation(summary = "Eliminar foto del objeto")
@@ -357,6 +399,13 @@ public class ObjetoMuseoController {
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(objetoMuseoService.cargaRapida(dto, usuario(authentication)));
+    }
+
+    private VisibilidadCampo visibilidadFoto(int index, List<VisibilidadCampo> visibilidades, VisibilidadCampo visibilidad) {
+        if (visibilidades != null && index < visibilidades.size() && visibilidades.get(index) != null) {
+            return visibilidades.get(index);
+        }
+        return visibilidad == null ? VisibilidadCampo.PUBLICO : visibilidad;
     }
 
     private String nombreArchivoObjetosPdf() {

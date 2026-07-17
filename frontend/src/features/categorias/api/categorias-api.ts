@@ -1,10 +1,12 @@
 import { apiRequest } from "@/lib/api";
 import type { CategoriaObjetoRequestDTO, CategoriaObjetoResponseDTO } from "../types";
+import { ordenarCategoriasPorNombre } from "../utils";
 
 const basePath = "/api/categorias";
 
-export function listarCategorias() {
-  return apiRequest<CategoriaObjetoResponseDTO[]>(basePath);
+export async function listarCategorias() {
+  const categorias = await apiRequest<CategoriaObjetoResponseDTO[]>(basePath);
+  return ordenarCategoriasPorNombre(categorias);
 }
 
 export function obtenerCategoriaPorId(id: number) {

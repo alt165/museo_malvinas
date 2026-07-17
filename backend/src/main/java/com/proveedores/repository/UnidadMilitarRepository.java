@@ -10,6 +10,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface UnidadMilitarRepository extends JpaRepository<UnidadMilitar, Long> {
 
+    List<UnidadMilitar> findByActivoTrueAndEliminadoFalseOrderByFuerzaAscNombreAsc();
+
     @Query("""
             select u
             from UnidadMilitar u

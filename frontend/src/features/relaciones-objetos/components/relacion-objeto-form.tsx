@@ -1,12 +1,14 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
+import { RowActionButton, RowActions } from "@/components/common/row-actions";
 import { ObjetoSearchSelector } from "@/features/objetos/components/objeto-search-selector";
 import { useObjetoQuery } from "@/features/objetos/queries";
 import type { ObjetoMuseoResponseDTO } from "@/features/objetos/types";
@@ -173,13 +175,9 @@ export function RelacionObjetoForm({
                 emptyLabel="No hay objetos destino que coincidan con los filtros aplicados."
                 excludeObjetoId={objetoOrigenSeleccionado.id}
                 renderActions={(objeto) => (
-                  <button
-                    className="rounded-md border px-3 py-1.5 text-xs font-medium text-[#163A61] hover:bg-muted"
-                    onClick={() => handleAbrirModalDestino(objeto)}
-                    type="button"
-                  >
-                    Seleccionar destino
-                  </button>
+                  <RowActions>
+                    <RowActionButton icon={CheckCircle} label="Seleccionar destino" onClick={() => handleAbrirModalDestino(objeto)} />
+                  </RowActions>
                 )}
                 selectedObjeto={objetoDestino}
                 title="Buscar objeto destino"

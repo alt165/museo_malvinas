@@ -1,9 +1,11 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { CheckCircle, Undo2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
+import { RowActionButton, RowActions } from "@/components/common/row-actions";
 import { EmptyState } from "@/components/common/empty-state";
 import { useObjetosQuery } from "@/features/objetos/queries";
 import { ApiClientError } from "@/lib/errors/api-error";
@@ -150,34 +152,34 @@ export function ObjetosExhibicionPanel({ canWrite, estado, exhibicionId }: Objet
                   <td className="px-4 py-3">{formatDateTime(objeto.fechaVerificacion)}</td>
                   <td className="px-4 py-3">
                     {canWrite && !objeto.devolucionVerificada ? (
-                      <button
-                        className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted disabled:opacity-60"
-                        disabled={verificarMutation.isPending}
-                        onClick={() => {
-                          if (!window.confirm(`Confirmar verificación de devolución de "${objeto.objetoNombre}"`)) {
-                            return;
-                          }
+                      <RowActions className="justify-start">
+                        <RowActionButton
+                          disabled={verificarMutation.isPending}
+                          icon={CheckCircle}
+                          label="Verificar devolución"
+                          onClick={() => {
+                            if (!window.confirm(`Confirmar verificación de devolución de "${objeto.objetoNombre}"`)) {
+                              return;
+                            }
 
-                          const observaciones = window.prompt("Observaciones de devolución", objeto.observacionesDevolucion ?? "") ?? undefined;
-                          verificarMutation.mutate({ id: objeto.id, observaciones });
-                        }}
-                        type="button"
-                      >
-                        Verificar devolución
-                      </button>
+                            const observaciones = window.prompt("Observaciones de devolución", objeto.observacionesDevolucion ?? "") ?? undefined;
+                            verificarMutation.mutate({ id: objeto.id, observaciones });
+                          }}
+                        />
+                      </RowActions>
                     ) : canWrite && objeto.devolucionVerificada ? (
-                      <button
-                        className="rounded-md border px-3 py-1.5 text-xs hover:bg-muted disabled:opacity-60"
-                        disabled={revertirMutation.isPending}
-                        onClick={() => {
-                          if (window.confirm(`Revertir devolución verificada de "${objeto.objetoNombre}"`)) {
-                            revertirMutation.mutate(objeto.id);
-                          }
-                        }}
-                        type="button"
-                      >
-                        Revertir devolución
-                      </button>
+                      <RowActions className="justify-start">
+                        <RowActionButton
+                          disabled={revertirMutation.isPending}
+                          icon={Undo2}
+                          label="Revertir devolución"
+                          onClick={() => {
+                            if (window.confirm(`Revertir devolución verificada de "${objeto.objetoNombre}"`)) {
+                              revertirMutation.mutate(objeto.id);
+                            }
+                          }}
+                        />
+                      </RowActions>
                     ) : (
                       <span className="text-muted-foreground">Sin acciones</span>
                     )}

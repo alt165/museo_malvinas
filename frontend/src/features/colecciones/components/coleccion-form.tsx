@@ -1,10 +1,12 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useForm } from "react-hook-form";
+import { RowActionButton, RowActions } from "@/components/common/row-actions";
 import { ObjetoSearchSelector } from "@/features/objetos/components/objeto-search-selector";
 import type { ObjetoMuseoResponseDTO } from "@/features/objetos/types";
 import { coleccionObjetoSchema, type ColeccionObjetoFormValues } from "../schemas";
@@ -102,14 +104,9 @@ export function ColeccionForm({ initialObjetos = [], initialValue, isSubmitting 
                     <td className="px-4 py-3 align-top font-medium">{objeto.numeroInventario}</td>
                     <td className="px-4 py-3 align-top">{objeto.denominacionObjeto}</td>
                     <td className="px-4 py-3 text-right align-top">
-                      <button
-                        className="rounded-md border px-3 py-1.5 text-xs text-destructive hover:bg-muted disabled:opacity-60"
-                        disabled={isSubmitting}
-                        onClick={() => handleQuitarObjeto(objeto.id)}
-                        type="button"
-                      >
-                        Quitar
-                      </button>
+                      <RowActions>
+                        <RowActionButton disabled={isSubmitting} icon={X} label="Quitar" onClick={() => handleQuitarObjeto(objeto.id)} variant="destructive" />
+                      </RowActions>
                     </td>
                   </tr>
                 ))}

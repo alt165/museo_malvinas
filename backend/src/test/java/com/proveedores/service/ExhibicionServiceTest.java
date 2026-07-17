@@ -345,6 +345,47 @@ class ExhibicionServiceTest {
     }
 
     @Test
+    void buscarDisponibilidadIgnoraExhibicionFinalizadaAunqueTermineElMismoDia() {
+        ObjetoMuseo objeto = objeto();
+        Exhibicion finalizada = exhibicion();
+        finalizada.setId(2L);
+        finalizada.setNombre("Finalizada hoy");
+        finalizada.setEstado(EstadoExhibicion.FINALIZADA);
+        finalizada.setFechaInicio(LocalDate.now());
+        finalizada.setFechaFin(LocalDate.now());
+        ExhibicionObjeto relacion = new ExhibicionObjeto();
+        relacion.setExhibicion(finalizada);
+        relacion.setObjetoMuseo(objeto);
+        relacion.setEliminado(false);
+        when(objetoMuseoRepository.buscarParaDisponibilidadExhibicion("INV", PageRequest.of(0, 10, org.springframework.data.domain.Sort.by("numeroInventario"))))
+                .thenReturn(new PageImpl<>(List.of(objeto)));
+        when(exhibicionObjetoRepository.findByObjetoMuseoIdAndEliminadoFalse(10L)).thenReturn(List.of(relacion));
+
+        var page = service.buscarObjetosDisponibilidad("INV", LocalDate.now(), null, null, PageRequest.of(0, 10));
+
+        assertThat(page.getContent()).singleElement().satisfies(item -> assertThat(item.disponible()).isTrue());
+    }
+
+    @Test
+    void obtenerObjetosParaRepetirIgnoraConflictoConExhibicionOriginalFinalizadaHoy() {
+        Exhibicion original = exhibicion();
+        original.setEstado(EstadoExhibicion.FINALIZADA);
+        original.setFechaInicio(LocalDate.now());
+        original.setFechaFin(LocalDate.now());
+        ObjetoMuseo objeto = objeto();
+        ExhibicionObjeto relacion = new ExhibicionObjeto();
+        relacion.setExhibicion(original);
+        relacion.setObjetoMuseo(objeto);
+        when(exhibicionRepository.findById(1L)).thenReturn(Optional.of(original));
+        when(exhibicionObjetoRepository.findByExhibicionIdAndEliminadoFalse(1L)).thenReturn(List.of(relacion));
+        when(exhibicionObjetoRepository.findByObjetoMuseoIdAndEliminadoFalse(10L)).thenReturn(List.of(relacion));
+
+        var objetos = service.obtenerObjetosParaRepetir(1L, LocalDate.now(), null);
+
+        assertThat(objetos).singleElement().satisfies(item -> assertThat(item.disponible()).isTrue());
+    }
+
+    @Test
     void listarProximasAIniciarDevuelveSoloConsultaDelRepositorio() {
         Exhibicion planificada = exhibicion();
         planificada.setEstado(EstadoExhibicion.PLANIFICADA);

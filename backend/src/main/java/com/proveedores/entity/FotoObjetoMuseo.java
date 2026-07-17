@@ -2,6 +2,8 @@ package com.proveedores.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -54,6 +56,10 @@ public class FotoObjetoMuseo extends EntidadBase {
 
     @Column(columnDefinition = "TEXT")
     private String descripcion;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private VisibilidadCampo visibilidad = VisibilidadCampo.PUBLICO;
 
     @Column(name = "fecha_carga", nullable = false)
     private LocalDateTime fechaCarga;
