@@ -1,4 +1,5 @@
 "use client";
+import { FormLabel } from "@/components/common/form-label";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Pencil, Search, Trash2 } from "lucide-react";
@@ -66,8 +67,8 @@ export function VeteranoDetailPanels({ canWrite, veteranoId }: { canWrite: boole
             tipoRelacion: values.tipoRelacion,
             descripcion: values.descripcion || null
           }, { onSuccess: () => objetoForm.reset({ objetoMuseoId: 0, tipoRelacion: "", descripcion: "" }) }))}>
-            <Input label="Objeto" error={objetoForm.formState.errors.objetoMuseoId?.message}><select className="h-10 w-full rounded-md border bg-background px-3 text-sm" {...objetoForm.register("objetoMuseoId", { valueAsNumber: true })}><option value={0}>Seleccionar objeto</option>{(objetosMuseoQuery.data ?? []).map((objeto) => <option key={objeto.id} value={objeto.id}>{objeto.numeroInventario} - {objeto.denominacionObjeto}</option>)}</select></Input>
-            <Input label="Tipo relación" error={objetoForm.formState.errors.tipoRelacion?.message}><input className="h-10 w-full rounded-md border bg-background px-3 text-sm" {...objetoForm.register("tipoRelacion")} /></Input>
+            <Input required label="Objeto" error={objetoForm.formState.errors.objetoMuseoId?.message}><select className="h-10 w-full rounded-md border bg-background px-3 text-sm" {...objetoForm.register("objetoMuseoId", { valueAsNumber: true })}><option value={0}>Seleccionar objeto</option>{(objetosMuseoQuery.data ?? []).map((objeto) => <option key={objeto.id} value={objeto.id}>{objeto.numeroInventario} - {objeto.denominacionObjeto}</option>)}</select></Input>
+            <Input required label="Tipo relación" error={objetoForm.formState.errors.tipoRelacion?.message}><input className="h-10 w-full rounded-md border bg-background px-3 text-sm" {...objetoForm.register("tipoRelacion")} /></Input>
             <Input label="Descripción" error={objetoForm.formState.errors.descripcion?.message}><input className="h-10 w-full rounded-md border bg-background px-3 text-sm" {...objetoForm.register("descripcion")} /></Input>
             <div className="flex items-end"><button className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground" disabled={asociarObjeto.isPending} type="submit">Asociar</button></div>
           </form>
@@ -82,6 +83,6 @@ export function VeteranoDetailPanels({ canWrite, veteranoId }: { canWrite: boole
   );
 }
 
-function Input({ children, error, label }: { children: React.ReactNode; error?: string; label: string }) {
-  return <label className="space-y-2 text-sm font-medium"><span>{label}</span>{children}{error ? <p className="font-normal text-destructive">{error}</p> : null}</label>;
+function Input({ children, error, label, required = false }: { children: React.ReactNode; error?: string; label: string; required?: boolean }) {
+  return <FormLabel label={label} required={required}>{children}{error ? <p className="font-normal text-destructive">{error}</p> : null}</FormLabel>;
 }

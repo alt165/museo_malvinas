@@ -1,4 +1,5 @@
 "use client";
+import { FormLabel } from "@/components/common/form-label";
 
 import { useState, type FormEvent, type ReactNode } from "react";
 import { EmptyState } from "@/components/common/empty-state";
@@ -52,7 +53,7 @@ export default function CategoriasPage() {
         <PageHeader description="Clasificacion de objetos del museo." title="Categorias" />
         {puedeEscribir ? (
           <form className="space-y-4 rounded-lg border bg-white p-5" onSubmit={handleSubmit}>
-            <Field label="Nombre">
+            <Field required label="Nombre">
               <input
                 className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
                 maxLength={100}
@@ -113,11 +114,6 @@ export default function CategoriasPage() {
   );
 }
 
-function Field({ children, label }: { children: ReactNode; label: string }) {
-  return (
-    <label className="space-y-2 text-sm font-medium">
-      <span>{label}</span>
-      {children}
-    </label>
-  );
+function Field({ children, label, required = false }: { children: ReactNode; label: string; required?: boolean }) {
+  return <FormLabel label={label} required={required}>{children}</FormLabel>;
 }

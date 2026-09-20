@@ -17,7 +17,7 @@ export default function NuevaActuacionVeteranoPage() {
   return (
     <AppShell requiredRoles={[...routePermissions.write]}>
       <div className="space-y-6">
-        <PageHeader description="Registrar actuacion historica de un veterano." title="Nueva actuacion" />
+        <PageHeader description="Registrar actuación histórica de una persona." title="Nueva actuacion" />
         {mutation.isError ? <ErrorState message={getApiErrorMessage(mutation.error)} requestId={mutation.error instanceof ApiClientError ? mutation.error.requestId : undefined} /> : null}
         <ActuacionVeteranoForm
           isSubmitting={mutation.isPending}

@@ -28,8 +28,8 @@ export default function ActuacionesVeteranosPage() {
       <div className="space-y-6">
         <PageHeader
           actions={puedeEscribir ? <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/actuaciones-veteranos/nueva">Nueva actuacion</Link> : null}
-          description="Participaciones, unidades, roles y periodos de veteranos."
-          title="Actuaciones de veteranos"
+          description="Participaciones, unidades, roles y periodos de personas."
+          title="Actuaciones de personas"
         />
         {isLoading ? <LoadingState label="Cargando actuaciones..." /> : null}
         {isError ? <ErrorState message={getApiErrorMessage(error)} requestId={error instanceof ApiClientError ? error.requestId : undefined} /> : null}

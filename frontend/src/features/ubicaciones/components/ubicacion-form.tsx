@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
+import { RequiredAsterisk } from "@/components/common/form-label";
 import { useForm } from "react-hook-form";
 import { ubicacionSchema, type UbicacionFormValues } from "../schemas";
 import type { UbicacionRequestDTO, UbicacionResponseDTO } from "../types";
@@ -37,7 +38,7 @@ export function UbicacionForm({ initialValue, isSubmitting = false, onSubmit, su
       )}
     >
       <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="nombre">Nombre</label>
+        <label className="text-sm font-medium" htmlFor="nombre">Nombre<RequiredAsterisk /></label>
         <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id="nombre" {...register("nombre")} />
         {errors.nombre ? <p className="text-sm text-destructive">{errors.nombre.message}</p> : null}
       </div>

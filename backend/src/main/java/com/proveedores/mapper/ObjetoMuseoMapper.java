@@ -100,7 +100,9 @@ public final class ObjetoMuseoMapper {
                 fechaVencimiento,
                 categorias,
                 fotos,
-                reciboEscaneado
+                reciboEscaneado,
+                entity.getMedidas(),
+                entity.getCantidadPartes()
         );
     }
 
@@ -110,6 +112,8 @@ public final class ObjetoMuseoMapper {
         entity.setDescripcion(dto.descripcion());
         entity.setDescripcionTecnica(dto.descripcionTecnica());
         entity.setMateriales(dto.materiales());
+        entity.setMedidas(dto.medidas());
+        entity.setCantidadPartes(dto.cantidadPartes() == null ? 0 : dto.cantidadPartes());
         entity.setAlto(dto.alto());
         entity.setAncho(dto.ancho());
         entity.setDiametro(dto.diametro());

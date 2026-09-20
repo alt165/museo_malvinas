@@ -88,13 +88,14 @@ type DatoDetalle = {
   label: string;
   value: React.ReactNode;
   wide?: boolean;
+  longText?: boolean;
 };
 
-function ObjetoDato({ label, value, wide }: DatoDetalle) {
+function ObjetoDato({ label, value, wide, longText }: DatoDetalle) {
   return (
     <div className={wide ? "sm:col-span-2" : undefined}>
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className="mt-1 whitespace-pre-wrap font-medium">{value}</dd>
+      <dd className={`mt-1 whitespace-pre-wrap break-words font-medium ${longText ? "max-h-48 overflow-y-auto pr-2" : ""}`}>{value}</dd>
     </div>
   );
 }
@@ -414,15 +415,12 @@ export default function DetalleObjetoPage() {
     { label: "Fecha de ingreso", value: data.fechaIngreso ? formatFecha(data.fechaIngreso) : null },
     { label: "Fecha de vencimiento", value: data.fechaVencimiento ? formatFecha(data.fechaVencimiento) : null },
     { label: "Materiales", value: data.materiales },
-    { label: "Alto", value: data.alto },
-    { label: "Ancho", value: data.ancho },
-    { label: "Diámetro", value: data.diametro },
-    { label: "Espesor", value: data.espesor },
-    { label: "Peso", value: data.peso },
+    { label: "Medidas", value: data.medidas, wide: true, longText: true },
+    { label: "Partes", value: data.cantidadPartes ? Array.from({ length: data.cantidadPartes }, (_, index) => data.numeroInventario + "_PT." + (index + 1)).join("\n") : null, wide: true, longText: true },
     { label: "Régimen de propiedad", value: enumLabel(data.regimenPropiedad) },
     { label: "Intervenciones inadecuadas", value: enumLabel(data.intervencionesInadecuadas) },
     { label: "Estado de integridad", value: enumLabel(data.estadoIntegridad) },
-    { label: "Descripcion", value: data.descripcion, wide: true }
+    { label: "Descripcion", value: data.descripcion, wide: true, longText: true }
   ].filter((dato) => hasDisplayValue(dato.value)) : [];
 
   const conservacionPreventiva: DatoDetalle[] = data ? [
@@ -509,7 +507,7 @@ export default function DetalleObjetoPage() {
             {data.descripcionTecnica ? (
               <section className="rounded-lg border p-5">
                 <h2 className="text-base font-semibold">Descripcion tecnica</h2>
-                <p className="mt-3 whitespace-pre-wrap text-sm font-medium">{data.descripcionTecnica}</p>
+                <p className="mt-3 max-h-64 overflow-y-auto whitespace-pre-wrap break-words pr-2 text-sm font-medium">{data.descripcionTecnica}</p>
               </section>
             ) : null}
 

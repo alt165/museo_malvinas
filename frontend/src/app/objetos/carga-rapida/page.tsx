@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
+import { RequiredAsterisk } from "@/components/common/form-label";
 import { useForm } from "react-hook-form";
 import { ErrorState } from "@/components/common/error-state";
 import { PageHeader } from "@/components/common/page-header";
@@ -9,7 +10,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { useBuscarDepositantePorIdentificacionMutation, useBuscarDepositantesPorNombreQuery } from "@/features/depositantes/queries";
 import type { DepositanteResponseDTO } from "@/features/depositantes/types";
 import { identificacionVisible, telefonoVisible } from "@/features/depositantes/utils";
-import { descargarReciboIngresoPdf } from "@/features/objetos/recibos";
+import { descargarTicketRecepcionPdf } from "@/features/objetos/recibos";
 import { cargaRapidaObjetoSchema, type CargaRapidaObjetoFormValues } from "@/features/objetos/schemas";
 import type { CargaRapidaObjetoResponseDTO } from "@/features/objetos/types";
 import { getApiErrorMessage, getValidationErrors } from "@/features/objetos/utils";
@@ -44,7 +45,6 @@ export default function CargaRapidaObjetoPage() {
     defaultValues: {
       depositanteId: 0,
       denominacionObjeto: "",
-      numeroInventario: "",
       descripcionBreve: ""
     }
   });
@@ -52,7 +52,7 @@ export default function CargaRapidaObjetoPage() {
   useEffect(() => {
     const validationErrors = getValidationErrors(mutation.error);
     Object.entries(validationErrors).forEach(([field, message]) => {
-      if (field === "depositanteId" || field === "denominacionObjeto" || field === "numeroInventario" || field === "descripcionBreve") {
+      if (field === "depositanteId" || field === "denominacionObjeto" || field === "descripcionBreve") {
         setError(field, { message });
       }
     });
@@ -84,7 +84,7 @@ export default function CargaRapidaObjetoPage() {
               Volver
             </Link>
           }
-          description="Ingreso minimo de un objeto y emision de recibo para el depositante."
+          description="Ingreso minimo de un objeto y emisión de ticket de recepción para el depositante."
           title="Carga rapida de objeto"
         />
         {mutation.isError ? (
@@ -96,7 +96,7 @@ export default function CargaRapidaObjetoPage() {
         {resultado ? (
           <div className="rounded-lg border p-5 text-sm">
             <p className="font-medium">Objeto creado: {resultado.objeto.numeroInventario}</p>
-            <p className="mt-1 text-muted-foreground">Recibo emitido: {resultado.recibo.numeroRecibo}</p>
+            <p className="mt-1 text-muted-foreground">Ticket de recepción: {resultado.recibo.numeroRecibo}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href={`/objetos/${resultado.objeto.id}`}>
                 Ver objeto
@@ -106,14 +106,14 @@ export default function CargaRapidaObjetoPage() {
                 onClick={async () => {
                   setDownloadError(null);
                   try {
-                    await descargarReciboIngresoPdf(resultado.recibo);
+                    await descargarTicketRecepcionPdf(resultado.recibo);
                   } catch {
-                    setDownloadError("No se pudo descargar el recibo. Intentalo nuevamente.");
+                    setDownloadError("no se pudo descargar el ticket. Intentalo nuevamente.");
                   }
                 }}
                 type="button"
               >
-                Descargar recibo
+                Descargar ticket
               </button>
             </div>
             {downloadError ? <p className="mt-3 text-sm text-destructive">{downloadError}</p> : null}
@@ -126,7 +126,6 @@ export default function CargaRapidaObjetoPage() {
               {
                 depositanteId: values.depositanteId,
                 denominacionObjeto: values.denominacionObjeto.trim(),
-                numeroInventario: values.numeroInventario.trim(),
                 descripcionBreve: values.descripcionBreve.trim()
               },
               { onSuccess: (data) => {
@@ -135,8 +134,7 @@ export default function CargaRapidaObjetoPage() {
                 reset({
                   depositanteId: 0,
                   denominacionObjeto: "",
-                  numeroInventario: "",
-                  descripcionBreve: ""
+                              descripcionBreve: ""
                 });
                 setIdentificacion("");
                 setNombreDepositante("");
@@ -150,7 +148,7 @@ export default function CargaRapidaObjetoPage() {
           <input type="hidden" {...register("depositanteId", { valueAsNumber: true })} />
           <section className="space-y-3">
             <div>
-              <h2 className="text-base font-semibold">Buscar depositante</h2>
+              <h2 className="text-base font-semibold">Buscar depositante<RequiredAsterisk /></h2>
               <p className="mt-1 text-sm text-muted-foreground">Selecciona un depositante existente por DNI/CUIT o por nombre.</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
@@ -263,23 +261,19 @@ export default function CargaRapidaObjetoPage() {
           </section>
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="denominacionObjeto">Denominacion</label>
+              <label className="text-sm font-medium" htmlFor="denominacionObjeto">Denominacion<RequiredAsterisk /></label>
               <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id="denominacionObjeto" {...register("denominacionObjeto")} />
               {errors.denominacionObjeto ? <p className="text-sm text-destructive">{errors.denominacionObjeto.message}</p> : null}
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="numeroInventario">Numero de inventario</label>
-              <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id="numeroInventario" {...register("numeroInventario")} />
-              {errors.numeroInventario ? <p className="text-sm text-destructive">{errors.numeroInventario.message}</p> : null}
-            </div>
+
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="descripcionBreve">Descripcion breve</label>
+            <label className="text-sm font-medium" htmlFor="descripcionBreve">Descripcion breve<RequiredAsterisk /></label>
             <textarea className="min-h-28 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" id="descripcionBreve" {...register("descripcionBreve")} />
             {errors.descripcionBreve ? <p className="text-sm text-destructive">{errors.descripcionBreve.message}</p> : null}
           </div>
           <button className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60" disabled={mutation.isPending} type="submit">
-            {mutation.isPending ? "Generando..." : "Crear y generar recibo"}
+            {mutation.isPending ? "Generando..." : "Crear y generar ticket"}
           </button>
         </form>
       </div>

@@ -18,6 +18,8 @@ export type ObjetoMuseoRequestDTO = {
   descripcion?: string | null;
   descripcionTecnica?: string | null;
   materiales?: string | null;
+  medidas?: string | null;
+  cantidadPartes?: number | null;
   alto?: string | null;
   ancho?: string | null;
   diametro?: string | null;
@@ -53,6 +55,8 @@ export type ObjetoMuseoResponseDTO = {
   descripcion?: string | null;
   descripcionTecnica?: string | null;
   materiales?: string | null;
+  medidas?: string | null;
+  cantidadPartes?: number | null;
   alto?: string | null;
   ancho?: string | null;
   diametro?: string | null;
@@ -230,7 +234,6 @@ export type ReciboEscaneadoObjetoMuseoResponseDTO = {
 export type CargaRapidaObjetoRequestDTO = {
   depositanteId: number;
   denominacionObjeto: string;
-  numeroInventario: string;
   descripcionBreve: string;
 };
 

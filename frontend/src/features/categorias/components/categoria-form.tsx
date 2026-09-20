@@ -1,4 +1,5 @@
 "use client";
+import { FormLabel } from "@/components/common/form-label";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
@@ -56,7 +57,7 @@ export function CategoriaForm({
         })
       )}
     >
-      <Field label="Nombre" error={errors.nombre?.message}>
+      <Field required label="Nombre" error={errors.nombre?.message}>
         <input
           className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
           {...register("nombre")}
@@ -84,12 +85,6 @@ export function CategoriaForm({
   );
 }
 
-function Field({ children, error, label }: { children: React.ReactNode; error?: string; label: string }) {
-  return (
-    <label className="space-y-2 text-sm font-medium">
-      <span>{label}</span>
-      {children}
-      {error ? <p className="font-normal text-destructive">{error}</p> : null}
-    </label>
-  );
+function Field({ children, error, label, required = false }: { children: React.ReactNode; error?: string; label: string; required?: boolean }) {
+  return <FormLabel label={label} required={required}>{children}{error ? <p className="font-normal text-destructive">{error}</p> : null}</FormLabel>;
 }

@@ -1,4 +1,5 @@
 "use client";
+import { RequiredAsterisk } from "@/components/common/form-label";
 
 import { useState, type FormEvent } from "react";
 import { useUbicacionesQuery } from "@/features/ubicaciones/queries";
@@ -57,7 +58,7 @@ export function MoverObjetoModal({ objeto, onClose }: MoverObjetoModalProps) {
         </div>
         <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="ubicacionDestinoId">Ubicacion destino</label>
+            <label className="text-sm font-medium" htmlFor="ubicacionDestinoId">Ubicacion destino<RequiredAsterisk /></label>
             <select
               className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
               disabled={ubicacionesQuery.isLoading || mutation.isPending}

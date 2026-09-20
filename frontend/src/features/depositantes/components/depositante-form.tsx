@@ -1,4 +1,5 @@
 "use client";
+import { FormLabel } from "@/components/common/form-label";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
@@ -55,7 +56,7 @@ export function DepositanteForm({
       onSubmit={handleSubmit((values) => onSubmit(formValuesToDepositanteRequest(values)))}
     >
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Tipo" error={errors.tipo?.message}>
+        <Field required label="Tipo" error={errors.tipo?.message}>
           <select
             className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
             {...register("tipo")}
@@ -77,7 +78,7 @@ export function DepositanteForm({
       </div>
       {tipo === "PERSONA" ? (
         <div className="grid gap-5 sm:grid-cols-3">
-          <Field label="Nombre" error={errors.nombre?.message}>
+          <Field required label="Nombre" error={errors.nombre?.message}>
             <input
               className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
               {...register("nombre")}
@@ -98,7 +99,7 @@ export function DepositanteForm({
         </div>
       ) : (
         <div className="grid gap-5 sm:grid-cols-[1fr_220px]">
-          <Field label="Organizacion" error={errors.organizacion?.message}>
+          <Field required label="Organizacion" error={errors.organizacion?.message}>
             <input
               className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
               {...register("organizacion")}
@@ -148,12 +149,6 @@ export function DepositanteForm({
   );
 }
 
-function Field({ children, error, label }: { children: React.ReactNode; error?: string; label: string }) {
-  return (
-    <label className="space-y-2 text-sm font-medium">
-      <span>{label}</span>
-      {children}
-      {error ? <p className="font-normal text-destructive">{error}</p> : null}
-    </label>
-  );
+function Field({ children, error, label, required = false }: { children: React.ReactNode; error?: string; label: string; required?: boolean }) {
+  return <FormLabel label={label} required={required}>{children}{error ? <p className="font-normal text-destructive">{error}</p> : null}</FormLabel>;
 }

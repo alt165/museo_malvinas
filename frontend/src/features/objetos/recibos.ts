@@ -10,11 +10,11 @@ function descargarBlob(blob: Blob, nombre: string) {
   URL.revokeObjectURL(url);
 }
 
-export function nombreArchivoRecibo(recibo: Pick<ReciboIngresoObjetoResponseDTO, "id">) {
-  return `recibo-${recibo.id}.pdf`;
+export function nombreArchivoTicket(recibo: Pick<ReciboIngresoObjetoResponseDTO, "id">) {
+  return `ticket-recepcion-${recibo.id}.pdf`;
 }
 
-export async function descargarReciboIngresoPdf(recibo: Pick<ReciboIngresoObjetoResponseDTO, "id">) {
+export async function descargarTicketRecepcionPdf(recibo: Pick<ReciboIngresoObjetoResponseDTO, "id">) {
   const blob = await descargarReciboPdf(recibo.id);
-  descargarBlob(blob, nombreArchivoRecibo(recibo));
+  descargarBlob(blob, nombreArchivoTicket(recibo));
 }

@@ -37,7 +37,7 @@ class RelacionObjetoServiceIntegrationTest extends IntegrationTestBase {
 
         assertThat(response.id()).isNotNull();
         assertThat(response.objetoOrigenId()).isEqualTo(origen.id());
-        assertThat(response.objetoOrigenNumeroInventario()).isEqualTo("IT-REL-001");
+        assertThat(response.objetoOrigenNumeroInventario()).isEqualTo(origen.numeroInventario());
         assertThat(response.objetoDestinoId()).isEqualTo(destino.id());
         assertThat(response.fechaCreacion()).isNotNull();
         assertThat(response.creadoPor()).isEqualTo("tester");

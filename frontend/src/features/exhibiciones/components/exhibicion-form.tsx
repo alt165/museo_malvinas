@@ -1,11 +1,11 @@
 
 "use client";
+import { FormLabel } from "@/components/common/form-label";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
@@ -199,25 +199,25 @@ export function ExhibicionForm({ initialValue, isSubmitting = false, repetirExhi
   return (
     <form className="w-full space-y-5 rounded-lg border p-5" onSubmit={handleSubmit(submit)}>
       {exhibicionARepetirId ? <RepeticionHeader query={exhibicionARepetirQuery} /> : null}
-      <Field error={errors.nombre?.message} label="Nombre">
+      <Field required error={errors.nombre?.message} label="Nombre">
         <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" {...register("nombre")} />
       </Field>
       <Field error={errors.descripcion?.message} label="Descripcion">
         <textarea className="min-h-28 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" {...register("descripcion")} />
       </Field>
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field error={errors.tipo?.message} label="Tipo">
+        <Field required error={errors.tipo?.message} label="Tipo">
           <select className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" disabled value={tipoDerivado}>
             {tiposExhibicion.map((tipo) => <option key={tipo} value={tipo}>{tipo}</option>)}
           </select>
           <input type="hidden" value={tipoDerivado} {...register("tipo")} />
         </Field>
-        <Field error={errors.estado?.message} label="Estado">
+        <Field required error={errors.estado?.message} label="Estado">
           <select className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" {...register("estado")}>{estadosDisponibles.map((estado) => <option key={estado} value={estado}>{estado}</option>)}</select>
         </Field>
       </div>
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field error={errors.fechaInicio?.message} label="Fecha de inicio">
+        <Field required error={errors.fechaInicio?.message} label="Fecha de inicio">
           <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" min={!initialValue ? today : undefined} type="date" {...register("fechaInicio")} />
         </Field>
         <Field error={errors.fechaFin?.message} label="Fecha de finalización">
@@ -317,6 +317,6 @@ function ObjetoDisponibilidadRow({ disabled, objeto, onAgregar, yaIncluido }: { 
   );
 }
 
-function Field({ children, error, label }: { children: ReactNode; error?: string; label: string }) {
-  return <label className="space-y-2 text-sm font-medium"><span>{label}</span>{children}{error ? <p className="font-normal text-destructive">{error}</p> : null}</label>;
+function Field({ children, error, label, required = false }: { children: React.ReactNode; error?: string; label: string; required?: boolean }) {
+  return <FormLabel label={label} required={required}>{children}{error ? <p className="font-normal text-destructive">{error}</p> : null}</FormLabel>;
 }

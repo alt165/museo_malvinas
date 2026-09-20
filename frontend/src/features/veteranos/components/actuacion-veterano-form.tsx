@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { LoadingState } from "@/components/common/loading-state";
+import { FormLabel } from "@/components/common/form-label";
 import type { ActuacionVeteranoRequestDTO, ActuacionVeteranoResponseDTO, UnidadMilitarResponseDTO } from "../types";
 import { actuacionVeteranoSchema, type ActuacionVeteranoFormValues } from "../schemas";
 import { useRangosMilitaresQuery, useUnidadesMilitaresQuery, useVeteranosQuery } from "../queries";
@@ -153,12 +154,12 @@ export function ActuacionVeteranoForm({
       })}
     >
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Veterano" error={errors.veteranoId?.message}>
+        <Field required label="Persona" error={errors.veteranoId?.message}>
           {fixedVeteranoId ? (
             <input
               className="h-10 w-full rounded-md border bg-muted px-3 text-sm"
               disabled
-              value={veteranoSeleccionado?.nombreCompleto ?? initialValue?.veteranoNombreCompleto ?? "Veterano seleccionado"}
+              value={veteranoSeleccionado?.nombreCompleto ?? initialValue?.veteranoNombreCompleto ?? "Persona seleccionada"}
             />
           ) : (
             <select
@@ -270,12 +271,6 @@ export function ActuacionVeteranoForm({
   );
 }
 
-function Field({ children, error, label }: { children: React.ReactNode; error?: string; label: string }) {
-  return (
-    <label className="space-y-2 text-sm font-medium">
-      <span>{label}</span>
-      {children}
-      {error ? <p className="font-normal text-destructive">{error}</p> : null}
-    </label>
-  );
+function Field({ children, error, label, required = false }: { children: React.ReactNode; error?: string; label: string; required?: boolean }) {
+  return <FormLabel label={label} required={required}>{children}{error ? <p className="font-normal text-destructive">{error}</p> : null}</FormLabel>;
 }

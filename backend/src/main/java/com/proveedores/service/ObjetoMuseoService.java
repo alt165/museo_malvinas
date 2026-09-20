@@ -40,6 +40,7 @@ import com.proveedores.repository.EmbargoObjetoRepository;
 import com.proveedores.repository.FotoObjetoMuseoRepository;
 import com.proveedores.repository.InventarioRepository;
 import com.proveedores.repository.MovimientoInventarioRepository;
+import com.proveedores.repository.NumeroInventarioRepository;
 import com.proveedores.repository.ObjetoCategoriaRepository;
 import com.proveedores.repository.ObjetoDepositanteRepository;
 import com.proveedores.repository.ObjetoMuseoRepository;
@@ -54,6 +55,7 @@ import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -82,6 +84,7 @@ public class ObjetoMuseoService {
     private static final String UBICACION_PRE_INGRESO = "Pre ingreso";
 
     private final ObjetoMuseoRepository objetoMuseoRepository;
+    private final NumeroInventarioRepository numeroInventarioRepository;
     private final CategoriaObjetoRepository categoriaObjetoRepository;
     private final ObjetoCategoriaRepository objetoCategoriaRepository;
     private final DepositanteRepository depositanteRepository;
@@ -99,6 +102,7 @@ public class ObjetoMuseoService {
 
     public ObjetoMuseoService(
             ObjetoMuseoRepository objetoMuseoRepository,
+            NumeroInventarioRepository numeroInventarioRepository,
             CategoriaObjetoRepository categoriaObjetoRepository,
             ObjetoCategoriaRepository objetoCategoriaRepository,
             DepositanteRepository depositanteRepository,
@@ -115,6 +119,7 @@ public class ObjetoMuseoService {
             DetalleConservacionService detalleConservacionService
     ) {
         this.objetoMuseoRepository = objetoMuseoRepository;
+        this.numeroInventarioRepository = numeroInventarioRepository;
         this.categoriaObjetoRepository = categoriaObjetoRepository;
         this.objetoCategoriaRepository = objetoCategoriaRepository;
         this.depositanteRepository = depositanteRepository;
@@ -138,9 +143,9 @@ public class ObjetoMuseoService {
 
     @Transactional
     public ObjetoMuseoResponseDTO crear(ObjetoMuseoRequestDTO dto, String operador) {
-        validarNumeroInventarioDisponible(dto.numeroInventario(), null);
         validarRecepcionObligatoria(dto);
         ObjetoMuseo entity = ObjetoMuseoMapper.toEntity(dto);
+        entity.setNumeroInventario(generarNumeroInventario());
         entity.setDetallesEstadoConservacion(detalleConservacionService.buscarActivosPorCodigos(dto.detallesEstadoConservacion()));
         entity.setOrigenCarga(OrigenCargaObjeto.COMPLETA);
         entity.setDatosCompletos(tieneDatosCompletos(dto));
@@ -271,13 +276,14 @@ public class ObjetoMuseoService {
     public ObjetoMuseoResponseDTO actualizar(Long id, ObjetoMuseoRequestDTO dto, String operador) {
         ObjetoMuseo entity = buscarActivo(id);
         Map<String, Object> anteriores = snapshotObjeto(entity);
-        validarNumeroInventarioDisponible(dto.numeroInventario(), id);
         boolean pendienteRapida = entity.getOrigenCarga() == OrigenCargaObjeto.RAPIDA && Boolean.FALSE.equals(entity.getDatosCompletos());
         if (pendienteRapida) {
             validarFichaCompleta(dto);
             validarRecepcionObligatoria(dto);
         }
+        String numeroInventario = entity.getNumeroInventario();
         ObjetoMuseoMapper.updateEntity(entity, dto);
+        entity.setNumeroInventario(numeroInventario);
         entity.setDetallesEstadoConservacion(detalleConservacionService.buscarActivosPorCodigos(dto.detallesEstadoConservacion()));
         if (pendienteRapida || tieneDatosCompletos(dto)) {
             entity.setDatosCompletos(true);
@@ -337,12 +343,11 @@ public class ObjetoMuseoService {
 
     @Transactional
     public CargaRapidaObjetoResponseDTO cargaRapida(CargaRapidaObjetoRequestDTO dto, String operador) {
-        validarNumeroInventarioDisponible(dto.numeroInventario(), null);
         Depositante depositante = buscarDepositanteActivo(dto.depositanteId());
         LocalDateTime fechaCargaRapida = LocalDateTime.now();
 
         ObjetoMuseo objeto = new ObjetoMuseo();
-        objeto.setNumeroInventario(dto.numeroInventario());
+        objeto.setNumeroInventario(generarNumeroInventario());
         objeto.setDenominacionObjeto(dto.denominacionObjeto());
         objeto.setDescripcion(dto.descripcionBreve());
         objeto.setOrigenCarga(OrigenCargaObjeto.RAPIDA);
@@ -521,6 +526,12 @@ public class ObjetoMuseoService {
 
     ObjetoMuseo buscarObjetoActivo(Long id) {
         return buscarActivo(id);
+    }
+
+    private String generarNumeroInventario() {
+        int anio = LocalDate.now(ZoneId.of("America/Argentina/Salta")).getYear();
+        int correlativo = numeroInventarioRepository.siguienteCorrelativo(anio);
+        return "MMAS" + anio + String.format("%05d", correlativo);
     }
 
     private void validarNumeroInventarioDisponible(String numeroInventario, Long idActual) {
@@ -800,6 +811,8 @@ public class ObjetoMuseoService {
                 "descripcion", objeto.getDescripcion(),
                 "descripcionTecnica", objeto.getDescripcionTecnica(),
                 "materiales", objeto.getMateriales(),
+                "medidas", objeto.getMedidas(),
+                "cantidadPartes", objeto.getCantidadPartes(),
                 "alto", objeto.getAlto(),
                 "ancho", objeto.getAncho(),
                 "diametro", objeto.getDiametro(),
@@ -844,7 +857,8 @@ public class ObjetoMuseoService {
     }
 
     private boolean tieneAlgunaDimension(ObjetoMuseoRequestDTO dto) {
-        return tieneTexto(dto.alto())
+        return tieneTexto(dto.medidas())
+                || tieneTexto(dto.alto())
                 || tieneTexto(dto.ancho())
                 || tieneTexto(dto.diametro())
                 || tieneTexto(dto.espesor())
@@ -1027,7 +1041,9 @@ public class ObjetoMuseoService {
                 visible(response, "fechaVencimiento") ? response.fechaVencimiento() : null,
                 visible(response, "categorias") ? response.categorias() : List.of(),
                 visible(response, "fotos") ? filtrarFotosPrivadas(response.fotos()) : List.of(),
-                null
+                null,
+                visible(response, "medidas") ? response.medidas() : null,
+                visible(response, "cantidadPartes") ? response.cantidadPartes() : null
         );
     }
 

@@ -51,7 +51,13 @@ public class FotoObjetoMuseoService {
         ObjetoMuseo objeto = objetoMuseoService.buscarObjetoActivo(objetoId);
         validarArchivo(archivo);
 
-        ObjectFileStorageService.StoredObjectFile storedFile = objectFileStorageService.store(objetoId, "fotos", archivo);
+        String extension = switch (archivo.getContentType()) {
+            case "image/png" -> "png";
+            case "image/webp" -> "webp";
+            default -> "jpg";
+        };
+        ObjectFileStorageService.StoredObjectFile storedFile = objectFileStorageService.store(
+                objetoId, "fotos", archivo, objeto.getNumeroInventario(), extension);
 
         FotoObjetoMuseo foto = new FotoObjetoMuseo();
         foto.setObjetoMuseo(objeto);

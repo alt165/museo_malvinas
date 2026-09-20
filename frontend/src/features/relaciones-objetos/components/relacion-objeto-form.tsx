@@ -1,10 +1,10 @@
 "use client";
+import { FormLabel } from "@/components/common/form-label";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
@@ -284,7 +284,7 @@ function RelacionCampos({
 }) {
   return (
     <>
-      <Field label="Tipo de relacion" error={tipoRelacionError}>
+      <Field required label="Tipo de relacion" error={tipoRelacionError}>
         <input
           className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
           {...tipoRelacionField}
@@ -354,12 +354,6 @@ function ObjetoResumen({
   );
 }
 
-function Field({ children, error, label }: { children: ReactNode; error?: string; label: string }) {
-  return (
-    <label className="space-y-2 text-sm font-medium">
-      <span>{label}</span>
-      {children}
-      {error ? <p className="font-normal text-destructive">{error}</p> : null}
-    </label>
-  );
+function Field({ children, error, label, required = false }: { children: React.ReactNode; error?: string; label: string; required?: boolean }) {
+  return <FormLabel label={label} required={required}>{children}{error ? <p className="font-normal text-destructive">{error}</p> : null}</FormLabel>;
 }

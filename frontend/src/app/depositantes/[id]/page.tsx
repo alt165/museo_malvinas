@@ -15,6 +15,7 @@ import type { DepositanteResponseDTO } from "@/features/depositantes/types";
 import type { ObjetoMuseoResponseDTO } from "@/features/objetos/types";
 import { descargarBlob } from "@/lib/download";
 import { useEditingMode } from "@/lib/editing-mode";
+import { routePermissions } from "@/lib/routes";
 
 function getParamId(value: string | string[] | undefined) {
   const raw = Array.isArray(value) ? value[0] : value;
@@ -61,7 +62,7 @@ export default function DetalleDepositantePage() {
   }
 
   return (
-    <AppShell>
+    <AppShell requiredRoles={[...routePermissions.write]}>
       <div className="space-y-6">
         <PageHeader
           actions={

@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
+import { RequiredAsterisk } from "@/components/common/form-label";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { type FieldErrors, useForm, useWatch } from "react-hook-form";
 import { useCategoriasQuery } from "@/features/categorias/queries";
@@ -14,6 +15,7 @@ import { ApiClientError } from "@/lib/errors/api-error";
 import type { ObjetoMuseoRequestDTO, ObjetoMuseoResponseDTO, VisibilidadCampo } from "../types";
 import { objetoMuseoSchema, type ObjetoMuseoFormValues } from "../schemas";
 import { getValidationErrors } from "../utils";
+import { MeasurementUnitSelector } from "./measurement-unit-selector";
 
 type ObjetoMuseoFormProps = {
   allowFileUploads?: boolean;
@@ -48,7 +50,7 @@ const caracteresRecepcion = [
 
 const camposVisibilidad = [
   "numeroInventario", "denominacionObjeto", "descripcion", "descripcionTecnica", "materiales",
-  "alto", "ancho", "diametro", "espesor", "peso", "inscripciones", "regimenPropiedad",
+  "medidas", "cantidadPartes", "inscripciones", "regimenPropiedad",
   "condicionLegalBien", "estadoConservacion", "detallesEstadoConservacion", "intervencionesInadecuadas",
   "estadoIntegridad", "humedadConservacion", "temperaturaConservacion", "luzConservacion",
   "conservacionExtintores", "conservacionMontaje", "conservacionSistemaElectrico", "conservacionAlarmas",
@@ -77,11 +79,8 @@ const objetoMuseoFieldLabels: Partial<Record<keyof ObjetoMuseoFormValues, string
   descripcion: "Descripción breve",
   descripcionTecnica: "Descripción técnica",
   materiales: "Materiales",
-  alto: "Alto",
-  ancho: "Ancho",
-  diametro: "Diámetro",
-  espesor: "Espesor",
-  peso: "Peso",
+  medidas: "Medidas",
+  cantidadPartes: "Cantidad de partes",
   inscripciones: "Inscripciones",
   regimenPropiedad: "Régimen de propiedad",
   condicionLegalBien: "Condición legal del bien",
@@ -161,6 +160,7 @@ export function ObjetoMuseoForm({
   const {
     formState: { errors },
     handleSubmit,
+    getValues,
     register,
     reset,
     setError,
@@ -174,6 +174,8 @@ export function ObjetoMuseoForm({
       descripcion: initialValue?.descripcion ?? "",
       descripcionTecnica: initialValue?.descripcionTecnica ?? "",
       materiales: initialValue?.materiales ?? "",
+      medidas: initialValue?.medidas ?? "",
+      cantidadPartes: initialValue?.cantidadPartes ?? 0,
       alto: initialValue?.alto ?? "",
       ancho: initialValue?.ancho ?? "",
       diametro: initialValue?.diametro ?? "",
@@ -240,6 +242,8 @@ export function ObjetoMuseoForm({
       descripcion: "",
       descripcionTecnica: "",
       materiales: "",
+      medidas: "",
+      cantidadPartes: 0,
       alto: "",
       ancho: "",
       diametro: "",
@@ -301,11 +305,8 @@ export function ObjetoMuseoForm({
         field === "descripcion" ||
         field === "descripcionTecnica" ||
         field === "materiales" ||
-        field === "alto" ||
-        field === "ancho" ||
-        field === "diametro" ||
-        field === "espesor" ||
-        field === "peso" ||
+        field === "medidas" ||
+        field === "cantidadPartes" ||
         field === "inscripciones" ||
         field === "regimenPropiedad" ||
         field === "condicionLegalBien" ||
@@ -432,11 +433,13 @@ export function ObjetoMuseoForm({
         (values) => {
           setValidationSummary(null);
           onSubmit({
-            numeroInventario: values.numeroInventario.trim(),
+            numeroInventario: values.numeroInventario?.trim() ?? "",
             denominacionObjeto: values.denominacionObjeto.trim(),
             descripcion: values.descripcion?.trim() || null,
             descripcionTecnica: values.descripcionTecnica?.trim() || null,
             materiales: values.materiales?.trim() || null,
+            medidas: values.medidas?.trim() || null,
+            cantidadPartes: values.cantidadPartes ?? 0,
             alto: values.alto?.trim() || null,
             ancho: values.ancho?.trim() || null,
             diametro: values.diametro?.trim() || null,
@@ -496,7 +499,7 @@ export function ObjetoMuseoForm({
 
       <section className="space-y-4 rounded-md border bg-white p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-base font-semibold">Depositante</h2>
+          <h2 className="text-base font-semibold">Depositante<RequiredAsterisk /></h2>
           {visibilidadControl("depositante")}
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
@@ -588,7 +591,7 @@ export function ObjetoMuseoForm({
           ) : null}
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <label className="text-sm font-medium" htmlFor="caracterRecepcion">Carácter de recepción</label>
+              <label className="text-sm font-medium" htmlFor="caracterRecepcion">Carácter de recepción<RequiredAsterisk /></label>
               {visibilidadControl("caracterRecepcion")}
             </div>
             <select className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id="caracterRecepcion" {...register("caracterRecepcion")}>
@@ -600,7 +603,7 @@ export function ObjetoMuseoForm({
           {mostrarFechaVencimiento ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <label className="text-sm font-medium" htmlFor="fechaVencimiento">Fecha de vencimiento</label>
+                <label className="text-sm font-medium" htmlFor="fechaVencimiento">Fecha de vencimiento<RequiredAsterisk /></label>
                 {visibilidadControl("fechaVencimiento")}
               </div>
               <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id="fechaVencimiento" type="date" min={fechaMinimaVencimiento} {...register("fechaVencimiento")} />
@@ -672,18 +675,20 @@ export function ObjetoMuseoForm({
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <label className="text-sm font-medium" htmlFor="numeroInventario">Numero de inventario</label>
-              {visibilidadControl("numeroInventario")}
+              {initialValue ? visibilidadControl("numeroInventario") : null}
             </div>
             <input
               className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+              disabled={!initialValue}
               id="numeroInventario"
+              placeholder={initialValue ? undefined : "Se genera automáticamente al guardar"}
               {...register("numeroInventario")}
             />
             {errors.numeroInventario ? <p className="text-sm text-destructive">{errors.numeroInventario.message}</p> : null}
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <label className="text-sm font-medium" htmlFor="denominacionObjeto">Denominacion</label>
+              <label className="text-sm font-medium" htmlFor="denominacionObjeto">Denominacion<RequiredAsterisk /></label>
               {visibilidadControl("denominacionObjeto")}
             </div>
             <input
@@ -729,21 +734,28 @@ export function ObjetoMuseoForm({
             </div>
             <textarea className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" id="materiales" {...register("materiales")} />
           </div>
-          {[
-            ["alto", "Alto"],
-            ["ancho", "Ancho"],
-            ["diametro", "Diámetro"],
-            ["espesor", "Espesor"],
-            ["peso", "Peso"]
-          ].map(([field, label]) => (
-            <div className="space-y-2" key={field}>
-              <div className="flex items-center justify-between gap-2">
-                <label className="text-sm font-medium" htmlFor={field}>{label}</label>
-                {visibilidadControl(field)}
-              </div>
-              <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id={field} {...register(field as keyof ObjetoMuseoFormValues)} />
+          <div className="space-y-2 sm:col-span-2">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-sm font-medium" htmlFor="medidas">Medidas</label>
+              {visibilidadControl("medidas")}
             </div>
-          ))}
+            <textarea className="min-h-32 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" id="medidas" {...register("medidas")} />
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs text-muted-foreground">Usá el selector para insertar unidades normalizadas en el texto.</p>
+              <MeasurementUnitSelector disabled={isSubmitting} onSelect={(unit) => {
+                const current = getValues("medidas")?.trimEnd() ?? "";
+                setValue("medidas", current ? ` ` : unit, { shouldDirty: true, shouldValidate: true });
+              }} />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-sm font-medium" htmlFor="cantidadPartes">Cantidad de partes</label>
+              {visibilidadControl("cantidadPartes")}
+            </div>
+            <input className="h-10 w-full rounded-md border bg-background px-3 text-sm" id="cantidadPartes" min={0} type="number" {...register("cantidadPartes", { valueAsNumber: true })} />
+            <p className="text-xs text-muted-foreground">Se identificarán como número principal + _PT.1, _PT.2, etc.</p>
+          </div>
           <div className="space-y-2 sm:col-span-2">
             <div className="flex items-center justify-between gap-2">
               <label className="text-sm font-medium" htmlFor="inscripciones">Inscripciones</label>
