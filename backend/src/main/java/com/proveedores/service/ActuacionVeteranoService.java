@@ -81,8 +81,8 @@ public class ActuacionVeteranoService {
     }
 
     private void aplicarCatalogos(ActuacionVeterano entity, ActuacionVeteranoRequestDTO dto, Fuerza fuerza) {
-        RangoMilitar rango = dto.rangoId() == null ? null : buscarRangoCompatible(dto.rangoId(), fuerza);
-        UnidadMilitar unidad = dto.unidadId() == null ? null : buscarUnidadCompatible(dto.unidadId(), fuerza);
+        RangoMilitar rango = dto.rangoId() == null ? null : buscarRangoCompatible(dto.rangoId(), fuerza, entity.getRangoMilitar());
+        UnidadMilitar unidad = dto.unidadId() == null ? null : buscarUnidadCompatible(dto.unidadId(), fuerza, entity.getUnidadMilitar());
 
         entity.setRangoMilitar(rango);
         entity.setUnidadMilitar(unidad);
@@ -90,7 +90,10 @@ public class ActuacionVeteranoService {
         entity.setUnidad(unidad != null ? unidad.getNombre() : dto.unidad());
     }
 
-    private RangoMilitar buscarRangoCompatible(Long id, Fuerza fuerza) {
+    private RangoMilitar buscarRangoCompatible(Long id, Fuerza fuerza, RangoMilitar actual) {
+        if (actual != null && actual.getId().equals(id)) {
+            return actual;
+        }
         RangoMilitar rango = rangoMilitarRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Rango militar no encontrado"));
         if (!Boolean.TRUE.equals(rango.getActivo()) || Boolean.TRUE.equals(rango.getEliminado())) {
@@ -102,7 +105,10 @@ public class ActuacionVeteranoService {
         return rango;
     }
 
-    private UnidadMilitar buscarUnidadCompatible(Long id, Fuerza fuerza) {
+    private UnidadMilitar buscarUnidadCompatible(Long id, Fuerza fuerza, UnidadMilitar actual) {
+        if (actual != null && actual.getId().equals(id)) {
+            return actual;
+        }
         UnidadMilitar unidad = unidadMilitarRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Unidad militar no encontrada"));
         if (!Boolean.TRUE.equals(unidad.getActivo()) || Boolean.TRUE.equals(unidad.getEliminado())) {

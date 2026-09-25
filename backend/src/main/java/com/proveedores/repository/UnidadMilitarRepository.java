@@ -12,6 +12,8 @@ public interface UnidadMilitarRepository extends JpaRepository<UnidadMilitar, Lo
 
     List<UnidadMilitar> findByActivoTrueAndEliminadoFalseOrderByFuerzaAscNombreAsc();
 
+    List<UnidadMilitar> findByFuerzaAndActivoTrueAndEliminadoFalseOrderByNombreAsc(Fuerza fuerza);
+
     @Query("""
             select u
             from UnidadMilitar u

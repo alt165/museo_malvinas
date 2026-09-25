@@ -38,8 +38,14 @@ public class UnidadMilitarService {
 
     @Transactional(readOnly = true)
     public List<UnidadMilitarResponseDTO> buscarPorFuerza(Fuerza fuerza, String buscar, Integer limite) {
-        int size = Math.min(Math.max(limite == null ? 20 : limite, 1), 50);
         String filtro = normalizar(buscar);
+        if (filtro == null) {
+            return unidadMilitarRepository.findByFuerzaAndActivoTrueAndEliminadoFalseOrderByNombreAsc(fuerza)
+                    .stream()
+                    .map(this::toResponse)
+                    .toList();
+        }
+        int size = Math.min(Math.max(limite == null ? 20 : limite, 1), 50);
         return unidadMilitarRepository.buscarActivasPorFuerza(fuerza, filtro, PageRequest.of(0, size))
                 .stream()
                 .map(this::toResponse)

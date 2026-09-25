@@ -15,19 +15,25 @@ import {
   useAsociarObjetoVeteranoMutation,
   useCrearActuacionVeteranoMutation,
   useEliminarRelacionObjetoVeteranoMutation,
-  useObjetosVeteranoQuery
+  useObjetosVeteranoQuery,
+  useRangosMilitaresQuery,
+  useUnidadesMilitaresQuery
 } from "../queries";
 import { actuacionVeteranoSchema, objetoVeteranoSchema, type ActuacionVeteranoFormValues, type ObjetoVeteranoFormValues } from "../schemas";
+import type { VeteranoResponseDTO } from "../types";
 import { formatDate, getApiErrorMessage } from "../utils";
 
-export function VeteranoDetailPanels({ canWrite, veteranoId }: { canWrite: boolean; veteranoId: number }) {
+export function VeteranoDetailPanels({ canWrite, veterano }: { canWrite: boolean; veterano: VeteranoResponseDTO }) {
+  const veteranoId = veterano.id;
   const actuacionesQuery = useActuacionesVeteranoQuery(veteranoId);
   const objetosQuery = useObjetosVeteranoQuery(veteranoId);
   const objetosMuseoQuery = useObjetosQuery();
   const crearActuacion = useCrearActuacionVeteranoMutation(veteranoId);
   const asociarObjeto = useAsociarObjetoVeteranoMutation(veteranoId);
   const eliminarRelacion = useEliminarRelacionObjetoVeteranoMutation(veteranoId);
-  const actuacionForm = useForm<ActuacionVeteranoFormValues>({ resolver: zodResolver(actuacionVeteranoSchema), defaultValues: { rango: "", unidad: "", rol: "", fechaInicio: "", fechaFin: "", descripcion: "" } });
+  const rangosQuery = useRangosMilitaresQuery(veterano.fuerza);
+  const unidadesQuery = useUnidadesMilitaresQuery(veterano.fuerza);
+  const actuacionForm = useForm<ActuacionVeteranoFormValues>({ resolver: zodResolver(actuacionVeteranoSchema), defaultValues: { rango: "", unidad: "", rangoId: null, unidadId: null, rol: "", fechaInicio: "", fechaFin: "", descripcion: "" } });
   const objetoForm = useForm<ObjetoVeteranoFormValues>({ resolver: zodResolver(objetoVeteranoSchema), defaultValues: { objetoMuseoId: 0, tipoRelacion: "", descripcion: "" } });
 
   return (
@@ -37,19 +43,21 @@ export function VeteranoDetailPanels({ canWrite, veteranoId }: { canWrite: boole
         {canWrite ? (
           <form className="grid gap-3 rounded-lg border p-4 md:grid-cols-3" onSubmit={actuacionForm.handleSubmit((values) => crearActuacion.mutate({
             veteranoId,
-            rango: values.rango || null,
-            unidad: values.unidad || null,
+            rango: null,
+            unidad: null,
+            rangoId: values.rangoId ?? null,
+            unidadId: values.unidadId ?? null,
             rol: values.rol || null,
             fechaInicio: values.fechaInicio || null,
             fechaFin: values.fechaFin || null,
             descripcion: values.descripcion || null
           }, { onSuccess: () => actuacionForm.reset() }))}>
-            <Input label="Rango" error={actuacionForm.formState.errors.rango?.message}><input className="h-10 w-full rounded-md border bg-background px-3 text-sm" {...actuacionForm.register("rango")} /></Input>
-            <Input label="Unidad" error={actuacionForm.formState.errors.unidad?.message}><input className="h-10 w-full rounded-md border bg-background px-3 text-sm" {...actuacionForm.register("unidad")} /></Input>
+            <Input label="Rango" error={actuacionForm.formState.errors.rangoId?.message}><select className="h-10 w-full rounded-md border bg-background px-3 text-sm" disabled={rangosQuery.isLoading} {...actuacionForm.register("rangoId", { setValueAs: (value) => value ? Number(value) : null })}><option value="">Sin rango</option>{(rangosQuery.data ?? []).map((rango) => <option key={rango.id} value={rango.id}>{rango.nombre}</option>)}</select></Input>
+            <Input label="Unidad" error={actuacionForm.formState.errors.unidadId?.message}><select className="h-10 w-full rounded-md border bg-background px-3 text-sm" disabled={unidadesQuery.isLoading} {...actuacionForm.register("unidadId", { setValueAs: (value) => value ? Number(value) : null })}><option value="">Sin unidad</option>{(unidadesQuery.data ?? []).map((unidad) => <option key={unidad.id} value={unidad.id}>{unidad.sigla ? `${unidad.sigla} - ${unidad.nombre}` : unidad.nombre}</option>)}</select></Input>
             <Input label="Rol" error={actuacionForm.formState.errors.rol?.message}><input className="h-10 w-full rounded-md border bg-background px-3 text-sm" {...actuacionForm.register("rol")} /></Input>
             <Input label="Fecha inicio" error={actuacionForm.formState.errors.fechaInicio?.message}><input className="h-10 w-full rounded-md border bg-background px-3 text-sm" type="date" {...actuacionForm.register("fechaInicio")} /></Input>
             <Input label="Fecha fin" error={actuacionForm.formState.errors.fechaFin?.message}><input className="h-10 w-full rounded-md border bg-background px-3 text-sm" type="date" {...actuacionForm.register("fechaFin")} /></Input>
-            <Input label="Descripción" error={actuacionForm.formState.errors.descripcion?.message}><input className="h-10 w-full rounded-md border bg-background px-3 text-sm" {...actuacionForm.register("descripcion")} /></Input>
+            <Input label="Descripción" error={actuacionForm.formState.errors.descripcion?.message}><textarea className="max-h-64 min-h-28 w-full resize-y overflow-y-auto rounded-md border bg-background px-3 py-2 text-sm" {...actuacionForm.register("descripcion")} /></Input>
             <button className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground md:col-span-3" disabled={crearActuacion.isPending} type="submit">Agregar actuación</button>
           </form>
         ) : null}

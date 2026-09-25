@@ -40,7 +40,7 @@ export default function DetalleVeteranoPage() {
         {isLoading ? <LoadingState label="Cargando veterano..." /> : null}
         {isError ? <ErrorState message={getApiErrorMessage(error)} requestId={error instanceof ApiClientError ? error.requestId : undefined} /> : null}
         {bajaMutation.isError ? <ErrorState message={getApiErrorMessage(bajaMutation.error)} requestId={bajaMutation.error instanceof ApiClientError ? bajaMutation.error.requestId : undefined} /> : null}
-        {data ? <><VeteranoMultimediaPanel canWrite={puedeEscribir} veterano={data} /><VeteranoDetailPanels canWrite={puedeEscribir} veteranoId={data.id} /></> : null}
+        {data ? <><VeteranoMultimediaPanel canWrite={puedeEscribir} veterano={data} /><VeteranoDetailPanels canWrite={puedeEscribir} veterano={data} /></> : null}
       </div>
     </AppShell>
   );
