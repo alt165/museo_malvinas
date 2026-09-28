@@ -40,6 +40,10 @@ export function resumenObservaciones(value?: string | null) {
   return value.length > 160 ? `${value.slice(0, 157)}...` : value;
 }
 
+export function observacionesVisibles(value?: string | null) {
+  return parseObservaciones(value).observaciones || "Sin observaciones";
+}
+
 export function depositanteToFormValues(depositante?: DepositanteResponseDTO, initialIdentification?: string): DepositanteFormValues {
   const nombrePartes = depositante?.tipo === "PERSONA" ? splitNombrePersona(depositante.nombre) : { nombre: "", apellido: "" };
   const datosObservaciones = parseObservaciones(depositante?.observaciones);

@@ -2,16 +2,15 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Download, Trash2 } from "lucide-react";
+import { Download, Library, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
-import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
 import { exportarColeccionPdf } from "@/features/colecciones/api";
 import { ObjetosColeccionPanel } from "@/features/colecciones/components/objetos-coleccion-panel";
 import { useBajaLogicaColeccionMutation, useColeccionQuery } from "@/features/colecciones/queries";
-import { getApiErrorMessage, resumenDescripcion } from "@/features/colecciones/utils";
+import { getApiErrorMessage } from "@/features/colecciones/utils";
 import { descargarBlob } from "@/lib/download";
 import { useEditingMode } from "@/lib/editing-mode";
 import { routes } from "@/lib/routes";
@@ -60,9 +59,9 @@ export default function ColeccionDetallePage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <PageHeader
-          actions={
-            <div className="flex flex-wrap gap-2">
+        <header className="flex flex-col gap-4 rounded-lg border bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-xl font-semibold text-primary">{coleccionQuery.data?.nombre ?? "Coleccion"}</h1>
+          <div className="flex flex-wrap gap-2">
               <button
                 className="inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={descargandoPdf || coleccionQuery.isLoading || !coleccionQuery.data}
@@ -91,11 +90,8 @@ export default function ColeccionDetallePage() {
                   {bajaMutation.isPending ? "Eliminando..." : "Eliminar"}
                 </button>
               ) : null}
-            </div>
-          }
-          description="Detalle y objetos asociados a la coleccion."
-          title={coleccionQuery.data?.nombre ?? "Coleccion"}
-        />
+          </div>
+        </header>
         {coleccionQuery.isLoading ? <LoadingState label="Cargando coleccion..." /> : null}
         {coleccionQuery.isError ? (
           <ErrorState message={getApiErrorMessage(coleccionQuery.error)} />
@@ -109,10 +105,19 @@ export default function ColeccionDetallePage() {
         ) : null}
         {coleccionQuery.data ? (
           <>
-            <section className="grid gap-4 rounded-lg border bg-surface p-5 shadow-sm sm:grid-cols-3">
-              <Info label="Nombre" value={coleccionQuery.data.nombre} />
-              <Info label="Objetos asociados" value={String(coleccionQuery.data.cantidadObjetos ?? 0)} />
-              <Info className="sm:col-span-3" label="Descripcion" value={resumenDescripcion(coleccionQuery.data.descripcion)} />
+            <section className="rounded-lg border bg-white p-5 shadow-sm">
+              <SectionHeading icon={Library} title="Datos de la colección" />
+              <div className="grid gap-5 pt-4 sm:grid-cols-2 sm:items-start">
+                <InlineInfo label="Nombre" value={coleccionQuery.data.nombre} />
+                <InlineInfo label="Objetos asociados" value={String(coleccionQuery.data.cantidadObjetos ?? 0)} />
+              </div>
+              <div className="mt-5 border-t pt-4">
+                <Info
+                  label="Descripcion"
+                  value={coleccionQuery.data.descripcion || "Sin descripcion"}
+                  valueClassName="whitespace-pre-wrap break-words"
+                />
+              </div>
             </section>
             <ObjetosColeccionPanel coleccionId={id} />
           </>
@@ -134,11 +139,29 @@ function nombreArchivoColeccionPdf(nombre: string, id: number) {
   return `coleccion_${nombreSeguro}_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}.pdf`;
 }
 
-function Info({ className, label, value }: { className?: string; label: string; value: string }) {
+function Info({ className, label, value, valueClassName }: { className?: string; label: string; value: string; valueClassName?: string }) {
   return (
     <div className={className}>
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 text-sm font-medium text-primary">{value}</p>
+      <p className="min-h-4 text-sm tracking-wide text-muted-foreground">{label}</p>
+      <p className={`mt-1 text-base font-medium text-primary ${valueClassName ?? ""}`}>{value}</p>
+    </div>
+  );
+}
+
+function InlineInfo({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+      <p className="shrink-0 text-sm tracking-wide text-muted-foreground">{label}</p>
+      <p className="min-w-0 break-words text-base font-medium text-primary">{value}</p>
+    </div>
+  );
+}
+
+function SectionHeading({ icon: Icon, title }: { icon: typeof Library; title: string }) {
+  return (
+    <div className="flex items-center gap-2 border-b pb-3">
+      <Icon className="h-5 w-5 text-primary" />
+      <h2 className="text-base font-bold text-primary">{title}</h2>
     </div>
   );
 }

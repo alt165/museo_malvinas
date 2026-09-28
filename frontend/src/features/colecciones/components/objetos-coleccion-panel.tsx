@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PackageOpen } from "lucide-react";
 import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
@@ -16,8 +17,11 @@ export function ObjetosColeccionPanel({ coleccionId }: ObjetosColeccionPanelProp
   const objetosQuery = useObjetosColeccionQuery(coleccionId);
 
   return (
-    <section className="rounded-lg border p-5">
-      <h2 className="text-base font-semibold">Objetos asociados</h2>
+    <section className="rounded-lg border bg-white p-5 shadow-sm">
+      <div className="flex items-center gap-2 border-b pb-3">
+        <PackageOpen className="h-5 w-5 text-primary" />
+        <h2 className="text-base font-bold text-primary">Objetos asociados</h2>
+      </div>
       {objetosQuery.isLoading ? <LoadingState label="Cargando objetos..." /> : null}
       {objetosQuery.isError ? <ErrorState message={getApiErrorMessage(objetosQuery.error)} requestId={objetosQuery.error instanceof ApiClientError ? objetosQuery.error.requestId : undefined} /> : null}
       {objetosQuery.data?.length === 0 ? <EmptyState description="La coleccion no tiene objetos asociados." title="Sin objetos" /> : null}

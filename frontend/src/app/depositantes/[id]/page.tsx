@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
 import { exportarObjetosDepositantePdf } from "@/features/depositantes/api";
 import { useBajaLogicaDepositanteMutation, useDepositanteQuery, useObjetosDepositanteQuery } from "@/features/depositantes/queries";
-import { getApiErrorMessage, resumenObservaciones, telefonoVisible } from "@/features/depositantes/utils";
+import { getApiErrorMessage, observacionesVisibles, telefonoVisible } from "@/features/depositantes/utils";
 import type { DepositanteResponseDTO } from "@/features/depositantes/types";
 import type { ObjetoMuseoResponseDTO } from "@/features/objetos/types";
 import { descargarBlob } from "@/lib/download";
@@ -130,7 +130,7 @@ export default function DetalleDepositantePage() {
                 </div>
                 <div className="sm:col-span-2">
                   <dt className="text-muted-foreground">Observaciones</dt>
-                  <dd className="whitespace-pre-wrap font-medium">{resumenObservaciones(data.observaciones)}</dd>
+                  <dd className="whitespace-pre-wrap break-words font-medium">{observacionesVisibles(data.observaciones)}</dd>
                 </div>
               </dl>
             </div>
