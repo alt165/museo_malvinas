@@ -2,9 +2,10 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { Camera, ChevronLeft, ChevronRight, ClipboardList, FileText, Leaf, Receipt, Scale, X, type LucideIcon } from "lucide-react";
+import { Camera, ChevronLeft, ChevronRight, ClipboardList, FileText, Leaf, Receipt, Scale, Trash2, X, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
@@ -19,6 +20,8 @@ import {
   descargarReciboPdf
 } from "@/features/objetos/api";
 import {
+  objetosQueryKeys,
+  useEliminarFotoObjetoMutation,
   useObjetoQuery,
   useRecibosObjetoQuery
 } from "@/features/objetos/queries";
@@ -134,6 +137,8 @@ type GaleriaObjetoProps = {
 };
 
 function GaleriaObjeto({ objeto, puedeEscribir }: GaleriaObjetoProps) {
+  const queryClient = useQueryClient();
+  const eliminarFotoMutation = useEliminarFotoObjetoMutation(objeto.id);
   const fotosOrdenadas = useMemo(() => ordenarFotos(objeto.fotos), [objeto.fotos]);
   const [fotoPrincipalId, setFotoPrincipalId] = useState<number | null>(null);
   const [visorAbierto, setVisorAbierto] = useState(false);
@@ -209,6 +214,17 @@ function GaleriaObjeto({ objeto, puedeEscribir }: GaleriaObjetoProps) {
     if (!hayVariasFotos || fotoPrincipalIndex < 0) return;
     const nextIndex = (fotoPrincipalIndex + 1) % fotosOrdenadas.length;
     setFotoPrincipalId(fotosOrdenadas[nextIndex].id);
+  }
+
+  function eliminarFotoSeleccionada() {
+    if (!fotoPrincipal || !window.confirm("¿Eliminar la imagen seleccionada del objeto?")) return;
+    const siguienteFoto = fotosOrdenadas[fotoPrincipalIndex + 1] ?? fotosOrdenadas[fotoPrincipalIndex - 1] ?? null;
+    eliminarFotoMutation.mutate(fotoPrincipal.id, {
+      onSuccess: () => {
+        setFotoPrincipalId(siguienteFoto?.id ?? null);
+        void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.detail(objeto.id) });
+      }
+    });
   }
 
   useEffect(() => {
@@ -311,9 +327,20 @@ function GaleriaObjeto({ objeto, puedeEscribir }: GaleriaObjetoProps) {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-sm font-semibold text-primary">Imagenes del objeto</h2>
             {puedeEscribir ? (
-              <button className="rounded-md border border-primary/20 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/5" onClick={() => setModalCargaAbierto(true)} type="button">
-                Agregar mas imagenes
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button className="rounded-md border border-primary/20 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/5" onClick={() => setModalCargaAbierto(true)} type="button">
+                  Agregar mas imagenes
+                </button>
+                <button
+                  className="inline-flex items-center gap-1.5 rounded-md border border-destructive/30 px-3 py-1.5 text-sm font-medium text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={eliminarFotoMutation.isPending}
+                  onClick={eliminarFotoSeleccionada}
+                  type="button"
+                >
+                  <Trash2 aria-hidden="true" className="h-4 w-4" />
+                  {eliminarFotoMutation.isPending ? "Eliminando..." : "Eliminar imagen"}
+                </button>
+              </div>
             ) : null}
           </div>
 
@@ -369,6 +396,13 @@ function GaleriaObjeto({ objeto, puedeEscribir }: GaleriaObjetoProps) {
           </p>
         </div>
       </div>
+
+      {eliminarFotoMutation.isError ? (
+        <ErrorState
+          message={getApiErrorMessage(eliminarFotoMutation.error)}
+          requestId={eliminarFotoMutation.error instanceof ApiClientError ? eliminarFotoMutation.error.requestId : undefined}
+        />
+      ) : null}
 
       <ObjetoImagenesUploadModal
         objetoId={objeto.id}
