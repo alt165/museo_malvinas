@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { RequiredAsterisk } from "@/components/common/form-label";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { type FieldErrors, useForm, useWatch } from "react-hook-form";
+import { Controller, type FieldErrors, useForm, useWatch } from "react-hook-form";
 import { useCategoriasQuery } from "@/features/categorias/queries";
 import { useBuscarDepositantePorIdentificacionMutation, useBuscarDepositantesPorNombreQuery } from "@/features/depositantes/queries";
 import type { DepositanteResponseDTO } from "@/features/depositantes/types";
@@ -58,7 +58,16 @@ const camposVisibilidad = [
 ] as const;
 
 function visibilidadesDefault(initialValue?: ObjetoMuseoResponseDTO) {
-  return Object.fromEntries(camposVisibilidad.map((campo) => [campo, initialValue?.visibilidades?.[campo] ?? "PUBLICO"])) as Record<string, VisibilidadCampo>;
+  const visibilidades = Object.fromEntries(
+    camposVisibilidad.map((campo) => [campo, initialValue?.visibilidades?.[campo] ?? "PUBLICO"])
+  ) as Record<string, VisibilidadCampo>;
+
+  if (!initialValue) {
+    visibilidades.depositante = "PRIVADO";
+    visibilidades.ubicacion = "PRIVADO";
+  }
+
+  return visibilidades;
 }
 
 function booleanFormValue(value?: boolean | null) {
@@ -351,14 +360,29 @@ export function ObjetoMuseoForm({
 
   function visibilidadControl(campo: string) {
     return (
-      <select
-        aria-label={`Visibilidad de ${campo}`}
-        className="h-8 rounded-md border bg-background px-2 text-xs outline-none focus:ring-2 focus:ring-ring"
-        {...register(`visibilidades.${campo}`)}
-      >
-        <option value="PUBLICO">Público</option>
-        <option value="PRIVADO">Privado</option>
-      </select>
+      <Controller
+        control={control}
+        name={`visibilidades.${campo}`}
+        render={({ field }) => (
+          <label
+            className="inline-flex h-8 cursor-pointer items-center gap-2 rounded-md border bg-background px-2 text-xs font-medium focus-within:ring-2 focus-within:ring-ring has-disabled:cursor-not-allowed has-disabled:opacity-60"
+            htmlFor={`visibilidad-${campo}`}
+          >
+            <input
+              checked={field.value === "PRIVADO"}
+              className="h-4 w-4 accent-primary outline-none"
+              disabled={isSubmitting}
+              id={`visibilidad-${campo}`}
+              name={field.name}
+              onBlur={field.onBlur}
+              onChange={(event) => field.onChange(event.target.checked ? "PRIVADO" : "PUBLICO")}
+              ref={field.ref}
+              type="checkbox"
+            />
+            Privado
+          </label>
+        )}
+      />
     );
   }
 
@@ -673,7 +697,7 @@ export function ObjetoMuseoForm({
         <h2 className="text-base font-semibold">Identificación del objeto</h2>
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex min-h-8 items-center justify-between gap-2">
               <label className="text-sm font-medium" htmlFor="numeroInventario">Numero de inventario</label>
               {initialValue ? visibilidadControl("numeroInventario") : null}
             </div>
@@ -687,7 +711,7 @@ export function ObjetoMuseoForm({
             {errors.numeroInventario ? <p className="text-sm text-destructive">{errors.numeroInventario.message}</p> : null}
           </div>
           <div className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex min-h-8 items-center justify-between gap-2">
               <label className="text-sm font-medium" htmlFor="denominacionObjeto">Denominacion<RequiredAsterisk /></label>
               {visibilidadControl("denominacionObjeto")}
             </div>
