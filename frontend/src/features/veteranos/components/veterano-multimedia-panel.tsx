@@ -402,7 +402,7 @@ export function VeteranoMultimediaPanel({ canWrite, veterano }: VeteranoMultimed
             <DatoPrincipal label="Nombre completo" value={veterano.nombreCompleto} />
             <DatoPrincipal label="Nombre" value={veterano.nombre} />
             <DatoPrincipal label="Apellido" value={veterano.apellido} />
-            <DatoPrincipal label="Fuerza" value={veterano.fuerza} />
+            <DatoPrincipal label="Fuerza" value={<FuerzaBadge fuerza={veterano.fuerza} />} />
             <DatoPrincipal label="Nacimiento" value={formatDate(veterano.fechaNacimiento)} />
             <DatoPrincipal label="Fallecimiento" value={formatDate(veterano.fechaFallecimiento)} />
           </dl>
@@ -490,6 +490,26 @@ function DatoPrincipal({ label, value }: { label: string; value?: React.ReactNod
       <dd className="break-words font-medium text-foreground">{value || "Sin registrar"}</dd>
     </div>
   );
+}
+
+const fuerzaBadgeStyles: Record<string, { label: string; className: string }> = {
+  EJERCITO: { label: "Ejército", className: "bg-[#556B2F] text-white" },
+  ARMADA: { label: "Armada", className: "bg-[#003366] text-white" },
+  FUERZA_AEREA: { label: "Fuerza aérea", className: "bg-[#5DADE2] text-slate-950" },
+  PREFECTURA: { label: "Prefectura", className: "bg-[#234E70] text-white" },
+  GENDARMERIA: { label: "Gendarmería", className: "bg-[#65745D] text-white" },
+  CIVIL: { label: "Civil", className: "bg-[#CBD5E1] text-slate-950" }
+};
+
+function FuerzaBadge({ fuerza }: { fuerza?: string | null }) {
+  const fuerzaNormalizada = fuerza?.trim().toUpperCase().replace(/\s+/g, "_");
+  const badge = fuerzaNormalizada ? fuerzaBadgeStyles[fuerzaNormalizada] : undefined;
+
+  if (!badge) {
+    return fuerza || undefined;
+  }
+
+  return <span className={`inline-flex rounded-md border border-black/10 px-2.5 py-1 text-sm font-semibold ${badge.className}`}>{badge.label}</span>;
 }
 
 function VeteranoImagenesUploadModal({ isPending, mutationError, onClose, onSubmit, open }: { open: boolean; isPending: boolean; mutationError: unknown; onClose: () => void; onSubmit: (archivos: File[], onSuccess: () => void) => void }) {

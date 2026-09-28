@@ -98,7 +98,7 @@ export function VeteranoDetailPanels({ canWrite, veterano }: { canWrite: boolean
               <Dato label="Apellido" value={veterano.apellido} />
             </dl>
             <dl className="border-t border-primary/10 px-4 lg:border-l lg:border-t-0">
-              <Dato label="Fuerza" value={veterano.fuerza} />
+              <Dato label="Fuerza" value={fuerzaLabel(veterano.fuerza)} />
               <Dato label="Nacimiento" value={formatDate(veterano.fechaNacimiento)} />
             </dl>
             <dl className="border-t border-primary/10 px-4 lg:border-l lg:border-t-0">
@@ -189,4 +189,18 @@ function Dato({ label, value }: { label: string; value?: React.ReactNode }) {
       <dd className="break-words font-medium text-foreground">{value || "Sin registrar"}</dd>
     </div>
   );
+}
+
+const fuerzaLabels: Record<string, string> = {
+  EJERCITO: "Ejército",
+  ARMADA: "Armada",
+  FUERZA_AEREA: "Fuerza aérea",
+  PREFECTURA: "Prefectura",
+  GENDARMERIA: "Gendarmería",
+  CIVIL: "Civil"
+};
+
+function fuerzaLabel(fuerza?: string | null) {
+  const key = fuerza?.trim().toUpperCase().replace(/\s+/g, "_");
+  return (key && fuerzaLabels[key]) || fuerza || undefined;
 }
