@@ -2,7 +2,8 @@
 import { FormLabel } from "@/components/common/form-label";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Pencil, Search, Trash2 } from "lucide-react";
+import { Link2, Medal, Pencil, Search, Trash2, UserRound, type LucideIcon } from "lucide-react";
+import { useRef, useState, type KeyboardEvent } from "react";
 import { useForm } from "react-hook-form";
 import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
@@ -23,6 +24,14 @@ import { actuacionVeteranoSchema, objetoVeteranoSchema, type ActuacionVeteranoFo
 import type { VeteranoResponseDTO } from "../types";
 import { formatDate, getApiErrorMessage } from "../utils";
 
+type DetailTab = "datos-personales" | "actuaciones-militares" | "objetos-vinculados";
+
+const detailTabs = [
+  { id: "datos-personales", label: "Datos personales", icon: UserRound },
+  { id: "actuaciones-militares", label: "Actuaciones militares", icon: Medal },
+  { id: "objetos-vinculados", label: "Objetos vinculados", icon: Link2 }
+] as const;
+
 export function VeteranoDetailPanels({ canWrite, veterano }: { canWrite: boolean; veterano: VeteranoResponseDTO }) {
   const veteranoId = veterano.id;
   const actuacionesQuery = useActuacionesVeteranoQuery(veteranoId);
@@ -35,11 +44,77 @@ export function VeteranoDetailPanels({ canWrite, veterano }: { canWrite: boolean
   const unidadesQuery = useUnidadesMilitaresQuery(veterano.fuerza);
   const actuacionForm = useForm<ActuacionVeteranoFormValues>({ resolver: zodResolver(actuacionVeteranoSchema), defaultValues: { rango: "", unidad: "", rangoId: null, unidadId: null, rol: "", fechaInicio: "", fechaFin: "", descripcion: "" } });
   const objetoForm = useForm<ObjetoVeteranoFormValues>({ resolver: zodResolver(objetoVeteranoSchema), defaultValues: { objetoMuseoId: 0, tipoRelacion: "", descripcion: "" } });
+  const [activeTab, setActiveTab] = useState<DetailTab>("datos-personales");
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  function handleTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    let nextIndex: number | null = null;
+    if (event.key === "ArrowRight") nextIndex = (index + 1) % detailTabs.length;
+    if (event.key === "ArrowLeft") nextIndex = (index - 1 + detailTabs.length) % detailTabs.length;
+    if (event.key === "Home") nextIndex = 0;
+    if (event.key === "End") nextIndex = detailTabs.length - 1;
+    if (nextIndex === null) return;
+    event.preventDefault();
+    const nextTab = detailTabs[nextIndex];
+    setActiveTab(nextTab.id);
+    tabRefs.current[nextIndex]?.focus();
+  }
 
   return (
-    <div className="space-y-8">
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Actuaciones</h2>
+    <div className="overflow-hidden rounded-lg border border-primary/15 bg-white shadow-sm">
+      <div aria-label="Secciones de la ficha del veterano" className="overflow-x-auto border-b border-primary/15 bg-white px-3 pt-2.5" role="tablist">
+        <div className="flex w-max gap-px">
+          {detailTabs.map((tab, index) => {
+            const Icon = tab.icon;
+            const selected = activeTab === tab.id;
+            return (
+              <button
+                aria-controls={`panel-${tab.id}-${veteranoId}`}
+                aria-selected={selected}
+                className={`inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-t-md border border-b-0 border-t-[3px] bg-white px-4 py-3 text-sm font-bold tracking-[0.01em] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${selected ? "border-primary/30 border-t-primary text-primary" : "border-primary/15 border-t-transparent text-primary hover:border-primary/30"}`}
+                id={`tab-${tab.id}-${veteranoId}`}
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                onKeyDown={(event) => handleTabKeyDown(event, index)}
+                ref={(element) => { tabRefs.current[index] = element; }}
+                role="tab"
+                tabIndex={selected ? 0 : -1}
+                type="button"
+              >
+                <Icon className="h-5 w-5 shrink-0" strokeWidth={2.25} aria-hidden="true" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <section aria-labelledby={`tab-datos-personales-${veteranoId}`} className="bg-white" hidden={activeTab !== "datos-personales"} id={`panel-datos-personales-${veteranoId}`} role="tabpanel" tabIndex={0}>
+        <PanelHeader icon={UserRound} title="Información personal" />
+        <div className="p-4 sm:p-5">
+          <div className="grid text-sm lg:w-full lg:max-w-[1200px] lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1.15fr)_minmax(0,1.1fr)]">
+            <dl className="px-4">
+              <Dato label="Nombre" value={veterano.nombre} />
+              <Dato label="Apellido" value={veterano.apellido} />
+            </dl>
+            <dl className="border-t border-primary/10 px-4 lg:border-l lg:border-t-0">
+              <Dato label="Fuerza" value={veterano.fuerza} />
+              <Dato label="Nacimiento" value={formatDate(veterano.fechaNacimiento)} />
+            </dl>
+            <dl className="border-t border-primary/10 px-4 lg:border-l lg:border-t-0">
+              <Dato label="Fallecimiento" value={formatDate(veterano.fechaFallecimiento)} />
+            </dl>
+          </div>
+          <dl className="mt-4 w-full border-t border-primary/10 px-4 pb-1 pt-4">
+            <dt className="mb-3 text-base font-semibold text-primary">Observaciones / historia</dt>
+            <dd className={`mt-2 whitespace-pre-wrap break-words font-medium leading-relaxed [overflow-wrap:anywhere] ${veterano.historia ? "text-foreground" : "text-muted-foreground"}`}>{veterano.historia || "Sin historia registrada"}</dd>
+          </dl>
+        </div>
+      </section>
+
+      <section aria-labelledby={`tab-actuaciones-militares-${veteranoId}`} className="bg-white" hidden={activeTab !== "actuaciones-militares"} id={`panel-actuaciones-militares-${veteranoId}`} role="tabpanel" tabIndex={0}>
+        <PanelHeader icon={Medal} title="Actuaciones registradas" />
+        <div className="space-y-4 p-5 sm:p-6">
         {canWrite ? (
           <form className="grid gap-3 rounded-lg border p-4 md:grid-cols-3" onSubmit={actuacionForm.handleSubmit((values) => crearActuacion.mutate({
             veteranoId,
@@ -64,10 +139,12 @@ export function VeteranoDetailPanels({ canWrite, veterano }: { canWrite: boolean
         {crearActuacion.isError ? <ErrorState message={getApiErrorMessage(crearActuacion.error)} requestId={crearActuacion.error instanceof ApiClientError ? crearActuacion.error.requestId : undefined} /> : null}
         {actuacionesQuery.isLoading ? <LoadingState /> : null}
         {actuacionesQuery.data?.length === 0 ? <EmptyState title="Sin actuaciones" /> : null}
-        {actuacionesQuery.data && actuacionesQuery.data.length > 0 ? <div className="rounded-lg border">{actuacionesQuery.data.map((a) => <div className="flex items-start justify-between gap-3 border-b p-4 text-sm last:border-b-0" key={a.id}><div><p className="font-medium">{a.rangoNombre || a.rango || "Sin rango"} · {a.unidadSigla ? `${a.unidadSigla} - ${a.unidadNombre || a.unidad || "Sin unidad"}` : a.unidadNombre || a.unidad || "Sin unidad"} · {a.rol || "Sin rol"}</p><p className="text-muted-foreground">{formatDate(a.fechaInicio)} - {formatDate(a.fechaFin)}</p><p className="mt-2">{a.descripcion || "Sin descripción"}</p></div><RowActions className="shrink-0"><RowActionLink href={`/actuaciones-veteranos/${a.id}`} icon={Search} label="Ver" />{canWrite ? <RowActionLink href={`/actuaciones-veteranos/${a.id}/editar`} icon={Pencil} label="Editar" /> : null}</RowActions></div>)}</div> : null}
+        {actuacionesQuery.data && actuacionesQuery.data.length > 0 ? <div className="rounded-lg border">{actuacionesQuery.data.map((a) => <div className="flex items-start justify-between gap-3 border-b p-4 text-sm last:border-b-0" key={a.id}><div className="min-w-0 flex-1"><p className="text-base font-semibold leading-snug text-primary">{a.rangoNombre || a.rango || "Sin rango"} · {a.unidadSigla ? `${a.unidadSigla} - ${a.unidadNombre || a.unidad || "Sin unidad"}` : a.unidadNombre || a.unidad || "Sin unidad"} · {a.rol || "Sin rol"}</p><p className="mt-1 text-[13px] leading-5 text-muted-foreground">{formatDate(a.fechaInicio)} - {formatDate(a.fechaFin)}</p><p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-foreground">{a.descripcion || "Sin descripción"}</p></div><RowActions className="shrink-0"><RowActionLink href={`/actuaciones-veteranos/${a.id}`} icon={Search} label="Ver" />{canWrite ? <RowActionLink href={`/actuaciones-veteranos/${a.id}/editar`} icon={Pencil} label="Editar" /> : null}</RowActions></div>)}</div> : null}
+        </div>
       </section>
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Objetos vinculados</h2>
+      <section aria-labelledby={`tab-objetos-vinculados-${veteranoId}`} className="bg-white" hidden={activeTab !== "objetos-vinculados"} id={`panel-objetos-vinculados-${veteranoId}`} role="tabpanel" tabIndex={0}>
+        <PanelHeader icon={Link2} title="Objetos vinculados" />
+        <div className="space-y-4 p-5 sm:p-6">
         {canWrite ? (
           <form className="grid gap-3 rounded-lg border p-4 md:grid-cols-[1fr_180px_1fr_auto]" onSubmit={objetoForm.handleSubmit((values) => asociarObjeto.mutate({
             veteranoId,
@@ -86,11 +163,30 @@ export function VeteranoDetailPanels({ canWrite, veterano }: { canWrite: boolean
         {objetosQuery.isLoading ? <LoadingState /> : null}
         {objetosQuery.data?.length === 0 ? <EmptyState title="Sin objetos asociados" /> : null}
         {objetosQuery.data && objetosQuery.data.length > 0 ? <div className="rounded-lg border">{objetosQuery.data.map((objeto) => <div className="flex items-start justify-between gap-3 border-b p-4 text-sm last:border-b-0" key={objeto.id}><div><p className="font-medium">{objeto.objetoNombre}</p><p className="text-muted-foreground">{objeto.tipoRelacion}</p><p>{objeto.descripcion || "Sin descripción"}</p></div>{canWrite ? <RowActions><RowActionButton disabled={eliminarRelacion.isPending} icon={Trash2} label="Eliminar" onClick={() => { if (window.confirm("Eliminar relación objeto-veterano")) eliminarRelacion.mutate(objeto.id); }} variant="destructive" /></RowActions> : null}</div>)}</div> : null}
+        </div>
       </section>
+    </div>
+  );
+}
+
+function PanelHeader({ icon: Icon, title }: { icon: LucideIcon; title: string }) {
+  return (
+    <div className="flex items-center gap-2.5 border-b border-primary/15 px-5 py-4 sm:px-6">
+      <Icon aria-hidden="true" className="h-5 w-5 shrink-0 text-primary" strokeWidth={2.1} />
+      <h2 className="text-base font-semibold text-primary">{title}</h2>
     </div>
   );
 }
 
 function Input({ children, error, label, required = false }: { children: React.ReactNode; error?: string; label: string; required?: boolean }) {
   return <FormLabel label={label} required={required}>{children}{error ? <p className="font-normal text-destructive">{error}</p> : null}</FormLabel>;
+}
+
+function Dato({ label, value }: { label: string; value?: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-[96px_minmax(0,1fr)] items-baseline gap-2 py-2.5">
+      <dt className="font-medium text-muted-foreground">{label}</dt>
+      <dd className="break-words font-medium text-foreground">{value || "Sin registrar"}</dd>
+    </div>
+  );
 }
