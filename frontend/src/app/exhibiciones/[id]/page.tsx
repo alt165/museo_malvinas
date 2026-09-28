@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { Presentation } from "lucide-react";
+import type { ReactNode } from "react";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
-import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
 import { ObjetosExhibicionPanel } from "@/features/exhibiciones/components/objetos-exhibicion-panel";
 import { useCancelarExhibicionMutation, useExhibicionQuery, useFinalizarExhibicionMutation } from "@/features/exhibiciones/queries";
@@ -30,9 +31,12 @@ export default function DetalleExhibicionPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <PageHeader
-          actions={
-            <div className="flex gap-2">
+        <div className="rounded-lg border bg-white p-2 shadow-sm">
+          <div className="flex flex-col gap-4 p-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-normal text-primary">{data?.nombre ?? "Exhibición"}</h1>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
               <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/exhibiciones">
                 Volver
               </Link>
@@ -76,10 +80,8 @@ export default function DetalleExhibicionPage() {
                 </>
               ) : null}
             </div>
-          }
-          description="Detalle de exhibición y objetos asociados."
-          title="Detalle de exhibición"
-        />
+          </div>
+        </div>
         {isLoading ? <LoadingState label="Cargando exhibición..." /> : null}
         {isError ? (
           <ErrorState
@@ -101,36 +103,64 @@ export default function DetalleExhibicionPage() {
         ) : null}
         {data ? (
           <>
-            <div className="rounded-lg border p-5">
-              <dl className="grid gap-5 text-sm sm:grid-cols-2">
-                <div>
-                  <dt className="text-muted-foreground">Nombre</dt>
-                  <dd className="mt-1 font-medium">{data.nombre}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Estado</dt>
-                  <dd className="mt-1 font-medium">{data.estado}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Tipo</dt>
-                  <dd className="mt-1 font-medium">{data.tipo}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Periodo</dt>
-                  <dd className="mt-1 font-medium">
-                    {formatDate(data.fechaInicio)} - {formatDate(data.fechaFin)}
-                  </dd>
-                </div>
-                <div className="sm:col-span-2">
-                  <dt className="text-muted-foreground">Descripción</dt>
-                  <dd className="mt-1 whitespace-pre-wrap font-medium">{data.descripcion || "Sin descripción"}</dd>
-                </div>
-              </dl>
-            </div>
+            <section className="rounded-lg border bg-white p-5 shadow-sm">
+              <SectionHeading icon={Presentation} title="Datos de la exhibición" />
+              <div className="grid gap-5 pt-4 sm:grid-cols-2 sm:items-start">
+                <InlineInfo label="Nombre" value={data.nombre} />
+                <InlineInfo label="Estado" value={<span className={estadoBadgeClass(data.estado)}>{data.estado}</span>} />
+                <InlineInfo label="Tipo" value={formatearTipo(data.tipo)} />
+                <InlineInfo label="Período" value={`${formatDate(data.fechaInicio)} - ${formatDate(data.fechaFin)}`} />
+              </div>
+              <div className="mt-5 border-t pt-4">
+                <Info label="Descripción" value={data.descripcion || "Sin descripción"} />
+              </div>
+            </section>
             <ObjetosExhibicionPanel canWrite={puedeEscribir} estado={data.estado} exhibicionId={data.id} />
           </>
         ) : null}
       </div>
     </AppShell>
+  );
+}
+
+function estadoBadgeClass(estado: string) {
+  switch (estado) {
+    case "ACTIVA":
+      return "inline-flex rounded-md border border-green-200 bg-green-100 px-2.5 py-1 text-sm font-semibold text-green-900";
+    case "FINALIZADA":
+      return "inline-flex rounded-md border border-red-200 bg-red-100 px-2.5 py-1 text-sm font-semibold text-red-900";
+    default:
+      return "inline-flex rounded-md border border-slate-200 bg-slate-100 px-2.5 py-1 text-sm font-semibold text-slate-800";
+  }
+}
+
+function formatearTipo(tipo: string) {
+  return tipo.charAt(0).toUpperCase() + tipo.slice(1).toLowerCase();
+}
+
+function InlineInfo({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="grid min-w-0 grid-cols-[5.5rem_minmax(0,1fr)] items-baseline gap-x-3 gap-y-1">
+      <p className="text-sm tracking-wide text-muted-foreground">{label}</p>
+      <div className="min-w-0 break-words text-base font-medium text-primary">{value}</div>
+    </div>
+  );
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-sm tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 whitespace-pre-wrap break-words text-base font-medium text-primary">{value}</p>
+    </div>
+  );
+}
+
+function SectionHeading({ icon: Icon, title }: { icon: typeof Presentation; title: string }) {
+  return (
+    <div className="flex items-center gap-2 border-b pb-3">
+      <Icon className="h-5 w-5 text-primary" />
+      <h2 className="text-base font-bold text-primary">{title}</h2>
+    </div>
   );
 }

@@ -2,7 +2,7 @@
 import { RequiredAsterisk } from "@/components/common/form-label";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle, Undo2 } from "lucide-react";
+import { CheckCircle, PackageOpen, Undo2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
@@ -47,9 +47,12 @@ export function ObjetosExhibicionPanel({ canWrite, estado, exhibicionId }: Objet
   });
 
   return (
-    <section className="space-y-4">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold">Objetos asociados</h2>
+    <section className="space-y-4 rounded-lg border bg-white p-5 shadow-sm">
+      <div className="border-b pb-3">
+        <div className="flex items-center gap-2">
+          <PackageOpen className="h-5 w-5 text-primary" />
+          <h2 className="text-base font-bold text-primary">Objetos asociados</h2>
+        </div>
         <p className="text-sm text-muted-foreground">Objetos incluidos y estado de devolución.</p>
       </div>
       {puedeAgregar ? (
