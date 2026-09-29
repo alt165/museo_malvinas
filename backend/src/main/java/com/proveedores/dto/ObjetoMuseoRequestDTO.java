@@ -59,10 +59,10 @@ public record ObjetoMuseoRequestDTO(
 
         HumedadConservacion humedadConservacion,
 
-        @Size(max = 80, message = "La temperatura no puede superar 80 caracteres")
+        @Size(max = 200, message = "La temperatura no puede superar 200 caracteres")
         String temperaturaConservacion,
 
-        @Size(max = 80, message = "La luz no puede superar 80 caracteres")
+        @Size(max = 200, message = "La luz no puede superar 200 caracteres")
         String luzConservacion,
 
         Boolean conservacionExtintores,
