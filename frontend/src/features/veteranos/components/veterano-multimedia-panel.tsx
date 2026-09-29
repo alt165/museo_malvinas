@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { Camera, ChevronLeft, ChevronRight, Film, ImageIcon, Trash2, Upload, X } from "lucide-react";
+import { Camera, ChevronLeft, ChevronRight, Film, ImageIcon, Pencil, Trash2, Upload, UserRound, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
@@ -103,6 +103,7 @@ export function VeteranoMultimediaPanel({ canWrite, veterano }: VeteranoMultimed
   const [videoEditando, setVideoEditando] = useState<VeteranoVideoResponseDTO | null>(null);
   const [visorAbierto, setVisorAbierto] = useState(false);
   const [visorImagenId, setVisorImagenId] = useState<number | null>(null);
+  const miniaturaRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   useEffect(() => {
     let activo = true;
@@ -179,7 +180,8 @@ export function VeteranoMultimediaPanel({ canWrite, veterano }: VeteranoMultimed
   }, [imagenes, imagenUrls, videos]);
 
   const selectedItem = mediaItems.find((item) => item.key === selectedKey) ?? mediaItems[0] ?? null;
-  const carouselItems = selectedItem ? mediaItems.filter((item) => item.key !== selectedItem.key) : mediaItems;
+  const selectedIndex = selectedItem ? mediaItems.findIndex((item) => item.key === selectedItem.key) : -1;
+  const hayVariosItems = mediaItems.length > 1;
   const imagenesVisor = mediaItems.filter((item) => item.type === "IMAGE");
   const visorImagenActual = imagenesVisor.find((item) => item.id === visorImagenId) ?? (selectedItem?.type === "IMAGE" ? selectedItem : imagenesVisor[0]);
   const visorIndex = visorImagenActual ? imagenesVisor.findIndex((item) => item.id === visorImagenActual.id) : -1;
@@ -195,6 +197,29 @@ export function VeteranoMultimediaPanel({ canWrite, veterano }: VeteranoMultimed
     setModalVideoAbierto(false);
     setVideoEditando(null);
   };
+
+  function seleccionarItemAnterior() {
+    if (!hayVariosItems || selectedIndex < 0) return;
+    const nextIndex = (selectedIndex - 1 + mediaItems.length) % mediaItems.length;
+    setSelectedKey(mediaItems[nextIndex].key);
+  }
+
+  function seleccionarItemSiguiente() {
+    if (!hayVariosItems || selectedIndex < 0) return;
+    const nextIndex = (selectedIndex + 1) % mediaItems.length;
+    setSelectedKey(mediaItems[nextIndex].key);
+  }
+
+  useEffect(() => {
+    if (!selectedItem) return;
+    const miniatura = miniaturaRefs.current[selectedItem.key];
+    const contenedor = miniatura?.parentElement;
+    if (!miniatura || !contenedor) return;
+    contenedor.scrollTo({
+      behavior: "smooth",
+      left: miniatura.offsetLeft - (contenedor.clientWidth - miniatura.clientWidth) / 2
+    });
+  }, [selectedItem]);
 
   const irAImagenAnterior = useCallback(() => {
     if (imagenesVisor.length <= 1 || visorIndex < 0) {
@@ -233,15 +258,15 @@ export function VeteranoMultimediaPanel({ canWrite, veterano }: VeteranoMultimed
 
   return (
     <section className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
-        <div className="space-y-4">
-          <div className="relative flex min-h-[340px] items-center justify-center overflow-hidden rounded-lg border bg-muted/30 sm:min-h-[440px]">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(320px,2fr)]">
+        <div className="min-w-0 overflow-hidden rounded-xl border bg-background shadow-sm">
+          <div className={`relative flex items-center justify-center overflow-hidden bg-muted/30 ${sinMultimedia ? "min-h-52" : "min-h-[300px] sm:min-h-[400px]"}`}>
             {cargandoMultimedia ? <LoadingState label="Cargando multimedia..." /> : null}
 
             {selectedItem?.type === "IMAGE" ? (
               <button
                 aria-label="Abrir foto principal en visor ampliado"
-                className="h-full min-h-[340px] w-full focus:outline-none focus:ring-2 focus:ring-ring sm:min-h-[440px]"
+                className="flex min-h-[300px] w-full items-center justify-center focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ring sm:min-h-[400px]"
                 onClick={() => {
                   setVisorImagenId(selectedItem.id);
                   setVisorAbierto(true);
@@ -249,9 +274,9 @@ export function VeteranoMultimediaPanel({ canWrite, veterano }: VeteranoMultimed
                 type="button"
               >
                 {selectedItem.imageUrl ? (
-                  <img alt={selectedItem.title} className="h-full max-h-[440px] w-full object-contain p-2" src={selectedItem.imageUrl} />
+                  <img alt={selectedItem.title} className="max-h-[480px] w-full object-contain" src={selectedItem.imageUrl} />
                 ) : (
-                  <span className="flex h-full min-h-[340px] items-center justify-center text-sm text-muted-foreground sm:min-h-[440px]">Cargando imagen...</span>
+                  <span className="flex min-h-[300px] items-center justify-center text-sm text-muted-foreground sm:min-h-[400px]">Cargando imagen...</span>
                 )}
               </button>
             ) : null}
@@ -262,6 +287,7 @@ export function VeteranoMultimediaPanel({ canWrite, veterano }: VeteranoMultimed
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
                   className="h-full w-full"
+                  key={selectedItem.key}
                   src={`https://www.youtube.com/embed/${selectedItem.videoId}`}
                   title={selectedItem.title}
                 />
@@ -276,57 +302,109 @@ export function VeteranoMultimediaPanel({ canWrite, veterano }: VeteranoMultimed
                 <p className="font-medium">Sin material multimedia registrado</p>
                 {canWrite ? (
                   <div className="flex flex-wrap justify-center gap-2">
-                    <button className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted" onClick={abrirCargaFotos} type="button">Agregar fotos</button>
-                    <button className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted" onClick={abrirNuevoVideo} type="button">Agregar video</button>
+                    <button className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-1.5 text-sm font-medium hover:bg-muted" onClick={abrirCargaFotos} type="button"><ImageIcon className="h-4 w-4" aria-hidden="true" />Agregar fotos</button>
+                    <button className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-1.5 text-sm font-medium hover:bg-muted" onClick={abrirNuevoVideo} type="button"><Film className="h-4 w-4" aria-hidden="true" />Agregar video</button>
                   </div>
                 ) : null}
               </div>
             ) : null}
           </div>
 
-          {selectedItem ? (
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="font-medium">{selectedItem.title}</p>
-                <p className="text-sm text-muted-foreground">{selectedItem.type === "IMAGE" ? "Foto" : "Video / entrevista"}{selectedItem.fecha ? ` · ${formatDate(selectedItem.fecha)}` : ""}</p>
-              </div>
-              {canWrite ? (
-                <div className="flex flex-wrap gap-2">
-                  <button className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted" onClick={abrirCargaFotos} type="button">Agregar fotos</button>
-                  <button className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted" onClick={abrirNuevoVideo} type="button">Agregar video</button>
-                  {selectedItem.type === "VIDEO" && selectedItem.video ? (
-                    <button className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted" onClick={() => { setVideoEditando(selectedItem.video ?? null); setModalVideoAbierto(true); }} type="button">Editar video</button>
-                  ) : null}
+          {mediaItems.length > 0 ? (
+            <div className="space-y-3 border-t bg-white px-3 py-3 sm:px-4">
+              <h2 className="mb-2.5 text-base font-semibold text-primary">Multimedia del veterano</h2>
+              <div className="flex min-w-0 justify-center">
+                <div className="flex max-w-full items-center justify-center gap-2">
                   <button
-                    className="rounded-md border px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-60"
-                    disabled={eliminarImagen.isPending || eliminarVideo.isPending}
-                    onClick={() => {
-                      if (selectedItem.type === "IMAGE" && window.confirm("Eliminar foto del veterano?")) {
-                        eliminarImagen.mutate(selectedItem.id, { onSuccess: () => setSelectedKey(null) });
-                      }
-                      if (selectedItem.type === "VIDEO" && window.confirm("Eliminar video del veterano?")) {
-                        eliminarVideo.mutate(selectedItem.id, { onSuccess: () => setSelectedKey(null) });
-                      }
-                    }}
+                    aria-label="Seleccionar contenido multimedia anterior"
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/15 text-primary transition-colors hover:bg-primary/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default disabled:opacity-35"
+                    disabled={!hayVariosItems}
+                    onClick={seleccionarItemAnterior}
                     type="button"
                   >
-                    Eliminar
+                    <ChevronLeft aria-hidden="true" className="h-5 w-5" />
+                  </button>
+
+                  <div className="flex w-fit max-w-[calc(100%_-_5.5rem)] gap-2 overflow-x-auto px-1 pb-1">
+                  {mediaItems.map((item, index) => {
+                  const seleccionado = item.key === selectedItem?.key;
+                  const numeroPorTipo = mediaItems.slice(0, index + 1).filter((candidate) => candidate.type === item.type).length;
+                  const etiqueta = `${item.type === "IMAGE" ? "Imagen" : "Video"} ${numeroPorTipo}`;
+                  return (
+                    <button
+                      aria-label={`Mostrar ${etiqueta} como contenido principal`}
+                      aria-pressed={seleccionado}
+                      className={`group relative h-20 w-32 shrink-0 overflow-hidden rounded-md border-2 bg-muted/30 text-left transition focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${seleccionado ? "border-primary ring-1 ring-primary/20" : "border-border/70 hover:border-primary/50"}`}
+                      key={item.key}
+                      onClick={() => setSelectedKey(item.key)}
+                      ref={(element) => { miniaturaRefs.current[item.key] = element; }}
+                      type="button"
+                    >
+                      {item.thumbnailUrl ? <img alt={etiqueta} className="h-full w-full object-cover transition group-hover:scale-105" src={item.thumbnailUrl} /> : <div className="flex h-full items-center justify-center text-muted-foreground"><ImageIcon className="h-7 w-7" aria-hidden="true" /></div>}
+                      <span className="absolute inset-x-0 bottom-0 inline-flex items-center gap-1 bg-black/75 px-2 py-1 text-xs font-medium text-white">
+                        {item.type === "IMAGE" ? <ImageIcon className="h-3 w-3" aria-hidden="true" /> : <Film className="h-3 w-3" aria-hidden="true" />}
+                        {etiqueta}
+                      </span>
+                    </button>
+                  );
+                  })}
+                  </div>
+
+                  <button
+                    aria-label="Seleccionar contenido multimedia siguiente"
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/15 text-primary transition-colors hover:bg-primary/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default disabled:opacity-35"
+                    disabled={!hayVariosItems}
+                    onClick={seleccionarItemSiguiente}
+                    type="button"
+                  >
+                    <ChevronRight aria-hidden="true" className="h-5 w-5" />
                   </button>
                 </div>
+              </div>
+
+              <p className="text-center text-xs font-medium text-muted-foreground">
+                {selectedItem?.type === "VIDEO" ? "Video" : "Imagen"} {selectedIndex + 1} de {mediaItems.length}
+              </p>
+            </div>
+          ) : null}
+
+          {selectedItem && canWrite ? (
+            <div className="flex flex-wrap justify-center gap-2 border-t bg-white px-3 py-2.5 sm:px-4">
+              <button className="inline-flex items-center gap-1.5 rounded-md border bg-white px-2.5 py-1.5 text-sm font-medium hover:bg-muted" onClick={abrirCargaFotos} type="button"><ImageIcon className="h-4 w-4" aria-hidden="true" />Agregar fotos</button>
+              <button className="inline-flex items-center gap-1.5 rounded-md border bg-white px-2.5 py-1.5 text-sm font-medium hover:bg-muted" onClick={abrirNuevoVideo} type="button"><Film className="h-4 w-4" aria-hidden="true" />Agregar video</button>
+              {selectedItem.type === "VIDEO" && selectedItem.video ? (
+                <button className="inline-flex items-center gap-1.5 rounded-md border bg-white px-2.5 py-1.5 text-sm font-medium hover:bg-muted" onClick={() => { setVideoEditando(selectedItem.video ?? null); setModalVideoAbierto(true); }} type="button"><Pencil className="h-4 w-4" aria-hidden="true" />Editar video</button>
               ) : null}
+              <button
+                className="inline-flex items-center gap-1.5 rounded-md border border-destructive/40 bg-white px-2.5 py-1.5 text-sm font-medium text-destructive hover:bg-destructive/10 disabled:opacity-60"
+                disabled={eliminarImagen.isPending || eliminarVideo.isPending}
+                onClick={() => {
+                  if (selectedItem.type === "IMAGE" && window.confirm("Eliminar foto del veterano?")) {
+                    eliminarImagen.mutate(selectedItem.id, { onSuccess: () => setSelectedKey(null) });
+                  }
+                  if (selectedItem.type === "VIDEO" && window.confirm("Eliminar video del veterano?")) {
+                    eliminarVideo.mutate(selectedItem.id, { onSuccess: () => setSelectedKey(null) });
+                  }
+                }}
+                type="button"
+              >
+                <Trash2 className="h-4 w-4" aria-hidden="true" />Eliminar
+              </button>
             </div>
           ) : null}
         </div>
 
-        <aside className="rounded-lg border p-5">
-          <h2 className="text-lg font-semibold">Datos principales</h2>
-          <dl className="mt-5 grid gap-4 text-sm">
-            <Dato label="Nombre completo" value={veterano.nombreCompleto} />
-            <Dato label="Nombre" value={veterano.nombre} />
-            <Dato label="Apellido" value={veterano.apellido} />
-            <Dato label="Fuerza" value={veterano.fuerza} />
-            <Dato label="Nacimiento" value={formatDate(veterano.fechaNacimiento)} />
-            <Dato label="Fallecimiento" value={formatDate(veterano.fechaFallecimiento)} />
+        <aside className="overflow-hidden rounded-lg border border-primary/15 bg-white shadow-sm">
+          <div className="border-b border-primary/15 bg-white px-6 py-4">
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-primary"><UserRound className="h-5 w-5" strokeWidth={2.25} aria-hidden="true" />Datos principales</h2>
+          </div>
+          <dl className="divide-y divide-primary/10 bg-white px-6 text-sm">
+            <DatoPrincipal label="Nombre completo" value={veterano.nombreCompleto} />
+            <DatoPrincipal label="Nombre" value={veterano.nombre} />
+            <DatoPrincipal label="Apellido" value={veterano.apellido} />
+            <DatoPrincipal label="Fuerza" value={<FuerzaBadge fuerza={veterano.fuerza} />} />
+            <DatoPrincipal label="Nacimiento" value={formatDate(veterano.fechaNacimiento)} />
+            <DatoPrincipal label="Fallecimiento" value={formatDate(veterano.fechaFallecimiento)} />
           </dl>
         </aside>
       </div>
@@ -338,45 +416,6 @@ export function VeteranoMultimediaPanel({ canWrite, veterano }: VeteranoMultimed
       {actualizarVideo.isError ? <ErrorState message={getApiErrorMessage(actualizarVideo.error)} requestId={actualizarVideo.error instanceof ApiClientError ? actualizarVideo.error.requestId : undefined} /> : null}
       {eliminarImagen.isError ? <ErrorState message={getApiErrorMessage(eliminarImagen.error)} requestId={eliminarImagen.error instanceof ApiClientError ? eliminarImagen.error.requestId : undefined} /> : null}
       {eliminarVideo.isError ? <ErrorState message={getApiErrorMessage(eliminarVideo.error)} requestId={eliminarVideo.error instanceof ApiClientError ? eliminarVideo.error.requestId : undefined} /> : null}
-
-      {carouselItems.length > 0 ? (
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold">Multimedia del veterano</h2>
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {carouselItems.map((item) => (
-              <button
-                aria-label={`Mostrar ${item.title} como contenido principal`}
-                className="group relative h-28 w-40 shrink-0 overflow-hidden rounded-md border bg-muted/30 text-left focus:outline-none focus:ring-2 focus:ring-ring"
-                key={item.key}
-                onClick={() => setSelectedKey(item.key)}
-                type="button"
-              >
-                {item.thumbnailUrl ? <img alt={item.title} className="h-full w-full object-cover transition group-hover:scale-105" src={item.thumbnailUrl} /> : <div className="flex h-full items-center justify-center text-muted-foreground"><ImageIcon className="h-7 w-7" aria-hidden="true" /></div>}
-                <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded bg-black/70 px-2 py-1 text-xs font-medium text-white">
-                  {item.type === "IMAGE" ? <ImageIcon className="h-3 w-3" aria-hidden="true" /> : <Film className="h-3 w-3" aria-hidden="true" />}
-                  {item.type === "IMAGE" ? "Foto" : "Video"}
-                </span>
-                <span className="absolute inset-x-0 bottom-0 line-clamp-2 bg-black/70 px-2 py-1 text-xs text-white">{item.title}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      <section className="rounded-lg border p-5">
-        <h2 className="text-lg font-semibold">Descripción</h2>
-        <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
-          <Dato label="Nombre" value={veterano.nombre} />
-          <Dato label="Apellido" value={veterano.apellido} />
-          <Dato label="Fuerza" value={veterano.fuerza} />
-          <Dato label="Nacimiento" value={formatDate(veterano.fechaNacimiento)} />
-          <Dato label="Fallecimiento" value={formatDate(veterano.fechaFallecimiento)} />
-          <div className="sm:col-span-2">
-            <dt className="text-muted-foreground">Observaciones / historia</dt>
-            <dd className="mt-1 whitespace-pre-wrap font-medium">{veterano.historia || "Sin historia registrada"}</dd>
-          </div>
-        </dl>
-      </section>
 
       <VeteranoImagenesUploadModal
         isPending={subirImagenes.isPending}
@@ -444,13 +483,33 @@ export function VeteranoMultimediaPanel({ canWrite, veterano }: VeteranoMultimed
   );
 }
 
-function Dato({ label, value }: { label: string; value?: React.ReactNode }) {
+function DatoPrincipal({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
-    <div>
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="mt-1 font-medium">{value || "Sin registrar"}</dd>
+    <div className="grid gap-1 py-3.5 sm:grid-cols-[minmax(112px,0.85fr)_minmax(0,1.15fr)] sm:items-baseline sm:gap-3">
+      <dt className="font-medium text-muted-foreground">{label}</dt>
+      <dd className="break-words font-medium text-foreground">{value || "Sin registrar"}</dd>
     </div>
   );
+}
+
+const fuerzaBadgeStyles: Record<string, { label: string; className: string }> = {
+  EJERCITO: { label: "Ejército", className: "bg-[#556B2F] text-white" },
+  ARMADA: { label: "Armada", className: "bg-[#003366] text-white" },
+  FUERZA_AEREA: { label: "Fuerza aérea", className: "bg-[#5DADE2] text-slate-950" },
+  PREFECTURA: { label: "Prefectura", className: "bg-[#234E70] text-white" },
+  GENDARMERIA: { label: "Gendarmería", className: "bg-[#65745D] text-white" },
+  CIVIL: { label: "Civil", className: "bg-[#CBD5E1] text-slate-950" }
+};
+
+function FuerzaBadge({ fuerza }: { fuerza?: string | null }) {
+  const fuerzaNormalizada = fuerza?.trim().toUpperCase().replace(/\s+/g, "_");
+  const badge = fuerzaNormalizada ? fuerzaBadgeStyles[fuerzaNormalizada] : undefined;
+
+  if (!badge) {
+    return fuerza || undefined;
+  }
+
+  return <span className={`inline-flex rounded-md border border-black/10 px-2.5 py-1 text-sm font-semibold ${badge.className}`}>{badge.label}</span>;
 }
 
 function VeteranoImagenesUploadModal({ isPending, mutationError, onClose, onSubmit, open }: { open: boolean; isPending: boolean; mutationError: unknown; onClose: () => void; onSubmit: (archivos: File[], onSuccess: () => void) => void }) {

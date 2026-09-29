@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
@@ -25,15 +24,6 @@ export function AppShell({ children, requiredRoles }: AppShellProps) {
         <div className="min-h-screen md:pl-64">
           <div className="sticky top-0 z-20">
             <div className="relative h-[68px] overflow-hidden bg-primary">
-              <Image
-                alt=""
-                aria-hidden="true"
-                className="absolute inset-0 h-full w-full object-cover"
-                height={68}
-                priority
-                src="/images/lieas-05.png"
-                width={1440}
-              />
               <Topbar onOpenSidebar={() => setSidebarOpen(true)} />
             </div>
           </div>
