@@ -36,7 +36,7 @@ class ObjetoArchivoServiceIntegrationTest extends IntegrationTestBase {
         var response = fotoObjetoMuseoService.subir(objetoId, foto, "Vista frontal", "tester");
 
         assertThat(response.id()).isNotNull();
-        assertThat(response.nombreArchivo()).isEqualTo("foto.webp");
+        assertThat(response.nombreArchivo()).matches("MMAS\\d{9}.webp");
         assertThat(fotoObjetoMuseoService.listar(objetoId)).extracting("id").contains(response.id());
         assertThat(fotoObjetoMuseoService.descargar(objetoId, response.id()).resource().exists()).isTrue();
 

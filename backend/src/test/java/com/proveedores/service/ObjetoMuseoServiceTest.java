@@ -3,6 +3,7 @@ package com.proveedores.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,6 +22,7 @@ import com.proveedores.repository.EmbargoObjetoRepository;
 import com.proveedores.repository.FotoObjetoMuseoRepository;
 import com.proveedores.repository.InventarioRepository;
 import com.proveedores.repository.MovimientoInventarioRepository;
+import com.proveedores.repository.NumeroInventarioRepository;
 import com.proveedores.repository.ObjetoCategoriaRepository;
 import com.proveedores.repository.ObjetoDepositanteRepository;
 import com.proveedores.repository.ObjetoMuseoRepository;
@@ -41,6 +43,9 @@ class ObjetoMuseoServiceTest {
 
     @Mock
     private ObjetoMuseoRepository objetoMuseoRepository;
+
+    @Mock
+    private NumeroInventarioRepository numeroInventarioRepository;
 
     @Mock
     private CategoriaObjetoRepository categoriaObjetoRepository;
@@ -81,14 +86,14 @@ class ObjetoMuseoServiceTest {
     @Mock
     private AuditoriaObjetoService auditoriaObjetoService;
 
+    @Mock
+    private DetalleConservacionService detalleConservacionService;
+
     @InjectMocks
     private ObjetoMuseoService service;
 
     @Test
-    void crearConNumeroInventarioDuplicadoLanzaBusinessException() {
-        ObjetoMuseo existente = objeto(1L, "INV-1");
-        when(objetoMuseoRepository.findByNumeroInventario("INV-1")).thenReturn(Optional.of(existente));
-
+    void crearSinDepositanteLanzaBusinessException() {
         ObjetoMuseoRequestDTO request = new ObjetoMuseoRequestDTO("INV-1", "Casco", null, null, null, null, null, null);
 
         assertThatThrownBy(() -> service.crear(request)).isInstanceOf(BusinessException.class);
@@ -97,7 +102,7 @@ class ObjetoMuseoServiceTest {
 
     @Test
     void crearObjetoValidoDevuelveResponse() {
-        when(objetoMuseoRepository.findByNumeroInventario("INV-2")).thenReturn(Optional.empty());
+        when(numeroInventarioRepository.siguienteCorrelativo(anyInt())).thenReturn(2);
         Depositante depositante = new Depositante();
         depositante.setId(3L);
         depositante.setNombre("Depositante test");
@@ -122,7 +127,7 @@ class ObjetoMuseoServiceTest {
         ObjetoMuseoResponseDTO response = service.crear(new ObjetoMuseoRequestDTO("INV-2", "Carta", "Descripcion", null, null, null, null, null, null, 3L, CaracterRecepcionObjeto.DONACION, null));
 
         assertThat(response.id()).isEqualTo(2L);
-        assertThat(response.numeroInventario()).isEqualTo("INV-2");
+        assertThat(response.numeroInventario()).matches("MMAS\\d{4}00002");
         assertThat(response.denominacionObjeto()).isEqualTo("Carta");
     }
 

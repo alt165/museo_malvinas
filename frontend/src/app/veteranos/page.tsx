@@ -38,13 +38,13 @@ export default function VeteranosPage() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          actions={puedeEscribir ? <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/veteranos/nuevo">Nuevo veterano</Link> : null}
+          actions={puedeEscribir ? <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/veteranos/nuevo">Nueva persona</Link> : null}
           description="Registro de veteranos vinculados al acervo del museo."
-          title="Veteranos"
+          title="Personas"
         />
         <div className="rounded-lg border bg-card p-4">
           <label className="block text-sm font-medium" htmlFor="buscar-veterano">
-            Buscar veterano por nombre, apellido o fuerza
+            Buscar persona por nombre, apellido o fuerza
           </label>
           <div className="mt-2 flex flex-col gap-2 sm:flex-row">
             <div className="relative flex-1">
@@ -71,10 +71,10 @@ export default function VeteranosPage() {
             ) : null}
           </div>
         </div>
-        {veteranosQuery.isLoading ? <LoadingState label="Cargando veteranos..." /> : null}
+        {veteranosQuery.isLoading ? <LoadingState label="Cargando personas..." /> : null}
         {veteranosQuery.isError ? <ErrorState message={getApiErrorMessage(veteranosQuery.error)} requestId={veteranosQuery.error instanceof ApiClientError ? veteranosQuery.error.requestId : undefined} /> : null}
         {bajaMutation.isError ? <ErrorState message={getApiErrorMessage(bajaMutation.error)} requestId={bajaMutation.error instanceof ApiClientError ? bajaMutation.error.requestId : undefined} /> : null}
-        {!veteranosQuery.isLoading && !veteranosQuery.isError && veteranos.length === 0 && !hayBusqueda ? <EmptyState title="Sin veteranos" description="Todavía no hay veteranos registrados." /> : null}
+        {!veteranosQuery.isLoading && !veteranosQuery.isError && veteranos.length === 0 && !hayBusqueda ? <EmptyState title="Sin personas" description="Todavía no hay personas registrados." /> : null}
         {!veteranosQuery.isLoading && !veteranosQuery.isError && hayBusqueda && veteranosFiltrados.length === 0 ? <EmptyState title="Sin resultados" description="No hay veteranos que coincidan con la busqueda ingresada." /> : null}
         {!veteranosQuery.isLoading && !veteranosQuery.isError && veteranosFiltrados.length > 0 ? <VeteranosTable canEdit={puedeEscribir} isDeleting={bajaMutation.isPending} objetos={objetos} onDelete={handleDelete} veteranos={veteranosFiltrados} /> : null}
       </div>

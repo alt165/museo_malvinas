@@ -73,28 +73,18 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
         assertThat(objetoMuseoRepository.findById(response.id()))
                 .get()
                 .satisfies(objeto -> {
-                    assertThat(objeto.getNumeroInventario()).isEqualTo("IT-OBJ-001");
+                    assertThat(objeto.getNumeroInventario()).matches("MMAS\\d{9}");
                     assertThat(objeto.getDenominacionObjeto()).isEqualTo("Brujula de campania");
                     assertThat(objeto.getEliminado()).isFalse();
                 });
     }
 
     @Test
-    void rechazaNumeroDeInventarioDuplicadoContraDatosPersistidos() {
-        crearObjetoCompleto(new ObjetoMuseoRequestDTO(
-                "IT-OBJ-DUP",
-                "Objeto original",
-                null,
-                null, null, null, null, null
-        ));
+    void generaNumerosDeInventarioDistintos() {
+        var primero = crearObjetoCompleto(new ObjetoMuseoRequestDTO("ignorado", "Objeto original", null, null, null, null, null, null));
+        var segundo = crearObjetoCompleto(new ObjetoMuseoRequestDTO("ignorado", "Objeto siguiente", null, null, null, null, null, null));
 
-        assertThatThrownBy(() -> crearObjetoCompleto(new ObjetoMuseoRequestDTO(
-                "IT-OBJ-DUP",
-                "Objeto duplicado",
-                null,
-                null, null, null, null, null
-        ))).isInstanceOf(BusinessException.class)
-                .hasMessage("Ya existe un objeto con ese numero de inventario");
+        assertThat(primero.numeroInventario()).isNotEqualTo(segundo.numeroInventario());
     }
 
     @Test
@@ -120,7 +110,7 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
                 null, null, null, null, null
         ));
 
-        var resultado = objetoMuseoService.buscar(null, "INV-XYZ", null, PageRequest.of(0, 20));
+        var resultado = objetoMuseoService.buscar(null, objeto.numeroInventario().substring(8), null, PageRequest.of(0, 20));
 
         assertThat(resultado.getContent()).extracting("id").contains(objeto.id());
     }
@@ -236,7 +226,7 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
 
         var resultado = objetoMuseoService.buscar(
                 "combinado",
-                "COM-001",
+                objeto.numeroInventario().substring(8),
                 java.util.List.of(categoria.id()),
                 PageRequest.of(0, 20)
         );
@@ -282,8 +272,8 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
 
     @Test
     void ordenaPorNumeroInventarioYDenominacion() {
-        crearObjetoCompleto(new ObjetoMuseoRequestDTO("IT-SORT-NUM-002", "B objeto sort", null, null, null, null, null, null));
-        crearObjetoCompleto(new ObjetoMuseoRequestDTO("IT-SORT-NUM-001", "A objeto sort", null, null, null, null, null, null));
+        var primero = crearObjetoCompleto(new ObjetoMuseoRequestDTO("IT-SORT-NUM-002", "B objeto sort", null, null, null, null, null, null));
+        var segundo = crearObjetoCompleto(new ObjetoMuseoRequestDTO("IT-SORT-NUM-001", "A objeto sort", null, null, null, null, null, null));
 
         var porNumero = objetoMuseoService.buscar(
                 "objeto sort",
@@ -299,7 +289,7 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
         );
 
         assertThat(porNumero.getContent()).extracting("numeroInventario")
-                .containsSubsequence("IT-SORT-NUM-001", "IT-SORT-NUM-002");
+                .containsSubsequence(primero.numeroInventario(), segundo.numeroInventario());
         assertThat(porDenominacion.getContent()).extracting("denominacionObjeto")
                 .containsSubsequence("B objeto sort", "A objeto sort");
     }
@@ -331,7 +321,7 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
 
         var resultado = objetoMuseoService.buscar(
                 "Objeto combo sort",
-                "COMBO",
+                null,
                 null,
                 PageRequest.of(0, 2, Sort.by(Sort.Direction.ASC, "descripcion"))
         );
@@ -501,7 +491,7 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
                 .satisfies(recibo -> {
                     assertThat(recibo.getObjetoMuseo().getId()).isEqualTo(response.id());
                     assertThat(recibo.getDepositante().getId()).isEqualTo(depositante.getId());
-                    assertThat(recibo.getNumeroInventario()).isEqualTo("IT-REC-FULL-001");
+                    assertThat(recibo.getNumeroInventario()).isEqualTo(response.numeroInventario());
                     assertThat(recibo.getDenominacionObjeto()).isEqualTo("Objeto con recibo completo");
                     assertThat(recibo.getDescripcionBreve()).isEqualTo("Descripcion para recibo completo");
                     assertThat(recibo.getDepositanteNombre()).isEqualTo(depositante.getNombre());

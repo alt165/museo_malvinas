@@ -1,4 +1,5 @@
 "use client";
+import { RequiredAsterisk } from "@/components/common/form-label";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
@@ -82,7 +83,7 @@ export function InventarioForm({
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="objetoMuseoId">
-            Objeto
+            Objeto<RequiredAsterisk />
           </label>
           <select
             className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
@@ -101,7 +102,7 @@ export function InventarioForm({
         </div>
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="ubicacionId">
-            Ubicacion
+            Ubicacion<RequiredAsterisk />
           </label>
           <select
             className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
@@ -122,7 +123,7 @@ export function InventarioForm({
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="estado">
-            Estado
+            Estado<RequiredAsterisk />
           </label>
           <select
             className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
@@ -139,7 +140,7 @@ export function InventarioForm({
         </div>
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="estadoConservacion">
-            Conservacion
+            Conservacion<RequiredAsterisk />
           </label>
           <select
             className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
@@ -160,7 +161,7 @@ export function InventarioForm({
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-2">
           <label className="text-sm font-medium" htmlFor="fechaIngreso">
-            Fecha de ingreso
+            Fecha de ingreso<RequiredAsterisk />
           </label>
           <input
             className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"

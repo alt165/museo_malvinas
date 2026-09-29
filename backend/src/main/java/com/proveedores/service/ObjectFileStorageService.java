@@ -26,12 +26,21 @@ public class ObjectFileStorageService {
         return storeInOwnerFolder("objeto-" + objetoId, folder, archivo);
     }
 
+    public StoredObjectFile store(Long objetoId, String folder, MultipartFile archivo, String fileNameBase, String extension) {
+        String logicalName = fileNameBase + "." + extension;
+        String storedName = fileNameBase + "-" + UUID.randomUUID() + "." + extension;
+        return storeInOwnerFolder("objeto-" + objetoId, folder, archivo, logicalName, storedName);
+    }
+
     public StoredObjectFile storeInOwnerFolder(String ownerFolder, String folder, MultipartFile archivo) {
         String originalName = StringUtils.hasText(archivo.getOriginalFilename()) ? archivo.getOriginalFilename() : "archivo";
         String safeName = originalName.replaceAll("[^A-Za-z0-9._-]", "_");
+        return storeInOwnerFolder(ownerFolder, folder, archivo, originalName, UUID.randomUUID() + "-" + safeName);
+    }
+
+    private StoredObjectFile storeInOwnerFolder(String ownerFolder, String folder, MultipartFile archivo, String originalName, String storedName) {
         String safeOwnerFolder = ownerFolder.replaceAll("[^A-Za-z0-9._-]", "_");
         String safeFolder = folder.replaceAll("[^A-Za-z0-9._/-]", "_");
-        String storedName = UUID.randomUUID() + "-" + safeName;
         Path relativePath = Path.of(safeOwnerFolder, safeFolder, storedName);
         Path destination = rootDir.resolve(relativePath).normalize();
         if (!destination.startsWith(rootDir)) {

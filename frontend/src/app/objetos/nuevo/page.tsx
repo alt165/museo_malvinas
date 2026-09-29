@@ -9,7 +9,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { ObjetoMuseoForm, type ObjetoMuseoFormFiles } from "@/features/objetos/components/objeto-museo-form";
 import { listarRecibosObjeto, subirFotosObjeto, subirReciboEscaneadoObjeto } from "@/features/objetos/api";
 import { objetosQueryKeys, useCrearObjetoMutation } from "@/features/objetos/queries";
-import { descargarReciboIngresoPdf } from "@/features/objetos/recibos";
+import { descargarTicketRecepcionPdf } from "@/features/objetos/recibos";
 import type { ObjetoMuseoRequestDTO, ObjetoMuseoResponseDTO, ReciboIngresoObjetoResponseDTO } from "@/features/objetos/types";
 import { getApiErrorMessage } from "@/features/objetos/utils";
 import { ApiClientError } from "@/lib/errors/api-error";
@@ -76,7 +76,7 @@ export default function NuevoObjetoPage() {
             <div className="w-full max-w-lg rounded-lg border bg-background p-5 shadow-xl">
               <h2 className="text-lg font-semibold text-primary" id="objeto-creado-title">Objeto cargado correctamente</h2>
               <p className="mt-2 text-sm font-medium">Número de inventario: {resultado.objeto.numeroInventario}</p>
-              <p className="mt-1 text-sm text-muted-foreground">Recibo emitido: {resultado.recibo.numeroRecibo}</p>
+              <p className="mt-1 text-sm text-muted-foreground">Ticket de recepción: {resultado.recibo.numeroRecibo}</p>
               <p className="mt-3 text-sm text-muted-foreground">El formulario quedó limpio y listo para una nueva carga.</p>
               <div className="mt-5 flex flex-wrap justify-end gap-2">
                 <button className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" onClick={() => setResultado(null)} type="button">
@@ -90,14 +90,14 @@ export default function NuevoObjetoPage() {
                   onClick={async () => {
                     setDownloadError(null);
                     try {
-                      await descargarReciboIngresoPdf(resultado.recibo);
+                      await descargarTicketRecepcionPdf(resultado.recibo);
                     } catch {
-                      setDownloadError("No se pudo descargar el recibo. Intentalo nuevamente.");
+                      setDownloadError("no se pudo descargar el ticket. Intentalo nuevamente.");
                     }
                   }}
                   type="button"
                 >
-                  Descargar recibo
+                  Descargar ticket
                 </button>
               </div>
               {downloadError ? <p className="mt-3 text-sm text-destructive">{downloadError}</p> : null}

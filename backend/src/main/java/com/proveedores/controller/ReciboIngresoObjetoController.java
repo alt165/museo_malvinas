@@ -34,12 +34,12 @@ public class ReciboIngresoObjetoController {
         return ResponseEntity.ok(reciboIngresoObjetoService.obtener(id));
     }
 
-    @Operation(summary = "Descargar PDF de recibo")
+    @Operation(summary = "Descargar PDF del ticket de recepción")
     @GetMapping(value = "/{id}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
     public ResponseEntity<byte[]> descargarPdf(@PathVariable Long id) {
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"recibo-" + id + ".pdf\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"ticket-recepcion-" + id + ".pdf\"")
                 .body(reciboIngresoObjetoService.generarPdf(id));
     }
 

@@ -23,8 +23,8 @@ export function VeteranosTable({ canEdit, isDeleting = false, objetos, onDelete,
     { accessorKey: "apellido", header: "Apellido" },
     { accessorKey: "fuerza", header: "Fuerza", cell: ({ row }) => fuerzaLabel(row.original.fuerza) },
     { id: "objetos", header: "Objetos", cell: ({ row }) => objetos.filter((objeto) => objeto.veteranoId === row.original.id).length },
-    { id: "acciones", header: "Acciones", cell: ({ row }) => (
-      <div className="flex justify-end gap-2">
+    { id: "acciones", header: () => <div className="text-center">Acciones</div>, cell: ({ row }) => (
+      <div className="flex justify-center gap-2">
         <Link className="inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs hover:bg-muted" href={`/veteranos/${row.original.id}`}><Search className="h-3.5 w-3.5" />Ver</Link>
         {canEdit ? <><Link className="inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs hover:bg-muted" href={`/veteranos/${row.original.id}/editar`}><Pencil className="h-3.5 w-3.5" />Editar</Link><button className="inline-flex h-8 items-center gap-1 rounded-md border px-2 text-xs text-destructive hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60" disabled={isDeleting} onClick={() => onDelete(row.original.id)} type="button"><Trash2 className="h-3.5 w-3.5" />Baja</button></> : null}
       </div>

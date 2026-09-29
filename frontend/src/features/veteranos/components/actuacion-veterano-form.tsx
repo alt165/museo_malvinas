@@ -2,10 +2,11 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { LoadingState } from "@/components/common/loading-state";
-import type { ActuacionVeteranoRequestDTO, ActuacionVeteranoResponseDTO, UnidadMilitarResponseDTO } from "../types";
+import { FormLabel } from "@/components/common/form-label";
+import type { ActuacionVeteranoRequestDTO, ActuacionVeteranoResponseDTO } from "../types";
 import { actuacionVeteranoSchema, type ActuacionVeteranoFormValues } from "../schemas";
 import { useRangosMilitaresQuery, useUnidadesMilitaresQuery, useVeteranosQuery } from "../queries";
 import { fuerzaLabel, getValidationErrors } from "../utils";
@@ -28,17 +29,6 @@ export function ActuacionVeteranoForm({
   submitLabel
 }: ActuacionVeteranoFormProps) {
   const veteranosQuery = useVeteranosQuery();
-  const [busquedaUnidad, setBusquedaUnidad] = useState("");
-  const [unidadSeleccionada, setUnidadSeleccionada] = useState<UnidadMilitarResponseDTO | null>(
-    initialValue?.unidadId
-      ? {
-          id: initialValue.unidadId,
-          fuerza: "CIVIL",
-          nombre: initialValue.unidadNombre ?? initialValue.unidad ?? "Unidad seleccionada",
-          sigla: initialValue.unidadSigla ?? null
-        }
-      : null
-  );
   const {
     control,
     formState: { errors },
@@ -61,22 +51,15 @@ export function ActuacionVeteranoForm({
     }
   });
   const watchedVeteranoId = useWatch({ control, name: "veteranoId" });
-  const watchedUnidadId = useWatch({ control, name: "unidadId" });
   const veteranoId = fixedVeteranoId ?? watchedVeteranoId ?? 0;
   const veteranos = useMemo(() => veteranosQuery.data ?? [], [veteranosQuery.data]);
   const veteranoSeleccionado = veteranos.find((veterano) => veterano.id === veteranoId);
   const fuerzaSeleccionada = veteranoSeleccionado?.fuerza;
   const rangosQuery = useRangosMilitaresQuery(fuerzaSeleccionada);
-  const unidadesQuery = useUnidadesMilitaresQuery(fuerzaSeleccionada, busquedaUnidad);
-
-  const unidadActual = useMemo(() => {
-    if (!watchedUnidadId) {
-      return null;
-    }
-    return unidadSeleccionada?.id === watchedUnidadId
-      ? unidadSeleccionada
-      : (unidadesQuery.data ?? []).find((unidad) => unidad.id === watchedUnidadId) ?? unidadSeleccionada;
-  }, [unidadSeleccionada, unidadesQuery.data, watchedUnidadId]);
+  const unidadesQuery = useUnidadesMilitaresQuery(fuerzaSeleccionada);
+  const mantenerHistorico = veteranoId === initialValue?.veteranoId;
+  const rangoHistorico = mantenerHistorico && initialValue?.rangoId && !(rangosQuery.data ?? []).some((item) => item.id === initialValue.rangoId);
+  const unidadHistorica = mantenerHistorico && initialValue?.unidadId && !(unidadesQuery.data ?? []).some((item) => item.id === initialValue.unidadId);
 
   function handleVeteranoChange(value: string) {
     const nextVeteranoId = Number(value);
@@ -85,24 +68,6 @@ export function ActuacionVeteranoForm({
     setValue("unidadId", null, { shouldDirty: true, shouldValidate: true });
     setValue("rango", "", { shouldDirty: true });
     setValue("unidad", "", { shouldDirty: true });
-    setUnidadSeleccionada(null);
-    setBusquedaUnidad("");
-  }
-
-  function handleSeleccionarUnidad(unidad: UnidadMilitarResponseDTO) {
-    setValue("unidadId", unidad.id, { shouldDirty: true, shouldValidate: true });
-    setValue("unidad", unidad.nombre, { shouldDirty: true });
-    setUnidadSeleccionada(unidad);
-  }
-
-  function handleLimpiarUnidad() {
-    setValue("unidadId", null, { shouldDirty: true, shouldValidate: true });
-    setValue("unidad", "", { shouldDirty: true });
-    setUnidadSeleccionada(null);
-  }
-
-  function formatoUnidad(unidad: UnidadMilitarResponseDTO) {
-    return unidad.sigla ? `${unidad.sigla} - ${unidad.nombre}` : unidad.nombre;
   }
 
   useEffect(() => {
@@ -153,12 +118,12 @@ export function ActuacionVeteranoForm({
       })}
     >
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Veterano" error={errors.veteranoId?.message}>
+        <Field required label="Persona" error={errors.veteranoId?.message}>
           {fixedVeteranoId ? (
             <input
               className="h-10 w-full rounded-md border bg-muted px-3 text-sm"
               disabled
-              value={veteranoSeleccionado?.nombreCompleto ?? initialValue?.veteranoNombreCompleto ?? "Veterano seleccionado"}
+              value={veteranoSeleccionado?.nombreCompleto ?? initialValue?.veteranoNombreCompleto ?? "Persona seleccionada"}
             />
           ) : (
             <select
@@ -196,7 +161,8 @@ export function ActuacionVeteranoForm({
               }
             })}
           >
-            <option value="">{fuerzaSeleccionada ? "Seleccionar rango" : "Seleccione un veterano"}</option>
+            <option value="">{mantenerHistorico && initialValue?.rango && !initialValue.rangoId ? initialValue.rango + " (histórico)" : fuerzaSeleccionada ? "Sin rango" : "Seleccione una persona"}</option>
+            {rangoHistorico ? <option value={initialValue.rangoId ?? ""}>{initialValue.rangoNombre ?? initialValue.rango ?? "Rango histórico"} (histórico)</option> : null}
             {(rangosQuery.data ?? []).map((rango) => (
               <option key={rango.id} value={rango.id}>
                 {rango.nombre}
@@ -205,39 +171,11 @@ export function ActuacionVeteranoForm({
           </select>
         </Field>
         <Field label="Unidad" error={errors.unidadId?.message ?? errors.unidad?.message}>
-          <div className="space-y-2">
-            <input
-              className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:bg-muted"
-              disabled={!fuerzaSeleccionada}
-              onChange={(event) => setBusquedaUnidad(event.target.value)}
-              placeholder={fuerzaSeleccionada ? "Buscar por nombre o sigla" : "Seleccione un veterano"}
-              type="search"
-              value={busquedaUnidad}
-            />
-            {unidadActual ? (
-              <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/40 px-3 py-2 text-xs">
-                <span className="font-medium">{formatoUnidad(unidadActual)}</span>
-                <button className="text-destructive hover:underline" onClick={handleLimpiarUnidad} type="button">Quitar</button>
-              </div>
-            ) : null}
-            {fuerzaSeleccionada && !unidadActual ? (
-              <div className="max-h-44 overflow-y-auto rounded-md border bg-white">
-                {unidadesQuery.isLoading ? <p className="px-3 py-2 text-xs text-muted-foreground">Cargando unidades...</p> : null}
-                {!unidadesQuery.isLoading && (unidadesQuery.data ?? []).length === 0 ? <p className="px-3 py-2 text-xs text-muted-foreground">Sin unidades disponibles.</p> : null}
-                {(unidadesQuery.data ?? []).map((unidad) => (
-                  <button
-                    className="block w-full border-b px-3 py-2 text-left text-xs last:border-b-0 hover:bg-muted"
-                    key={unidad.id}
-                    onClick={() => handleSeleccionarUnidad(unidad)}
-                    type="button"
-                  >
-                    <span className="block font-medium">{formatoUnidad(unidad)}</span>
-                    {unidad.tipoUnidad ? <span className="text-muted-foreground">{unidad.tipoUnidad}</span> : null}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </div>
+          <select className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:bg-muted" disabled={!fuerzaSeleccionada || unidadesQuery.isLoading} {...register("unidadId", { setValueAs: (value) => value ? Number(value) : null, onChange: (event) => { const unidad = (unidadesQuery.data ?? []).find((item) => item.id === Number(event.target.value)); setValue("unidad", unidad?.nombre ?? "", { shouldDirty: true }); } })}>
+            <option value="">{mantenerHistorico && initialValue?.unidad && !initialValue.unidadId ? initialValue.unidad + " (histórica)" : fuerzaSeleccionada ? "Sin unidad" : "Seleccione una persona"}</option>
+            {unidadHistorica ? <option value={initialValue.unidadId ?? ""}>{initialValue.unidadSigla ? initialValue.unidadSigla + " - " : ""}{initialValue.unidadNombre ?? initialValue.unidad ?? "Unidad histórica"} (histórica)</option> : null}
+            {(unidadesQuery.data ?? []).map((unidad) => <option key={unidad.id} value={unidad.id}>{unidad.sigla ? unidad.sigla + " - " + unidad.nombre : unidad.nombre}</option>)}
+          </select>
         </Field>
         <Field label="Rol" error={errors.rol?.message}>
           <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" {...register("rol")} />
@@ -252,7 +190,7 @@ export function ActuacionVeteranoForm({
         </Field>
       </div>
       <Field label="Descripcion" error={errors.descripcion?.message}>
-        <textarea className="min-h-32 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" {...register("descripcion")} />
+        <textarea className="max-h-80 min-h-40 w-full resize-y overflow-y-auto rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" {...register("descripcion")} />
       </Field>
       <div className="flex items-center gap-3">
         <button
@@ -270,12 +208,6 @@ export function ActuacionVeteranoForm({
   );
 }
 
-function Field({ children, error, label }: { children: React.ReactNode; error?: string; label: string }) {
-  return (
-    <label className="space-y-2 text-sm font-medium">
-      <span>{label}</span>
-      {children}
-      {error ? <p className="font-normal text-destructive">{error}</p> : null}
-    </label>
-  );
+function Field({ children, error, label, required = false }: { children: React.ReactNode; error?: string; label: string; required?: boolean }) {
+  return <FormLabel label={label} required={required}>{children}{error ? <p className="font-normal text-destructive">{error}</p> : null}</FormLabel>;
 }

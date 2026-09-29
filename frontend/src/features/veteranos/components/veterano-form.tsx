@@ -1,4 +1,5 @@
 "use client";
+import { FormLabel } from "@/components/common/form-label";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
@@ -57,11 +58,11 @@ export function VeteranoForm({ initialValue, isSubmitting, onSubmit, submitError
       historia: values.historia?.trim() || null
     }))}>
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Nombre" error={errors.nombre?.message}><input className="h-10 w-full rounded-md border bg-background px-3 text-sm" {...register("nombre")} /></Field>
-        <Field label="Apellido" error={errors.apellido?.message}><input className="h-10 w-full rounded-md border bg-background px-3 text-sm" {...register("apellido")} /></Field>
+        <Field required label="Nombre" error={errors.nombre?.message}><input className="h-10 w-full rounded-md border bg-background px-3 text-sm" {...register("nombre")} /></Field>
+        <Field required label="Apellido" error={errors.apellido?.message}><input className="h-10 w-full rounded-md border bg-background px-3 text-sm" {...register("apellido")} /></Field>
       </div>
       <div className="grid gap-5 sm:grid-cols-3">
-        <Field label="Fuerza" error={errors.fuerza?.message}>
+        <Field required label="Fuerza" error={errors.fuerza?.message}>
           <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" {...register("fuerza")}>
             {fuerzas.map((fuerza) => <option key={fuerza} value={fuerza}>{fuerza}</option>)}
           </select>
@@ -78,6 +79,6 @@ export function VeteranoForm({ initialValue, isSubmitting, onSubmit, submitError
   );
 }
 
-function Field({ children, error, label }: { children: React.ReactNode; error?: string; label: string }) {
-  return <label className="space-y-2 text-sm font-medium"><span>{label}</span>{children}{error ? <p className="font-normal text-destructive">{error}</p> : null}</label>;
+function Field({ children, error, label, required = false }: { children: React.ReactNode; error?: string; label: string; required?: boolean }) {
+  return <FormLabel label={label} required={required}>{children}{error ? <p className="font-normal text-destructive">{error}</p> : null}</FormLabel>;
 }

@@ -1,4 +1,5 @@
 "use client";
+import { RequiredAsterisk } from "@/components/common/form-label";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
@@ -44,7 +45,7 @@ export function ResetPasswordForm({ isSubmitting = false, onSubmit, submitError 
       onSubmit={handleSubmit((values) => onSubmit(values, () => reset({ contrasena: "" })))}
     >
       <label className="space-y-2 text-sm font-medium">
-        <span>Nueva contrasena temporal</span>
+        <span>Nueva contrasena temporal<RequiredAsterisk /></span>
         <input
           className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
           autoComplete="new-password"

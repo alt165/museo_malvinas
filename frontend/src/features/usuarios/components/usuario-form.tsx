@@ -1,4 +1,5 @@
 "use client";
+import { FormLabel } from "@/components/common/form-label";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
@@ -61,14 +62,14 @@ export function UsuarioForm({
       })}
     >
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Usuario" error={errors.username?.message}>
+        <Field required label="Usuario" error={errors.username?.message}>
           <input
             className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
             autoComplete="username"
             {...register("username")}
           />
         </Field>
-        <Field label="Email" error={errors.email?.message}>
+        <Field required label="Email" error={errors.email?.message}>
           <input
             className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
             autoComplete="email"
@@ -77,7 +78,7 @@ export function UsuarioForm({
           />
         </Field>
       </div>
-      <Field label="DNI" error={errors.dni?.message}>
+      <Field required label="DNI" error={errors.dni?.message}>
         <input
           className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
           autoComplete="off"
@@ -102,7 +103,7 @@ export function UsuarioForm({
         </Field>
       </div>
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Rol" error={errors.rol?.message}>
+        <Field required label="Rol" error={errors.rol?.message}>
           <select
             className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
             {...register("rol")}
@@ -120,7 +121,7 @@ export function UsuarioForm({
         </label>
       </div>
       {includeInitialPassword ? (
-        <Field label="Contrasena inicial temporal" error={errors.contrasenaInicial?.message}>
+        <Field required={includeInitialPassword} label="Contrasena inicial temporal" error={errors.contrasenaInicial?.message}>
           <input
             className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
             autoComplete="new-password"
@@ -145,12 +146,6 @@ export function UsuarioForm({
   );
 }
 
-function Field({ children, error, label }: { children: React.ReactNode; error?: string; label: string }) {
-  return (
-    <label className="space-y-2 text-sm font-medium">
-      <span>{label}</span>
-      {children}
-      {error ? <p className="font-normal text-destructive">{error}</p> : null}
-    </label>
-  );
+function Field({ children, error, label, required = false }: { children: React.ReactNode; error?: string; label: string; required?: boolean }) {
+  return <FormLabel label={label} required={required}>{children}{error ? <p className="font-normal text-destructive">{error}</p> : null}</FormLabel>;
 }

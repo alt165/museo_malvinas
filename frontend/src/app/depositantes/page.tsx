@@ -11,6 +11,7 @@ import { useBajaLogicaDepositanteMutation, useDepositantesQuery } from "@/featur
 import { getApiErrorMessage } from "@/features/depositantes/utils";
 import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
+import { routePermissions } from "@/lib/routes";
 
 export default function DepositantesPage() {
   const { canEdit: puedeEscribir } = useEditingMode();
@@ -24,7 +25,7 @@ export default function DepositantesPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell requiredRoles={[...routePermissions.write]}>
       <div className="space-y-6">
         <PageHeader
           actions={puedeEscribir ? <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/depositantes/nuevo">Nuevo depositante</Link> : null}

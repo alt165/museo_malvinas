@@ -1,4 +1,5 @@
 "use client";
+import { RequiredAsterisk } from "@/components/common/form-label";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCircle, Undo2 } from "lucide-react";
@@ -75,7 +76,7 @@ export function ObjetosExhibicionPanel({ canWrite, estado, exhibicionId }: Objet
         >
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="objetoMuseoId">
-              Objeto
+              Objeto<RequiredAsterisk />
             </label>
             <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" id="objetoMuseoId" {...register("objetoMuseoId", { valueAsNumber: true })}>
               <option value={0}>Seleccionar objeto</option>
@@ -89,7 +90,7 @@ export function ObjetosExhibicionPanel({ canWrite, estado, exhibicionId }: Objet
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="fechaInclusion">
-              Inclusión
+              Inclusión<RequiredAsterisk />
             </label>
             <input className="h-10 w-full rounded-md border bg-background px-3 text-sm" id="fechaInclusion" type="date" {...register("fechaInclusion")} />
             {errors.fechaInclusion ? <p className="text-sm text-destructive">{errors.fechaInclusion.message}</p> : null}

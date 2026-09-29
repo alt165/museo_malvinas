@@ -60,6 +60,12 @@ public class ObjetoMuseo extends EntidadBase {
     @Column(columnDefinition = "TEXT")
     private String materiales;
 
+    @Column(columnDefinition = "TEXT")
+    private String medidas;
+
+    @Column(name = "cantidad_partes", nullable = false)
+    private Integer cantidadPartes = 0;
+
     @Column(length = 80)
     private String alto;
 

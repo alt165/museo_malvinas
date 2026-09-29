@@ -21,7 +21,7 @@ export function ActuacionesVeteranosTable({ actuaciones, canEdit, isDeleting = f
     () => [
       {
         accessorKey: "veteranoNombreCompleto",
-        header: "Veterano",
+        header: "Persona",
         cell: ({ row }) => <span className="font-medium">{row.original.veteranoNombreCompleto}</span>
       },
       { accessorKey: "rango", header: "Rango", cell: ({ row }) => row.original.rangoNombre || row.original.rango || "-" },

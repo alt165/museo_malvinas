@@ -1,4 +1,5 @@
 "use client";
+import { FormLabel } from "@/components/common/form-label";
 
 import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -79,9 +80,9 @@ function RangosPage() {
         <PageHeader description="Rangos disponibles para actuaciones de veteranos." title="Rangos militares" />
         {error ? <ErrorState message="No se pudo completar la operación." /> : null}
         <form className="grid gap-4 rounded-lg border bg-white p-5 md:grid-cols-[180px_1fr_160px_auto] md:items-end" onSubmit={submit}>
-          <Field label="Fuerza"><SelectFuerza value={form.fuerza} onChange={(fuerza) => setForm((current) => ({ ...current, fuerza }))} /></Field>
-          <Field label="Nombre"><input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" required maxLength={120} value={form.nombre} onChange={(event) => setForm((current) => ({ ...current, nombre: event.target.value }))} /></Field>
-          <Field label="Orden"><input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" min={0} required type="number" value={form.ordenJerarquico} onChange={(event) => setForm((current) => ({ ...current, ordenJerarquico: Number(event.target.value) }))} /></Field>
+          <Field required label="Fuerza"><SelectFuerza value={form.fuerza} onChange={(fuerza) => setForm((current) => ({ ...current, fuerza }))} /></Field>
+          <Field required label="Nombre"><input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" required maxLength={120} value={form.nombre} onChange={(event) => setForm((current) => ({ ...current, nombre: event.target.value }))} /></Field>
+          <Field required label="Orden"><input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" min={0} required type="number" value={form.ordenJerarquico} onChange={(event) => setForm((current) => ({ ...current, ordenJerarquico: Number(event.target.value) }))} /></Field>
           <Actions isEditing={Boolean(editing)} isSubmitting={isSubmitting} onCancel={resetForm} />
         </form>
         {query.isLoading ? <LoadingState label="Cargando rangos..." /> : null}
@@ -142,7 +143,7 @@ function UnidadesPage() {
         <PageHeader description="Unidades disponibles para actuaciones de veteranos." title="Unidades militares" />
         {error ? <ErrorState message="No se pudo completar la operación." /> : null}
         <form className="space-y-4 rounded-lg border bg-white p-5" onSubmit={submit}>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"><Field label="Fuerza"><SelectFuerza value={form.fuerza} onChange={(fuerza) => setForm((current) => ({ ...current, fuerza }))} /></Field><Field label="Nombre"><input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" required maxLength={180} value={form.nombre} onChange={(event) => setForm((current) => ({ ...current, nombre: event.target.value }))} /></Field><Field label="Sigla"><input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" maxLength={40} value={form.sigla ?? ""} onChange={(event) => setForm((current) => ({ ...current, sigla: event.target.value }))} /></Field><Field label="Tipo"><input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" maxLength={80} value={form.tipoUnidad ?? ""} onChange={(event) => setForm((current) => ({ ...current, tipoUnidad: event.target.value }))} /></Field></div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"><Field required label="Fuerza"><SelectFuerza value={form.fuerza} onChange={(fuerza) => setForm((current) => ({ ...current, fuerza }))} /></Field><Field required label="Nombre"><input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" required maxLength={180} value={form.nombre} onChange={(event) => setForm((current) => ({ ...current, nombre: event.target.value }))} /></Field><Field label="Sigla"><input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" maxLength={40} value={form.sigla ?? ""} onChange={(event) => setForm((current) => ({ ...current, sigla: event.target.value }))} /></Field><Field label="Tipo"><input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" maxLength={80} value={form.tipoUnidad ?? ""} onChange={(event) => setForm((current) => ({ ...current, tipoUnidad: event.target.value }))} /></Field></div>
           <Field label="Descripción"><textarea className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" value={form.descripcion ?? ""} onChange={(event) => setForm((current) => ({ ...current, descripcion: event.target.value }))} /></Field>
           <Actions isEditing={Boolean(editing)} isSubmitting={isSubmitting} onCancel={resetForm} />
         </form>
@@ -157,8 +158,8 @@ function SelectFuerza({ onChange, value }: { onChange: (value: Fuerza) => void; 
   return <select className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" value={value} onChange={(event) => onChange(event.target.value as Fuerza)}>{fuerzas.map((fuerza) => <option key={fuerza} value={fuerza}>{fuerzaLabels[fuerza]}</option>)}</select>;
 }
 
-function Field({ children, label }: { children: React.ReactNode; label: string }) {
-  return <label className="space-y-2 text-sm font-medium"><span>{label}</span>{children}</label>;
+function Field({ children, label, required = false }: { children: React.ReactNode; label: string; required?: boolean }) {
+  return <FormLabel label={label} required={required}>{children}</FormLabel>;
 }
 
 function Actions({ isEditing, isSubmitting, onCancel }: { isEditing: boolean; isSubmitting: boolean; onCancel: () => void }) {

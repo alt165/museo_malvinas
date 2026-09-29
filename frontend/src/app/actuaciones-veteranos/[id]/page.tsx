@@ -35,7 +35,7 @@ export default function DetalleActuacionVeteranoPage() {
     <AppShell>
       <div className="space-y-6">
         <PageHeader
-          actions={<div className="flex gap-2"><Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/actuaciones-veteranos">Volver</Link>{data ? <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href={`/veteranos/${data.veteranoId}`}>Ver veterano</Link> : null}{puedeEscribir && data ? <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href={`/actuaciones-veteranos/${data.id}/editar`}>Editar</Link> : null}{puedeEscribir && data ? <button className="rounded-md border px-4 py-2 text-sm font-medium text-destructive hover:bg-muted disabled:opacity-60" disabled={bajaMutation.isPending} onClick={handleDelete} type="button">Baja</button> : null}</div>}
+          actions={<div className="flex gap-2"><Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href="/actuaciones-veteranos">Volver</Link>{data ? <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href={`/veteranos/${data.veteranoId}`}>Ver persona</Link> : null}{puedeEscribir && data ? <Link className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted" href={`/actuaciones-veteranos/${data.id}/editar`}>Editar</Link> : null}{puedeEscribir && data ? <button className="rounded-md border px-4 py-2 text-sm font-medium text-destructive hover:bg-muted disabled:opacity-60" disabled={bajaMutation.isPending} onClick={handleDelete} type="button">Baja</button> : null}</div>}
           description="Datos de la actuacion historica."
           title="Detalle de actuacion"
         />
@@ -45,7 +45,7 @@ export default function DetalleActuacionVeteranoPage() {
         {data ? (
           <div className="rounded-lg border p-5">
             <dl className="grid gap-5 text-sm sm:grid-cols-2">
-              <div><dt className="text-muted-foreground">Veterano</dt><dd className="font-medium">{data.veteranoNombreCompleto}</dd></div>
+              <div><dt className="text-muted-foreground">Persona</dt><dd className="font-medium">{data.veteranoNombreCompleto}</dd></div>
               <div><dt className="text-muted-foreground">Periodo</dt><dd className="font-medium">{formatDate(data.fechaInicio)} - {formatDate(data.fechaFin)}</dd></div>
               <div><dt className="text-muted-foreground">Rango</dt><dd className="font-medium">{data.rangoNombre || data.rango || "Sin rango"}</dd></div>
               <div><dt className="text-muted-foreground">Unidad</dt><dd className="font-medium">{data.unidadSigla ? `${data.unidadSigla} - ${data.unidadNombre || data.unidad || "Sin unidad"}` : data.unidadNombre || data.unidad || "Sin unidad"}</dd></div>

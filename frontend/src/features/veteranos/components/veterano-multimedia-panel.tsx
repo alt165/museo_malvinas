@@ -364,7 +364,7 @@ export function VeteranoMultimediaPanel({ canWrite, veterano }: VeteranoMultimed
       ) : null}
 
       <section className="rounded-lg border p-5">
-        <h2 className="text-lg font-semibold">Datos personales</h2>
+        <h2 className="text-lg font-semibold">Descripción</h2>
         <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
           <Dato label="Nombre" value={veterano.nombre} />
           <Dato label="Apellido" value={veterano.apellido} />

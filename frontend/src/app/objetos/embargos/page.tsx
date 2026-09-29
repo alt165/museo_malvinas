@@ -1,4 +1,5 @@
 "use client";
+import { RequiredAsterisk } from "@/components/common/form-label";
 
 import { CheckCircle, Download, Gavel, Search, Unlock } from "lucide-react";
 import Link from "next/link";
@@ -210,7 +211,7 @@ export default function EmbargosObjetosPage() {
 
           <form className="mt-5 grid gap-4 rounded-md border bg-background p-4 lg:grid-cols-2" onSubmit={handleCrearEmbargo}>
             <div className="lg:col-span-2">
-              <p className="text-sm text-muted-foreground">Objeto seleccionado</p>
+              <p className="text-sm text-muted-foreground">Objeto seleccionado<RequiredAsterisk /></p>
               <p className="mt-1 text-sm font-semibold">
                 {objetoSeleccionado ? `${objetoSeleccionado.numeroInventario} - ${objetoSeleccionado.denominacionObjeto}` : "Sin objeto seleccionado"}
               </p>

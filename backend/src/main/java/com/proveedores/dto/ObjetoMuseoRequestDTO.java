@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.Set;
 
 public record ObjetoMuseoRequestDTO(
-        @NotBlank(message = "El numero de inventario es obligatorio")
         @Size(max = 80, message = "El numero de inventario no puede superar 80 caracteres")
         String numeroInventario,
 
@@ -86,7 +85,12 @@ public record ObjetoMuseoRequestDTO(
 
         CaracterRecepcionObjeto caracterRecepcion,
 
-        LocalDate fechaVencimiento
+        LocalDate fechaVencimiento,
+
+        String medidas,
+
+        @jakarta.validation.constraints.Min(value = 0, message = "La cantidad de partes no puede ser negativa")
+        Integer cantidadPartes
 ) {
     public ObjetoMuseoRequestDTO(
             String numeroInventario,
@@ -98,7 +102,7 @@ public record ObjetoMuseoRequestDTO(
             EstadoConservacion estadoConservacion,
             Set<Long> categoriaIds
     ) {
-        this(numeroInventario, denominacionObjeto, descripcion, descripcionTecnica, materiales, dimensiones, null, null, null, null, null, null, null, estadoConservacion, null, null, null, null, null, null, null, null, null, null, null, null, categoriaIds, null, null, null, null);
+        this(numeroInventario, denominacionObjeto, descripcion, descripcionTecnica, materiales, dimensiones, null, null, null, null, null, null, null, estadoConservacion, null, null, null, null, null, null, null, null, null, null, null, null, categoriaIds, null, null, null, null, dimensiones, 0);
     }
 
     public ObjetoMuseoRequestDTO(
@@ -112,7 +116,7 @@ public record ObjetoMuseoRequestDTO(
             Set<Long> categoriaIds,
             Long ubicacionId
     ) {
-        this(numeroInventario, denominacionObjeto, descripcion, descripcionTecnica, materiales, dimensiones, null, null, null, null, null, null, null, estadoConservacion, null, null, null, null, null, null, null, null, null, null, null, null, categoriaIds, ubicacionId, null, null, null);
+        this(numeroInventario, denominacionObjeto, descripcion, descripcionTecnica, materiales, dimensiones, null, null, null, null, null, null, null, estadoConservacion, null, null, null, null, null, null, null, null, null, null, null, null, categoriaIds, ubicacionId, null, null, null, dimensiones, 0);
     }
 
 
@@ -130,7 +134,7 @@ public record ObjetoMuseoRequestDTO(
             CaracterRecepcionObjeto caracterRecepcion,
             LocalDate fechaVencimiento
     ) {
-        this(numeroInventario, denominacionObjeto, descripcion, descripcionTecnica, materiales, dimensiones, null, null, null, null, null, null, null, estadoConservacion, null, null, null, null, null, null, null, null, null, null, null, null, categoriaIds, ubicacionId, depositanteId, caracterRecepcion, fechaVencimiento);
+        this(numeroInventario, denominacionObjeto, descripcion, descripcionTecnica, materiales, dimensiones, null, null, null, null, null, null, null, estadoConservacion, null, null, null, null, null, null, null, null, null, null, null, null, categoriaIds, ubicacionId, depositanteId, caracterRecepcion, fechaVencimiento, dimensiones, 0);
     }
 
     public String dimensiones() {

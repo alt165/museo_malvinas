@@ -128,7 +128,6 @@ class ObjetoMuseoControllerTest {
                 .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.message").value("La solicitud contiene errores de validacion"))
                 .andExpect(jsonPath("$.path").value("/api/objetos"))
-                .andExpect(jsonPath("$.validationErrors.numeroInventario").value("El numero de inventario es obligatorio"))
                 .andExpect(jsonPath("$.validationErrors.denominacionONombreValida").value("La denominacion o nombre es obligatorio"));
     }
 

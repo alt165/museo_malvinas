@@ -1,10 +1,10 @@
 "use client";
+import { FormLabel } from "@/components/common/form-label";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { RowActionButton, RowActions } from "@/components/common/row-actions";
 import { ObjetoSearchSelector } from "@/features/objetos/components/objeto-search-selector";
@@ -74,7 +74,7 @@ export function ColeccionForm({ initialObjetos = [], initialValue, isSubmitting 
         })
       )}
     >
-      <Field error={errors.nombre?.message} label="Nombre">
+      <Field required error={errors.nombre?.message} label="Nombre">
         <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" {...register("nombre")} />
       </Field>
       <Field error={errors.descripcion?.message} label="Descripcion">
@@ -144,12 +144,6 @@ export function ColeccionForm({ initialObjetos = [], initialValue, isSubmitting 
   );
 }
 
-function Field({ children, error, label }: { children: ReactNode; error?: string; label: string }) {
-  return (
-    <label className="space-y-2 text-sm font-medium">
-      <span>{label}</span>
-      {children}
-      {error ? <p className="font-normal text-destructive">{error}</p> : null}
-    </label>
-  );
+function Field({ children, error, label, required = false }: { children: React.ReactNode; error?: string; label: string; required?: boolean }) {
+  return <FormLabel label={label} required={required}>{children}{error ? <p className="font-normal text-destructive">{error}</p> : null}</FormLabel>;
 }

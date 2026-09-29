@@ -59,7 +59,9 @@ public record ObjetoMuseoResponseDTO(
         LocalDate fechaVencimiento,
         List<CategoriaObjetoResponseDTO> categorias,
         List<FotoObjetoMuseoResponseDTO> fotos,
-        ReciboEscaneadoObjetoMuseoResponseDTO reciboEscaneado
+        ReciboEscaneadoObjetoMuseoResponseDTO reciboEscaneado,
+        String medidas,
+        Integer cantidadPartes
 ) {
     public ObjetoMuseoResponseDTO(
             Long id,
@@ -84,7 +86,7 @@ public record ObjetoMuseoResponseDTO(
                 dimensiones, null, null, null, null, null, null, null, estadoConservacion, Set.of(),
                 null, null, null, null, null, null, null, null, null, null, Map.of(),
                 fechaIngreso, origenCarga, datosCompletos, fechaCargaRapida, cargaRapidaPor,
-                null, null, null, null, null, null, null, null, categorias, fotos, reciboEscaneado
+                null, null, null, null, null, null, null, null, categorias, fotos, reciboEscaneado, null, 0
         );
     }
 

@@ -1,6 +1,7 @@
 package com.proveedores.service;
 
 import com.proveedores.entity.ReciboIngresoObjeto;
+import com.proveedores.repository.ObjetoDepositanteRepository;
 import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -10,14 +11,25 @@ import org.springframework.stereotype.Service;
 @Service
 public class ReciboPdfService {
 
+    private static final String INSTITUCION = "Museo de la Guerra de Malvinas";
+    private final ObjetoDepositanteRepository objetoDepositanteRepository;
+
+    public ReciboPdfService(ObjetoDepositanteRepository objetoDepositanteRepository) {
+        this.objetoDepositanteRepository = objetoDepositanteRepository;
+    }
+
     public byte[] generar(ReciboIngresoObjeto recibo) {
         List<String> lineas = new ArrayList<>();
-        lineas.add("Recibo de ingreso " + recibo.getNumeroRecibo());
+        lineas.add(INSTITUCION);
+        lineas.add("Ticket de Recepcion " + recibo.getNumeroRecibo());
         lineas.add("Fecha: " + recibo.getFechaEmision().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
         lineas.add("Depositante: " + recibo.getDepositanteNombre());
         lineas.add("Contacto: " + texto(recibo.getDepositanteContacto()));
         lineas.add("Numero de inventario: " + recibo.getNumeroInventario());
         lineas.add("Objeto: " + recibo.getDenominacionObjeto());
+        objetoDepositanteRepository.findRelacionActivaPorObjeto(recibo.getObjetoMuseo().getId())
+                .map(relacion -> relacion.getTipoDeposito() == null ? null : relacion.getTipoDeposito().name())
+                .ifPresent(caracter -> lineas.add("Caracter de recepcion: " + caracter));
         lineas.addAll(partirLinea("Descripcion: " + recibo.getDescripcionBreve()));
         lineas.add("Operador: " + texto(recibo.getOperador()));
         lineas.add("");

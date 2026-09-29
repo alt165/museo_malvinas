@@ -77,13 +77,13 @@ export const routes = {
 export const navigationGroups: NavigationGroup[] = [
   {
     key: "veteranos",
-    label: "Veteranos",
+    label: "Personas",
     icon: IdCard,
     roles: readRoles,
     items: [
       { href: routes.veteranos, label: "Consulta", icon: IdCard, roles: readRoles },
-      { href: routes.veteranoNuevo, label: "Alta de veterano", icon: IdCard, roles: writeRoles, requiresEditing: true },
-      { href: routes.actuacionesVeteranos, label: "Actuaciones de veteranos", icon: History, roles: writeRoles, requiresEditing: true }
+      { href: routes.veteranoNuevo, label: "Alta de persona", icon: IdCard, roles: writeRoles, requiresEditing: true },
+      { href: routes.actuacionesVeteranos, label: "Actuaciones de personas", icon: History, roles: writeRoles, requiresEditing: true }
     ]
   },
   {
@@ -127,9 +127,9 @@ export const navigationGroups: NavigationGroup[] = [
     key: "depositantes",
     label: "Depositantes",
     icon: Handshake,
-    roles: readRoles,
+    roles: writeRoles,
     items: [
-      { href: routes.depositantes, label: "Consulta", icon: Handshake, roles: readRoles },
+      { href: routes.depositantes, label: "Consulta", icon: Handshake, roles: writeRoles },
       { href: routes.depositanteNuevo, label: "Alta", icon: Handshake, roles: writeRoles, requiresEditing: true }
     ]
   },
