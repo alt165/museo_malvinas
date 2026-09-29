@@ -8,12 +8,16 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
 import com.proveedores.entity.CaracterRecepcionObjeto;
 import com.proveedores.entity.Depositante;
+import com.proveedores.entity.Inventario;
 import com.proveedores.entity.ObjetoMuseo;
 import com.proveedores.entity.ReciboIngresoObjeto;
+import com.proveedores.entity.Ubicacion;
+import com.proveedores.entity.VisibilidadCampo;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.CategoriaObjetoRepository;
@@ -31,12 +35,17 @@ import com.proveedores.repository.ReciboIngresoObjetoRepository;
 import com.proveedores.repository.UbicacionRepository;
 import com.proveedores.repository.UsuarioRepository;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @ExtendWith(MockitoExtension.class)
 class ObjetoMuseoServiceTest {
@@ -92,6 +101,11 @@ class ObjetoMuseoServiceTest {
     @InjectMocks
     private ObjetoMuseoService service;
 
+    @AfterEach
+    void limpiarContextoSeguridad() {
+        SecurityContextHolder.clearContext();
+    }
+
     @Test
     void crearSinDepositanteLanzaBusinessException() {
         ObjetoMuseoRequestDTO request = new ObjetoMuseoRequestDTO("INV-1", "Casco", null, null, null, null, null, null);
@@ -136,6 +150,74 @@ class ObjetoMuseoServiceTest {
         when(objetoMuseoRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.obtenerPorId(99L)).isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void obtenerPorIdIncluyeUbicacionActualPublicaParaViewer() {
+        ObjetoMuseo objeto = objeto(1L, "INV-1");
+        Inventario inventario = inventarioActual(objeto, 7L, "Sala principal");
+        autenticarComo("ROLE_VIEWER");
+        when(objetoMuseoRepository.findById(1L)).thenReturn(Optional.of(objeto));
+        when(inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(1L)).thenReturn(Optional.of(inventario));
+
+        ObjetoMuseoResponseDTO response = service.obtenerPorId(1L);
+
+        assertThat(response.ubicacionVisible()).isTrue();
+        assertThat(response.ubicacionId()).isEqualTo(7L);
+        assertThat(response.ubicacionNombre()).isEqualTo("Sala principal");
+    }
+
+    @Test
+    void obtenerPorIdNoExponeUbicacionPrivadaParaViewer() throws Exception {
+        ObjetoMuseo objeto = objeto(1L, "INV-1");
+        objeto.setVisibilidades(Map.of("ubicacion", VisibilidadCampo.PRIVADO));
+        Inventario inventario = inventarioActual(objeto, 7L, "Deposito reservado");
+        autenticarComo("ROLE_VIEWER");
+        when(objetoMuseoRepository.findById(1L)).thenReturn(Optional.of(objeto));
+        when(inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(1L)).thenReturn(Optional.of(inventario));
+
+        ObjetoMuseoResponseDTO response = service.obtenerPorId(1L);
+
+        assertThat(response.ubicacionVisible()).isFalse();
+        assertThat(response.ubicacionId()).isNull();
+        assertThat(response.ubicacionNombre()).isNull();
+        String json = new ObjectMapper().findAndRegisterModules().writeValueAsString(response);
+        assertThat(json).doesNotContain("ubicacionId", "ubicacionNombre", "Deposito reservado");
+    }
+
+    @Test
+    void obtenerPorIdExponeUbicacionPrivadaParaOperator() {
+        ObjetoMuseo objeto = objeto(1L, "INV-1");
+        objeto.setVisibilidades(Map.of("ubicacion", VisibilidadCampo.PRIVADO));
+        Inventario inventario = inventarioActual(objeto, 7L, "Deposito reservado");
+        autenticarComo("ROLE_OPERATOR");
+        when(objetoMuseoRepository.findById(1L)).thenReturn(Optional.of(objeto));
+        when(inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(1L)).thenReturn(Optional.of(inventario));
+
+        ObjetoMuseoResponseDTO response = service.obtenerPorId(1L);
+
+        assertThat(response.ubicacionVisible()).isTrue();
+        assertThat(response.ubicacionId()).isEqualTo(7L);
+        assertThat(response.ubicacionNombre()).isEqualTo("Deposito reservado");
+    }
+
+    private void autenticarComo(String authority) {
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                "usuario",
+                null,
+                List.of(new SimpleGrantedAuthority(authority))
+        ));
+    }
+
+    private Inventario inventarioActual(ObjetoMuseo objeto, Long ubicacionId, String ubicacionNombre) {
+        Ubicacion ubicacion = new Ubicacion();
+        ubicacion.setId(ubicacionId);
+        ubicacion.setNombre(ubicacionNombre);
+        Inventario inventario = new Inventario();
+        inventario.setObjetoMuseo(objeto);
+        inventario.setUbicacion(ubicacion);
+        inventario.setEliminado(false);
+        return inventario;
     }
 
     private ObjetoMuseo objeto(Long id, String numeroInventario) {

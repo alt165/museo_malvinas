@@ -1033,6 +1033,7 @@ public class ObjetoMuseoService {
                 response.cargaRapidaPor(),
                 visible(response, "ubicacion") ? response.ubicacionId() : null,
                 visible(response, "ubicacion") ? response.ubicacionNombre() : null,
+                visible(response, "ubicacion"),
                 visible(response, "coleccion") ? response.coleccionId() : null,
                 visible(response, "coleccion") ? response.coleccionNombre() : null,
                 visible(response, "depositante") ? response.depositanteId() : null,

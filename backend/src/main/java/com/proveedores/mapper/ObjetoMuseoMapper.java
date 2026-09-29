@@ -92,6 +92,7 @@ public final class ObjetoMuseoMapper {
                 entity.getCargaRapidaPor(),
                 ubicacionId,
                 ubicacionNombre,
+                true,
                 coleccionId,
                 coleccionNombre,
                 depositanteId,

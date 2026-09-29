@@ -85,6 +85,7 @@ export type ObjetoMuseoResponseDTO = {
   cargaRapidaPor?: string | null;
   ubicacionId?: number | null;
   ubicacionNombre?: string | null;
+  ubicacionVisible?: boolean;
   coleccionId?: number | null;
   coleccionNombre?: string | null;
   depositanteId?: number | null;

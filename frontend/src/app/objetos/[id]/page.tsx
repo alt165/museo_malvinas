@@ -524,7 +524,9 @@ export default function DetalleObjetoPage() {
         </span>
       ) : null
     },
-    { label: "Ubicacion actual", value: data.ubicacionNombre },
+    ...(data.ubicacionVisible !== false
+      ? [{ label: "Ubicación actual", value: data.ubicacionNombre || "Sin ubicación asignada" }]
+      : []),
     {
       label: "Coleccion",
       value: data.coleccionId ? (

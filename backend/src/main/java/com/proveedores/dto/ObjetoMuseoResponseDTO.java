@@ -1,5 +1,6 @@
 package com.proveedores.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.proveedores.entity.CaracterRecepcionObjeto;
 import com.proveedores.entity.EstadoConservacion;
 import com.proveedores.entity.EstadoIntegridad;
@@ -49,8 +50,9 @@ public record ObjetoMuseoResponseDTO(
         Boolean datosCompletos,
         LocalDateTime fechaCargaRapida,
         String cargaRapidaPor,
-        Long ubicacionId,
-        String ubicacionNombre,
+        @JsonInclude(JsonInclude.Include.NON_NULL) Long ubicacionId,
+        @JsonInclude(JsonInclude.Include.NON_NULL) String ubicacionNombre,
+        Boolean ubicacionVisible,
         Long coleccionId,
         String coleccionNombre,
         Long depositanteId,
@@ -86,7 +88,7 @@ public record ObjetoMuseoResponseDTO(
                 dimensiones, null, null, null, null, null, null, null, estadoConservacion, Set.of(),
                 null, null, null, null, null, null, null, null, null, null, Map.of(),
                 fechaIngreso, origenCarga, datosCompletos, fechaCargaRapida, cargaRapidaPor,
-                null, null, null, null, null, null, null, null, categorias, fotos, reciboEscaneado, null, 0
+                null, null, true, null, null, null, null, null, null, categorias, fotos, reciboEscaneado, null, 0
         );
     }
 
