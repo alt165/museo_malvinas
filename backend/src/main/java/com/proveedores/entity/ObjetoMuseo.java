@@ -115,10 +115,10 @@ public class ObjetoMuseo extends EntidadBase {
     @Column(name = "humedad_conservacion", length = 20)
     private HumedadConservacion humedadConservacion;
 
-    @Column(name = "temperatura_conservacion", length = 80)
+    @Column(name = "temperatura_conservacion", length = 200)
     private String temperaturaConservacion;
 
-    @Column(name = "luz_conservacion", length = 80)
+    @Column(name = "luz_conservacion", length = 200)
     private String luzConservacion;
 
     @Column(name = "conservacion_extintores")

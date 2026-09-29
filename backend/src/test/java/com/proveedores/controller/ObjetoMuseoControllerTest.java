@@ -132,6 +132,37 @@ class ObjetoMuseoControllerTest {
     }
 
     @Test
+    void temperaturaYLuzAceptanHasta200Caracteres() throws Exception {
+        ObjetoMuseoResponseDTO response = new ObjetoMuseoResponseDTO(1L, "INV-1", "Casco", null, null, null, null, null, null, null, null, null, null, java.util.List.of(), java.util.List.of(), null);
+        when(objetoMuseoService.crear(any(ObjetoMuseoRequestDTO.class), any())).thenReturn(response);
+
+        mockMvc.perform(post("/api/objetos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(java.util.Map.of(
+                                "denominacionObjeto", "Casco",
+                                "temperaturaConservacion", "T".repeat(200),
+                                "luzConservacion", "L".repeat(200),
+                                "cantidadPartes", 0
+                        ))))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void temperaturaYLuzRechazanMasDe200Caracteres() throws Exception {
+        mockMvc.perform(post("/api/objetos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(java.util.Map.of(
+                                "denominacionObjeto", "Casco",
+                                "temperaturaConservacion", "T".repeat(201),
+                                "luzConservacion", "L".repeat(201),
+                                "cantidadPartes", 0
+                        ))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.validationErrors.temperaturaConservacion").value("La temperatura no puede superar 200 caracteres"))
+                .andExpect(jsonPath("$.validationErrors.luzConservacion").value("La luz no puede superar 200 caracteres"));
+    }
+
+    @Test
     void resourceNotFoundDevuelve404() throws Exception {
         when(objetoMuseoService.obtenerPorId(99L)).thenThrow(new ResourceNotFoundException("Objeto de museo no encontrado"));
 
