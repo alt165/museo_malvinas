@@ -6,7 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ErrorState } from "@/components/common/error-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
-import { ObjetoMuseoForm, type ObjetoMuseoFormFiles } from "@/features/objetos/components/objeto-museo-form";
+import { ALTA_COMPLETA_DRAFT_STORAGE_KEY, ObjetoMuseoForm, type ObjetoMuseoFormFiles } from "@/features/objetos/components/objeto-museo-form";
 import { listarRecibosObjeto, subirFotosObjeto, subirReciboEscaneadoObjeto } from "@/features/objetos/api";
 import { objetosQueryKeys, useCrearObjetoMutation } from "@/features/objetos/queries";
 import { descargarTicketRecepcionPdf } from "@/features/objetos/recibos";
@@ -24,6 +24,7 @@ export default function NuevoObjetoPage() {
   const [createdObjectId, setCreatedObjectId] = useState<number | null>(null);
   const [resultado, setResultado] = useState<{ objeto: ObjetoMuseoResponseDTO; recibo: ReciboIngresoObjetoResponseDTO } | null>(null);
   const [formResetSignal, setFormResetSignal] = useState(0);
+  const [draftPersistenceEnabled, setDraftPersistenceEnabled] = useState(true);
 
   async function handleSubmit(payload: ObjetoMuseoRequestDTO, archivos: ObjetoMuseoFormFiles) {
     setUploadError(null);
@@ -32,6 +33,12 @@ export default function NuevoObjetoPage() {
     setCreatedObjectId(null);
     mutation.mutate(payload, {
       onSuccess: async (objeto) => {
+        try {
+          window.localStorage.removeItem(ALTA_COMPLETA_DRAFT_STORAGE_KEY);
+        } catch {
+          // El alta ya fue confirmada por el backend; localStorage no debe interrumpir el flujo exitoso.
+        }
+        setDraftPersistenceEnabled(false);
         setCreatedObjectId(objeto.id);
         try {
           if (archivos.fotos.length > 0) {
@@ -50,6 +57,7 @@ export default function NuevoObjetoPage() {
           await queryClient.invalidateQueries({ queryKey: objetosQueryKeys.reciboEscaneado(objeto.id) });
           await queryClient.invalidateQueries({ queryKey: objetosQueryKeys.recibos(objeto.id) });
           setResultado({ objeto, recibo });
+          setDraftPersistenceEnabled(true);
           setFormResetSignal((current) => current + 1);
         } catch {
           setUploadError("El objeto fue creado, pero fallo la subida de uno o mas archivos. Podes reintentar la carga desde el detalle del objeto.");
@@ -117,6 +125,8 @@ export default function NuevoObjetoPage() {
         ) : null}
         <ObjetoMuseoForm
           allowFileUploads
+          draftPersistenceEnabled={draftPersistenceEnabled}
+          draftStorageKey={ALTA_COMPLETA_DRAFT_STORAGE_KEY}
           isSubmitting={mutation.isPending}
           onSubmit={handleSubmit}
           resetSignal={formResetSignal}

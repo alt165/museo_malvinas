@@ -26,6 +26,8 @@ type ObjetoMuseoFormProps = {
   footerContent?: ReactNode;
   onSubmit: (payload: ObjetoMuseoRequestDTO, archivos: ObjetoMuseoFormFiles) => void;
   resetSignal?: number;
+  draftStorageKey?: string;
+  draftPersistenceEnabled?: boolean;
 };
 
 export type ObjetoMuseoFormFiles = {
@@ -33,6 +35,15 @@ export type ObjetoMuseoFormFiles = {
   fotoVisibilidades: VisibilidadCampo[];
   reciboEscaneado: File | null;
 };
+
+type ObjetoMuseoDraft = {
+  version: 1;
+  savedAt: string;
+  data: ObjetoMuseoFormValues;
+  depositanteSeleccionado: DepositanteResponseDTO | null;
+};
+
+export const ALTA_COMPLETA_DRAFT_STORAGE_KEY = "museo_alta_completa_objeto_borrador";
 
 const fotoContentTypesPermitidos = new Set(["image/jpeg", "image/png", "image/webp"]);
 const reciboContentTypesPermitidos = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
@@ -115,6 +126,60 @@ function tipoDepositanteLabel(depositante: DepositanteResponseDTO) {
   return depositante.tipo === "PERSONA" ? "Persona" : "Institucion";
 }
 
+function isDraft(value: unknown): value is ObjetoMuseoDraft {
+  if (!value || typeof value !== "object") return false;
+  const draft = value as Partial<ObjetoMuseoDraft>;
+  if (draft.version !== 1 || typeof draft.savedAt !== "string" || !draft.data || typeof draft.data !== "object") return false;
+  const data = draft.data as Record<string, unknown>;
+  const stringFields = [
+    "numeroInventario", "denominacionObjeto", "descripcion", "descripcionTecnica", "materiales", "medidas",
+    "alto", "ancho", "diametro", "espesor", "peso", "inscripciones", "regimenPropiedad", "condicionLegalBien",
+    "estadoConservacion", "intervencionesInadecuadas", "estadoIntegridad", "humedadConservacion",
+    "temperaturaConservacion", "luzConservacion", "conservacionExtintores", "conservacionMontaje",
+    "conservacionSistemaElectrico", "conservacionAlarmas", "conservacionCamaras", "caracterRecepcion", "fechaVencimiento"
+  ];
+  if (stringFields.some((field) => typeof data[field] !== "string")) return false;
+  if (typeof data.cantidadPartes !== "number" || !Number.isFinite(data.cantidadPartes)) return false;
+  if (typeof data.ubicacionId !== "number" || !Number.isFinite(data.ubicacionId)) return false;
+  if (typeof data.depositanteId !== "number" || !Number.isFinite(data.depositanteId)) return false;
+  if (!Array.isArray(data.categoriaIds) || data.categoriaIds.some((id) => typeof id !== "number" || !Number.isFinite(id))) return false;
+  if (!Array.isArray(data.detallesEstadoConservacion) || data.detallesEstadoConservacion.some((item) => typeof item !== "string")) return false;
+  if (!data.visibilidades || typeof data.visibilidades !== "object" || Object.values(data.visibilidades).some((item) => item !== "PUBLICO" && item !== "PRIVADO")) return false;
+  if (draft.depositanteSeleccionado !== null) {
+    if (!draft.depositanteSeleccionado || typeof draft.depositanteSeleccionado !== "object") return false;
+    if (typeof draft.depositanteSeleccionado.id !== "number" || typeof draft.depositanteSeleccionado.nombre !== "string") return false;
+  }
+  return true;
+}
+
+function hasDraftData(values: ObjetoMuseoFormValues, depositante: DepositanteResponseDTO | null) {
+  if (depositante) return true;
+  return Object.entries(values).some(([field, value]) => {
+    if (field === "visibilidades") return Object.values(value ?? {}).some((visibility) => visibility !== "PUBLICO");
+    if (Array.isArray(value)) return value.length > 0;
+    if (field === "cantidadPartes" || field === "ubicacionId" || field === "depositanteId") return Number(value) > 0;
+    return value !== "" && value !== undefined && value !== null;
+  });
+}
+
+function readDraft(storageKey?: string) {
+  if (!storageKey || typeof window === "undefined") return null;
+  try {
+    const rawDraft = window.localStorage.getItem(storageKey);
+    if (!rawDraft) return null;
+    const parsedDraft: unknown = JSON.parse(rawDraft);
+    if (isDraft(parsedDraft)) return parsedDraft;
+    window.localStorage.removeItem(storageKey);
+  } catch {
+    try {
+      window.localStorage.removeItem(storageKey);
+    } catch {
+      // Ignorar localStorage bloqueado; el formulario debe poder abrirse igualmente.
+    }
+  }
+  return null;
+}
+
 export function ObjetoMuseoForm({
   allowFileUploads = false,
   initialValue,
@@ -122,6 +187,8 @@ export function ObjetoMuseoForm({
   isSubmitting = false,
   onSubmit,
   resetSignal = 0,
+  draftStorageKey,
+  draftPersistenceEnabled = true,
   submitError,
   submitLabel
 }: ObjetoMuseoFormProps) {
@@ -143,6 +210,8 @@ export function ObjetoMuseoForm({
   const [nombreDepositante, setNombreDepositante] = useState("");
   const [nombreDepositanteDebounced, setNombreDepositanteDebounced] = useState("");
   const [validationSummary, setValidationSummary] = useState<string[] | null>(null);
+  const [draftToRestore, setDraftToRestore] = useState<ObjetoMuseoDraft | null>(null);
+  const [draftReady, setDraftReady] = useState(!draftStorageKey);
   const lastResetSignalRef = useRef(0);
   const [depositanteSeleccionado, setDepositanteSeleccionado] = useState<DepositanteResponseDTO | null>(() => {
     if (!initialValue?.depositanteId || !initialValue.depositanteNombre) {
@@ -206,6 +275,13 @@ export function ObjetoMuseoForm({
   });
   const watchedCategoriaIds = useWatch({ control, name: "categoriaIds", defaultValue: [] });
   const watchedDetallesConservacion = useWatch({ control, name: "detallesEstadoConservacion", defaultValue: [] });
+  const watchedValues = useWatch({ control });
+  const latestDraftStateRef = useRef<{
+    values: ObjetoMuseoFormValues | undefined;
+    depositante: DepositanteResponseDTO | null;
+    ready: boolean;
+    paused: boolean;
+  }>({ values: undefined, depositante: null, ready: false, paused: false });
   const caracterRecepcion = useWatch({ control, name: "caracterRecepcion", defaultValue: initialValue?.caracterRecepcion === "RECEPCION" ? "" : initialValue?.caracterRecepcion ?? "" });
   const categoriaIds = useMemo(() => watchedCategoriaIds ?? [], [watchedCategoriaIds]);
   const detallesSeleccionados = useMemo(() => watchedDetallesConservacion ?? [], [watchedDetallesConservacion]);
@@ -224,6 +300,74 @@ export function ObjetoMuseoForm({
     () => fotos.map((foto) => ({ file: foto, url: URL.createObjectURL(foto) })),
     [fotos]
   );
+  useEffect(() => {
+    if (!draftStorageKey || initialValue) return;
+    const timeout = window.setTimeout(() => {
+      setDraftToRestore(readDraft(draftStorageKey));
+      setDraftReady(true);
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [draftStorageKey, initialValue]);
+
+  useEffect(() => {
+    latestDraftStateRef.current = {
+      values: watchedValues as ObjetoMuseoFormValues | undefined,
+      depositante: depositanteSeleccionado,
+      ready: draftReady,
+      paused: !draftPersistenceEnabled
+    };
+  }, [depositanteSeleccionado, draftPersistenceEnabled, draftReady, watchedValues]);
+
+  useEffect(() => {
+    if (!draftStorageKey || initialValue || !draftReady || !draftPersistenceEnabled || !watchedValues) return;
+    const timeout = window.setTimeout(() => {
+      const values = watchedValues as ObjetoMuseoFormValues;
+      if (!hasDraftData(values, depositanteSeleccionado)) {
+        window.localStorage.removeItem(draftStorageKey);
+        return;
+      }
+      const draft: ObjetoMuseoDraft = {
+        version: 1,
+        savedAt: new Date().toISOString(),
+        data: values,
+        depositanteSeleccionado
+      };
+      try {
+        window.localStorage.setItem(draftStorageKey, JSON.stringify(draft));
+      } catch {
+        // El formulario debe continuar funcionando si localStorage no esta disponible o no tiene espacio.
+      }
+    }, 750);
+    return () => window.clearTimeout(timeout);
+  }, [depositanteSeleccionado, draftPersistenceEnabled, draftReady, draftStorageKey, initialValue, watchedValues]);
+
+  useEffect(() => {
+    if (!draftStorageKey || initialValue) return;
+    const saveLatestValues = () => {
+      const latest = latestDraftStateRef.current;
+      if (!latest.ready || latest.paused || !latest.values) return;
+      try {
+        if (!hasDraftData(latest.values, latest.depositante)) {
+          window.localStorage.removeItem(draftStorageKey);
+          return;
+        }
+        const draft: ObjetoMuseoDraft = {
+          version: 1,
+          savedAt: new Date().toISOString(),
+          data: latest.values,
+          depositanteSeleccionado: latest.depositante
+        };
+        window.localStorage.setItem(draftStorageKey, JSON.stringify(draft));
+      } catch {
+        // No bloquear la salida si localStorage no esta disponible.
+      }
+    };
+    window.addEventListener("pagehide", saveLatestValues);
+    return () => {
+      window.removeEventListener("pagehide", saveLatestValues);
+      saveLatestValues();
+    };
+  }, [draftStorageKey, initialValue]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setNombreDepositanteDebounced(nombreDepositante.trim()), 300);
@@ -471,6 +615,42 @@ export function ObjetoMuseoForm({
         (invalidErrors) => setValidationSummary(validationMessages(invalidErrors))
       )}
     >
+      {draftToRestore ? (
+        <div aria-labelledby="objeto-draft-title" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog">
+          <div className="w-full max-w-lg rounded-lg border bg-background p-5 shadow-xl">
+            <h2 className="text-lg font-semibold" id="objeto-draft-title">Borrador de alta encontrado</h2>
+            <p className="mt-2 text-sm text-muted-foreground">Se encontró un borrador de un alta de objeto que no fue finalizada. ¿Desea recuperar los datos?</p>
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button
+                className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
+                onClick={() => {
+                  window.localStorage.removeItem(draftStorageKey!);
+                  setDraftToRestore(null);
+                  setDraftReady(true);
+                }}
+                type="button"
+              >
+                Descartar borrador
+              </button>
+              <button
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+                onClick={() => {
+                  reset(draftToRestore.data);
+                  setDepositanteSeleccionado(draftToRestore.depositanteSeleccionado);
+                  setFotos([]);
+                  setFotoVisibilidades([]);
+                  setReciboEscaneado(null);
+                  setDraftToRestore(null);
+                  setDraftReady(true);
+                }}
+                type="button"
+              >
+                Recuperar borrador
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {validationSummary ? (
         <div aria-labelledby="objeto-validation-title" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog">
           <div className="w-full max-w-lg rounded-lg border bg-background p-5 shadow-xl">
@@ -1009,7 +1189,18 @@ export function ObjetoMuseoForm({
         >
           {isSubmitting ? "Guardando..." : submitLabel}
         </button>
-        <Link className="inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm hover:bg-muted" href="/objetos">
+        <Link
+          className="inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm hover:bg-muted"
+          href="/objetos"
+          onClick={(event) => {
+            if (!draftStorageKey || !watchedValues || !hasDraftData(watchedValues as ObjetoMuseoFormValues, depositanteSeleccionado)) return;
+            if (!window.confirm("Hay datos cargados que todavía no fueron guardados. ¿Desea descartarlos?")) {
+              event.preventDefault();
+              return;
+            }
+            window.localStorage.removeItem(draftStorageKey);
+          }}
+        >
           Cancelar
         </Link>
       </div>
