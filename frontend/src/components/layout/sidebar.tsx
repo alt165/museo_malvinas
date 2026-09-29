@@ -73,18 +73,26 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       />
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-primary/15 bg-primary text-primary-foreground shadow-xl transition-transform md:z-30 md:w-64 md:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-primary text-primary-foreground shadow-xl transition-transform md:z-30 md:w-64 md:translate-x-0 md:shadow-none",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="relative flex min-h-32 items-center justify-center border-b border-white/15 px-5 py-6">
+        <div className="relative flex min-h-32 items-center justify-center px-5 py-6 md:h-[68px] md:min-h-[68px] md:px-2 md:py-0">
           <Image
             alt="Museo Malvinas"
-            className="h-auto max-h-24 w-44 object-contain"
+            className="h-auto max-h-24 w-44 object-contain md:hidden"
             height={120}
             priority
             src="/images/logo-sidebar.png"
             width={220}
+          />
+          <Image
+            alt="Museo Malvinas"
+            className="hidden h-16 w-auto object-contain md:block"
+            height={1852}
+            priority
+            src="/images/logo-header.png"
+            width={2005}
           />
           <button
             className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/20 text-white hover:bg-white/10 md:hidden"
