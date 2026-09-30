@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { tiposDepositante } from "./types";
 
-export const depositanteSchema = z
+function crearDepositanteSchema(esAlta: boolean) {
+  return z
   .object({
     tipo: z.enum(tiposDepositante, { message: "Selecciona un tipo de depositante" }),
     nombre: z.string().trim().max(160, "El nombre no puede superar 160 caracteres").optional().or(z.literal("")),
@@ -36,6 +37,37 @@ export const depositanteSchema = z
         path: ["organizacion"]
       });
     }
+
+    if (!esAlta) {
+      return;
+    }
+
+    const camposRequeridos = [
+      ["email", "El email es obligatorio"],
+      ["telefono", "El telefono es obligatorio"],
+      ["direccion", "La direccion es obligatoria"]
+    ] as const;
+
+    for (const [campo, mensaje] of camposRequeridos) {
+      if (!values[campo]?.trim()) {
+        context.addIssue({ code: "custom", message: mensaje, path: [campo] });
+      }
+    }
+
+    if (values.tipo === "PERSONA") {
+      if (!values.apellido?.trim()) {
+        context.addIssue({ code: "custom", message: "El apellido es obligatorio", path: ["apellido"] });
+      }
+      if (!values.dni?.trim()) {
+        context.addIssue({ code: "custom", message: "El DNI es obligatorio", path: ["dni"] });
+      }
+    } else if (!values.cuit?.trim()) {
+      context.addIssue({ code: "custom", message: "El CUIT es obligatorio", path: ["cuit"] });
+    }
   });
+}
+
+export const depositanteSchema = crearDepositanteSchema(false);
+export const altaDepositanteSchema = crearDepositanteSchema(true);
 
 export type DepositanteFormValues = z.infer<typeof depositanteSchema>;

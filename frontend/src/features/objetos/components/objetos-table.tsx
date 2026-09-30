@@ -17,6 +17,7 @@ import { resumenDescripcion } from "../utils";
 type ObjetosTableProps = {
   objetos: ObjetoMuseoResponseDTO[];
   canEdit: boolean;
+  canViewLocation: boolean;
   canViewHistory?: boolean;
   deletingId?: number | null;
   onDelete?: (objeto: ObjetoMuseoResponseDTO) => void;
@@ -25,7 +26,19 @@ type ObjetosTableProps = {
   onSortChange: (field: ObjetoSortField) => void;
 };
 
-export function ObjetosTable({ canEdit, canViewHistory = false, deletingId, objetos, onDelete, onMove, onSortChange, sort }: ObjetosTableProps) {
+const ubicacionActualColumn: ColumnDef<ObjetoMuseoResponseDTO> = {
+  accessorKey: "ubicacionNombre",
+  header: "Ubicación actual",
+  cell: ({ row }) => {
+    if (row.original.ubicacionVisible === false) {
+      return "No disponible";
+    }
+
+    return row.original.ubicacionNombre || "Sin ubicación asignada";
+  }
+};
+
+export function ObjetosTable({ canEdit, canViewLocation, canViewHistory = false, deletingId, objetos, onDelete, onMove, onSortChange, sort }: ObjetosTableProps) {
   const columns = useMemo<ColumnDef<ObjetoMuseoResponseDTO>[]>(
     () => [
       {
@@ -44,17 +57,6 @@ export function ObjetosTable({ canEdit, canViewHistory = false, deletingId, obje
         cell: ({ row }) => row.original.categorias?.map((categoria) => categoria.nombre).join(", ") || "Sin categorias"
       },
       {
-        accessorKey: "ubicacionNombre",
-        header: "Ubicación actual",
-        cell: ({ row }) => {
-          if (row.original.ubicacionVisible === false) {
-            return "No disponible";
-          }
-
-          return row.original.ubicacionNombre || "Sin ubicación asignada";
-        }
-      },
-      {
         accessorKey: "descripcion",
         header: () => <SortHeader field="descripcion" label="Descripcion" onSortChange={onSortChange} sort={sort} />,
         cell: ({ row }) => <span className="text-muted-foreground">{resumenDescripcion(row.original.descripcion)}</span>
@@ -69,6 +71,7 @@ export function ObjetosTable({ canEdit, canViewHistory = false, deletingId, obje
         header: () => <SortHeader field="estadoConservacion" label="Estado" onSortChange={onSortChange} sort={sort} />,
         cell: ({ row }) => row.original.estadoConservacion ?? "Sin dato"
       },
+      ...(canViewLocation ? [ubicacionActualColumn] : []),
       {
         id: "acciones",
         header: "Acciones",
@@ -126,7 +129,7 @@ export function ObjetosTable({ canEdit, canViewHistory = false, deletingId, obje
         )
       }
     ],
-    [canEdit, canViewHistory, deletingId, onDelete, onMove, onSortChange, sort]
+    [canEdit, canViewLocation, canViewHistory, deletingId, onDelete, onMove, onSortChange, sort]
   );
 
   const table = useReactTable({

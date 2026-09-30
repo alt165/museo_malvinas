@@ -8,7 +8,7 @@ import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
-import { hasRole, useAuth } from "@/lib/auth";
+import { canWrite, hasRole, useAuth } from "@/lib/auth";
 import { descargarBlob } from "@/lib/download";
 import { currentTimestampInArgentinaForFilename } from "@/lib/date-time";
 import { useEditingMode } from "@/lib/editing-mode";
@@ -368,6 +368,7 @@ export default function ObjetosPage() {
           <div className="space-y-3">
             <ObjetosTable
               canEdit={puedeEscribir}
+              canViewLocation={canWrite(roles)}
               canViewHistory={esAdmin}
               deletingId={bajaLogica.variables ?? null}
               objetos={objetos}

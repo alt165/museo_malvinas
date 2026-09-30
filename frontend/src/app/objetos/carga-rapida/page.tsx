@@ -2,13 +2,13 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 import { RequiredAsterisk } from "@/components/common/form-label";
 import { useForm } from "react-hook-form";
 import { ErrorState } from "@/components/common/error-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
-import { useBuscarDepositantePorIdentificacionMutation, useBuscarDepositantesPorNombreQuery } from "@/features/depositantes/queries";
+import { DepositanteForm } from "@/features/depositantes/components/depositante-form";
+import { useBuscarDepositantePorIdentificacionMutation, useBuscarDepositantesPorNombreQuery, useCrearDepositanteMutation } from "@/features/depositantes/queries";
 import type { DepositanteResponseDTO } from "@/features/depositantes/types";
 import { identificacionVisible, telefonoVisible } from "@/features/depositantes/utils";
 import { descargarTicketRecepcionPdf } from "@/features/objetos/recibos";
@@ -18,43 +18,27 @@ import { getApiErrorMessage, getValidationErrors } from "@/features/objetos/util
 import { ApiClientError } from "@/lib/errors/api-error";
 import { routePermissions } from "@/lib/routes";
 import { useCargaRapidaObjetoMutation } from "@/features/objetos/queries";
-import {
-  clearCargaRapidaDepositanteContext,
-  createCargaRapidaDepositanteContext,
-  readCargaRapidaDepositanteContext
-} from "@/features/objetos/carga-rapida-context";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 function tipoDepositanteLabel(depositante: DepositanteResponseDTO) {
   return depositante.tipo === "PERSONA" ? "Persona" : "Institucion";
 }
 
 export default function CargaRapidaObjetoPage() {
-  return (
-    <Suspense>
-      <CargaRapidaObjetoContent />
-    </Suspense>
-  );
-}
-
-function CargaRapidaObjetoContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const retornoProcesado = useRef<string | null>(null);
   const [resultado, setResultado] = useState<CargaRapidaObjetoResponseDTO | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
-  const [contextError, setContextError] = useState<string | null>(null);
   const [identificacion, setIdentificacion] = useState("");
   const [nombreDepositante, setNombreDepositante] = useState("");
   const [nombreDepositanteDebounced, setNombreDepositanteDebounced] = useState("");
   const [depositanteSeleccionado, setDepositanteSeleccionado] = useState<DepositanteResponseDTO | null>(null);
+  const [altaDepositanteIdentificacion, setAltaDepositanteIdentificacion] = useState<string | null>(null);
   const buscarDepositanteMutation = useBuscarDepositantePorIdentificacionMutation();
   const depositantesPorNombreQuery = useBuscarDepositantesPorNombreQuery(nombreDepositanteDebounced);
+  const crearDepositanteMutation = useCrearDepositanteMutation();
   const mutation = useCargaRapidaObjetoMutation();
   const {
     formState: { errors },
     handleSubmit,
-    getValues,
     register,
     reset,
     setError,
@@ -67,48 +51,6 @@ function CargaRapidaObjetoContent() {
       descripcionBreve: ""
     }
   });
-
-  useEffect(() => {
-    const retorno = searchParams.get("retorno");
-    const flowId = searchParams.get("flujo");
-    if (retorno !== "creado" && retorno !== "cancelado") {
-      retornoProcesado.current = null;
-      return;
-    }
-    const retornoKey = `${retorno}:${flowId ?? ""}`;
-    if (retornoProcesado.current === retornoKey) {
-      return;
-    }
-
-    let active = true;
-    queueMicrotask(() => {
-      if (!active || retornoProcesado.current === retornoKey) {
-        return;
-      }
-
-      retornoProcesado.current = retornoKey;
-      const context = readCargaRapidaDepositanteContext(flowId);
-      if (context) {
-        const depositante = retorno === "creado" ? context.depositanteCreado : undefined;
-        reset({
-          depositanteId: depositante?.id ?? 0,
-          denominacionObjeto: context.form.denominacionObjeto,
-          descripcionBreve: context.form.descripcionBreve
-        });
-        setIdentificacion(context.identificacion);
-        setNombreDepositante(context.nombreDepositante);
-        setNombreDepositanteDebounced(context.nombreDepositante.trim());
-        setDepositanteSeleccionado(depositante ?? null);
-        clearCargaRapidaDepositanteContext();
-      }
-
-      router.replace("/objetos/carga-rapida");
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [reset, router, searchParams]);
 
   useEffect(() => {
     const validationErrors = getValidationErrors(mutation.error);
@@ -132,25 +74,9 @@ function CargaRapidaObjetoContent() {
     setValue("depositanteId", depositante.id, { shouldDirty: true, shouldValidate: true });
   }
 
-  function iniciarAltaDepositante() {
-    setContextError(null);
-
-    try {
-      const values = getValues();
-      const context = createCargaRapidaDepositanteContext({
-        form: {
-          denominacionObjeto: values.denominacionObjeto,
-          descripcionBreve: values.descripcionBreve
-        },
-        identificacion: identificacion.trim(),
-        nombreDepositante
-      });
-      router.push(
-        `/depositantes/nuevo?origen=carga-rapida&flujo=${encodeURIComponent(context.flowId)}&identificacion=${encodeURIComponent(context.identificacion)}`
-      );
-    } catch {
-      setContextError("No se pudo conservar la carga en este navegador. Intentalo nuevamente.");
-    }
+  function abrirAltaDepositanteLocal() {
+    crearDepositanteMutation.reset();
+    setAltaDepositanteIdentificacion(identificacion.trim());
   }
 
   const resultadosNombre = depositantesPorNombreQuery.data ?? [];
@@ -175,7 +101,6 @@ function CargaRapidaObjetoContent() {
             requestId={mutation.error instanceof ApiClientError ? mutation.error.requestId : undefined}
           />
         ) : null}
-        {contextError ? <ErrorState message={contextError} /> : null}
         {resultado ? (
           <div className="rounded-lg border p-5 text-sm">
             <p className="font-medium">Objeto creado: {resultado.objeto.numeroInventario}</p>
@@ -212,7 +137,6 @@ function CargaRapidaObjetoContent() {
                 descripcionBreve: values.descripcionBreve.trim()
               },
               { onSuccess: (data) => {
-                clearCargaRapidaDepositanteContext();
                 setDownloadError(null);
                 setResultado(data);
                 reset({
@@ -329,7 +253,7 @@ function CargaRapidaObjetoContent() {
                 <p className="text-destructive">No se encontro un depositante con ese DNI/CUIT.</p>
                 <button
                   className="mt-3 inline-flex h-10 items-center justify-center rounded-md border bg-background px-4 text-sm font-medium hover:bg-muted"
-                  onClick={iniciarAltaDepositante}
+                  onClick={abrirAltaDepositanteLocal}
                   type="button"
                 >
                   Dar de alta depositante
@@ -362,6 +286,40 @@ function CargaRapidaObjetoContent() {
           </button>
         </form>
       </div>
+      {altaDepositanteIdentificacion !== null ? (
+        <div
+          aria-labelledby="alta-depositante-rapida-title"
+          aria-modal="true"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+          role="dialog"
+        >
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-4xl overflow-y-auto rounded-lg border bg-white p-6 shadow-lg sm:p-8 [&>form]:border-0 [&>form]:p-0">
+            <h2 className="mb-6 text-lg font-semibold text-primary" id="alta-depositante-rapida-title">Nuevo depositante</h2>
+            {crearDepositanteMutation.isError ? (
+              <div className="mb-4">
+                <ErrorState
+                  message={getApiErrorMessage(crearDepositanteMutation.error)}
+                  requestId={crearDepositanteMutation.error instanceof ApiClientError ? crearDepositanteMutation.error.requestId : undefined}
+                />
+              </div>
+            ) : null}
+            <DepositanteForm
+              initialIdentification={altaDepositanteIdentificacion}
+              isSubmitting={crearDepositanteMutation.isPending}
+              onCancel={() => setAltaDepositanteIdentificacion(null)}
+              onSubmit={(payload) => crearDepositanteMutation.mutate(payload, {
+                onSuccess: (depositante) => {
+                  seleccionarDepositante(depositante);
+                  buscarDepositanteMutation.reset();
+                  setAltaDepositanteIdentificacion(null);
+                }
+              })}
+              submitError={crearDepositanteMutation.error}
+              submitLabel="Crear depositante"
+            />
+          </div>
+        </div>
+      ) : null}
     </AppShell>
   );
 }
