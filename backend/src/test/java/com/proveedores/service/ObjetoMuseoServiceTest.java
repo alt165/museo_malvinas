@@ -9,14 +9,21 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proveedores.dto.CargaRapidaObjetoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
 import com.proveedores.entity.CaracterRecepcionObjeto;
+import com.proveedores.entity.CategoriaObjeto;
 import com.proveedores.entity.Depositante;
+import com.proveedores.entity.EstadoConservacion;
 import com.proveedores.entity.Inventario;
+import com.proveedores.entity.MovimientoInventario;
 import com.proveedores.entity.ObjetoMuseo;
+import com.proveedores.entity.OrigenCargaObjeto;
 import com.proveedores.entity.ReciboIngresoObjeto;
+import com.proveedores.entity.TipoMovimientoInventario;
 import com.proveedores.entity.Ubicacion;
+import com.proveedores.entity.Usuario;
 import com.proveedores.entity.VisibilidadCampo;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
@@ -33,15 +40,16 @@ import com.proveedores.repository.ObjetoMuseoRepository;
 import com.proveedores.repository.ReciboEscaneadoObjetoMuseoRepository;
 import com.proveedores.repository.ReciboIngresoObjetoRepository;
 import com.proveedores.repository.UbicacionRepository;
-import com.proveedores.repository.UsuarioRepository;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -90,7 +98,7 @@ class ObjetoMuseoServiceTest {
     private UbicacionRepository ubicacionRepository;
 
     @Mock
-    private UsuarioRepository usuarioRepository;
+    private UsuarioMovimientoService usuarioMovimientoService;
 
     @Mock
     private AuditoriaObjetoService auditoriaObjetoService;
@@ -117,6 +125,11 @@ class ObjetoMuseoServiceTest {
     @Test
     void crearObjetoValidoDevuelveResponse() {
         when(numeroInventarioRepository.siguienteCorrelativo(anyInt())).thenReturn(2);
+        CategoriaObjeto categoria = new CategoriaObjeto();
+        categoria.setId(20L);
+        categoria.setNombre("Categoria");
+        categoria.setEliminado(false);
+        when(categoriaObjetoRepository.findById(20L)).thenReturn(Optional.of(categoria));
         Depositante depositante = new Depositante();
         depositante.setId(3L);
         depositante.setNombre("Depositante test");
@@ -138,11 +151,242 @@ class ObjetoMuseoServiceTest {
             return recibo;
         });
 
-        ObjetoMuseoResponseDTO response = service.crear(new ObjetoMuseoRequestDTO("INV-2", "Carta", "Descripcion", null, null, null, null, null, null, 3L, CaracterRecepcionObjeto.DONACION, null));
+        ObjetoMuseoResponseDTO response = service.crear(solicitudAltaCompleta(
+                "Descripcion tecnica", "Papel", "10 cm", EstadoConservacion.BUENO, Set.of(20L), CaracterRecepcionObjeto.DONACION, null
+        ));
 
         assertThat(response.id()).isEqualTo(2L);
         assertThat(response.numeroInventario()).matches("MMAS\\d{4}00002");
         assertThat(response.denominacionObjeto()).isEqualTo("Carta");
+        ArgumentCaptor<ObjetoMuseo> objetoCaptor = ArgumentCaptor.forClass(ObjetoMuseo.class);
+        verify(objetoMuseoRepository).save(objetoCaptor.capture());
+        assertThat(objetoCaptor.getValue().getDatosCompletos()).isTrue();
+    }
+
+    @Test
+    void altaCompletaSinDescripcionTecnicaEsRechazada() {
+        assertThatThrownBy(() -> service.crear(solicitudAltaCompleta(
+                null, "Papel", "10 cm", EstadoConservacion.BUENO, Set.of(20L), CaracterRecepcionObjeto.DONACION, null
+        ))).isInstanceOf(BusinessException.class);
+        verify(objetoMuseoRepository, never()).save(any());
+    }
+
+    @Test
+    void altaCompletaSinMaterialesEsRechazada() {
+        assertThatThrownBy(() -> service.crear(solicitudAltaCompleta(
+                "Descripcion tecnica", null, "10 cm", EstadoConservacion.BUENO, Set.of(20L), CaracterRecepcionObjeto.DONACION, null
+        ))).isInstanceOf(BusinessException.class);
+        verify(objetoMuseoRepository, never()).save(any());
+    }
+
+    @Test
+    void altaCompletaSinDimensionesEsRechazada() {
+        assertThatThrownBy(() -> service.crear(solicitudAltaCompleta(
+                "Descripcion tecnica", "Papel", null, EstadoConservacion.BUENO, Set.of(20L), CaracterRecepcionObjeto.DONACION, null
+        ))).isInstanceOf(BusinessException.class);
+        verify(objetoMuseoRepository, never()).save(any());
+    }
+
+    @Test
+    void altaCompletaSinEstadoDeConservacionEsRechazada() {
+        assertThatThrownBy(() -> service.crear(solicitudAltaCompleta(
+                "Descripcion tecnica", "Papel", "10 cm", null, Set.of(20L), CaracterRecepcionObjeto.DONACION, null
+        ))).isInstanceOf(BusinessException.class);
+        verify(objetoMuseoRepository, never()).save(any());
+    }
+
+    @Test
+    void altaCompletaSinCategoriasEsRechazada() {
+        assertThatThrownBy(() -> service.crear(solicitudAltaCompleta(
+                "Descripcion tecnica", "Papel", "10 cm", EstadoConservacion.BUENO, Set.of(), CaracterRecepcionObjeto.DONACION, null
+        ))).isInstanceOf(BusinessException.class);
+        verify(objetoMuseoRepository, never()).save(any());
+    }
+
+    @Test
+    void altaCompletaPrestamoSinVencimientoEsRechazada() {
+        assertThatThrownBy(() -> service.crear(solicitudAltaCompleta(
+                "Descripcion tecnica", "Papel", "10 cm", EstadoConservacion.BUENO, Set.of(20L), CaracterRecepcionObjeto.PRESTAMO, null
+        ))).isInstanceOf(BusinessException.class);
+        verify(objetoMuseoRepository, never()).save(any());
+    }
+
+    @Test
+    void cargaRapidaInicializaPrivacidadAntesDePersistir() {
+        when(numeroInventarioRepository.siguienteCorrelativo(anyInt())).thenReturn(3);
+        Depositante depositante = new Depositante();
+        depositante.setId(4L);
+        depositante.setEliminado(false);
+        when(depositanteRepository.findById(4L)).thenReturn(Optional.of(depositante));
+        when(objetoMuseoRepository.save(any(ObjetoMuseo.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(ubicacionRepository.findByNombreAndEliminadoFalse("Pre ingreso")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.cargaRapida(
+                new CargaRapidaObjetoRequestDTO(4L, "Objeto rapido", "Descripcion breve"),
+                "operador-test"
+        )).isInstanceOf(ResourceNotFoundException.class);
+
+        ArgumentCaptor<ObjetoMuseo> objetoCaptor = ArgumentCaptor.forClass(ObjetoMuseo.class);
+        verify(objetoMuseoRepository).save(objetoCaptor.capture());
+        assertThat(objetoCaptor.getValue().getVisibilidades()).containsExactlyInAnyOrderEntriesOf(Map.of(
+                "depositante", VisibilidadCampo.PRIVADO,
+                "ubicacion", VisibilidadCampo.PRIVADO
+        ));
+    }
+
+    @Test
+    void cargaRapidaRegistraUsuarioEnMovimientoDeIngreso() {
+        when(numeroInventarioRepository.siguienteCorrelativo(anyInt())).thenReturn(3);
+        Depositante depositante = new Depositante();
+        depositante.setId(4L);
+        depositante.setEliminado(false);
+        Ubicacion preIngreso = ubicacion(7L, "Pre ingreso");
+        Usuario operador = new Usuario();
+        operador.setId(40L);
+        operador.setNombre("operador-test");
+        when(depositanteRepository.findById(4L)).thenReturn(Optional.of(depositante));
+        when(ubicacionRepository.findByNombreAndEliminadoFalse("Pre ingreso")).thenReturn(Optional.of(preIngreso));
+        when(usuarioMovimientoService.resolver("operador-test")).thenReturn(Optional.of(operador));
+        when(objetoMuseoRepository.save(any(ObjetoMuseo.class))).thenAnswer(invocation -> {
+            ObjetoMuseo entity = invocation.getArgument(0);
+            entity.setId(12L);
+            return entity;
+        });
+        when(inventarioRepository.save(any(Inventario.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(movimientoInventarioRepository.save(any(MovimientoInventario.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(reciboIngresoObjetoRepository.save(any(ReciboIngresoObjeto.class))).thenAnswer(invocation -> {
+            ReciboIngresoObjeto recibo = invocation.getArgument(0);
+            recibo.setId(13L);
+            return recibo;
+        });
+        when(objetoCategoriaRepository.findByObjetoMuseoIdAndEliminadoFalse(12L)).thenReturn(List.of());
+        when(fotoObjetoMuseoRepository.findByObjetoMuseoIdAndEliminadoFalse(12L)).thenReturn(List.of());
+        when(reciboEscaneadoObjetoMuseoRepository.findFirstByObjetoMuseoIdAndEliminadoFalseOrderByFechaCargaDesc(12L)).thenReturn(Optional.empty());
+        when(objetoDepositanteRepository.findFirstByObjetoMuseoIdAndEliminadoFalseOrderByIdAsc(12L)).thenReturn(Optional.empty());
+
+        service.cargaRapida(
+                new CargaRapidaObjetoRequestDTO(4L, "Objeto rapido", "Descripcion breve"),
+                "operador-test"
+        );
+
+        ArgumentCaptor<MovimientoInventario> captor = ArgumentCaptor.forClass(MovimientoInventario.class);
+        verify(movimientoInventarioRepository).save(captor.capture());
+        assertThat(captor.getValue().getTipo()).isEqualTo(TipoMovimientoInventario.INGRESO);
+        assertThat(captor.getValue().getUsuario()).isSameAs(operador);
+    }
+
+    @Test
+    void completarCargaRapidaEnMismaUbicacionNoGeneraMovimiento() {
+        ObjetoMuseo objeto = objetoRapidoPendiente(10L);
+        Inventario inventario = inventarioActual(objeto, 7L, "Pre ingreso");
+        prepararActualizacion(objeto, inventario);
+
+        service.actualizar(10L, solicitudCompleta(7L), "operador-test");
+
+        assertThat(objeto.getDatosCompletos()).isTrue();
+        assertThat(objeto.getVisibilidades()).isEmpty();
+        verify(movimientoInventarioRepository, never()).save(any(MovimientoInventario.class));
+        verify(ubicacionRepository, never()).findById(any());
+    }
+
+    @Test
+    void completarCargaRapidaEnOtraUbicacionRegistraCambioUbicacion() {
+        ObjetoMuseo objeto = objetoRapidoPendiente(10L);
+        Inventario inventario = inventarioActual(objeto, 7L, "Pre ingreso");
+        Ubicacion destino = ubicacion(8L, "Sala principal");
+        prepararActualizacion(objeto, inventario);
+        when(ubicacionRepository.findById(8L)).thenReturn(Optional.of(destino));
+        when(movimientoInventarioRepository.save(any(MovimientoInventario.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        Usuario operador = new Usuario();
+        operador.setId(40L);
+        operador.setNombre("operador-test");
+        when(usuarioMovimientoService.resolver("operador-test")).thenReturn(Optional.of(operador));
+
+        service.actualizar(10L, solicitudCompleta(8L), "operador-test");
+
+        assertThat(inventario.getUbicacion()).isSameAs(destino);
+        ArgumentCaptor<MovimientoInventario> movimientoCaptor = ArgumentCaptor.forClass(MovimientoInventario.class);
+        verify(movimientoInventarioRepository).save(movimientoCaptor.capture());
+        assertThat(movimientoCaptor.getValue().getTipo()).isEqualTo(TipoMovimientoInventario.CAMBIO_UBICACION);
+        assertThat(movimientoCaptor.getValue().getUbicacionOrigen().getId()).isEqualTo(7L);
+        assertThat(movimientoCaptor.getValue().getUbicacionDestino().getId()).isEqualTo(8L);
+        assertThat(movimientoCaptor.getValue().getUsuario()).isSameAs(operador);
+    }
+
+    @Test
+    void editarObjetoCompletoEnMismaUbicacionSoloActualizaPrivacidad() {
+        ObjetoMuseo objeto = objeto(10L, "INV-10");
+        objeto.setOrigenCarga(OrigenCargaObjeto.RAPIDA);
+        objeto.setDatosCompletos(true);
+        objeto.setVisibilidades(Map.of("ubicacion", VisibilidadCampo.PRIVADO));
+        Inventario inventario = inventarioActual(objeto, 7L, "Sala actual");
+        prepararActualizacion(objeto, inventario);
+
+        service.actualizar(10L, solicitudCompleta(7L), "operador-test");
+
+        assertThat(inventario.getUbicacion().getId()).isEqualTo(7L);
+        assertThat(objeto.getVisibilidades()).doesNotContainKey("ubicacion");
+        verify(ubicacionRepository, never()).findById(any());
+        verify(movimientoInventarioRepository, never()).save(any(MovimientoInventario.class));
+    }
+
+    @Test
+    void editarObjetoCompletoEnOtraUbicacionRegistraUnCambioYPersistePrivacidad() {
+        ObjetoMuseo objeto = objeto(10L, "INV-10");
+        objeto.setOrigenCarga(OrigenCargaObjeto.COMPLETA);
+        objeto.setDatosCompletos(true);
+        objeto.setVisibilidades(Map.of("ubicacion", VisibilidadCampo.PRIVADO));
+        Inventario inventario = inventarioActual(objeto, 7L, "Sala actual");
+        Ubicacion destino = ubicacion(8L, "Deposito principal");
+        prepararActualizacion(objeto, inventario);
+        when(ubicacionRepository.findById(8L)).thenReturn(Optional.of(destino));
+        when(movimientoInventarioRepository.save(any(MovimientoInventario.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.actualizar(10L, solicitudCompleta(8L), "operador-test");
+
+        assertThat(inventario.getUbicacion()).isSameAs(destino);
+        assertThat(objeto.getVisibilidades()).doesNotContainKey("ubicacion");
+        ArgumentCaptor<MovimientoInventario> movimientoCaptor = ArgumentCaptor.forClass(MovimientoInventario.class);
+        verify(movimientoInventarioRepository).save(movimientoCaptor.capture());
+        assertThat(movimientoCaptor.getValue().getTipo()).isEqualTo(TipoMovimientoInventario.CAMBIO_UBICACION);
+        assertThat(movimientoCaptor.getValue().getUbicacionOrigen().getId()).isEqualTo(7L);
+        assertThat(movimientoCaptor.getValue().getUbicacionDestino().getId()).isEqualTo(8L);
+    }
+
+    @Test
+    void editarObjetoCompletoRechazaUbicacionInactiva() {
+        ObjetoMuseo objeto = objeto(10L, "INV-10");
+        objeto.setOrigenCarga(OrigenCargaObjeto.COMPLETA);
+        objeto.setDatosCompletos(true);
+        Inventario inventario = inventarioActual(objeto, 7L, "Sala actual");
+        Ubicacion inactiva = ubicacion(8L, "Deposito inactivo");
+        inactiva.setActivo(false);
+        when(objetoMuseoRepository.findById(10L)).thenReturn(Optional.of(objeto));
+        when(inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(10L)).thenReturn(Optional.of(inventario));
+        when(ubicacionRepository.findById(8L)).thenReturn(Optional.of(inactiva));
+
+        assertThatThrownBy(() -> service.actualizar(10L, solicitudCompleta(8L), "operador-test"))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        assertThat(inventario.getUbicacion().getId()).isEqualTo(7L);
+        verify(movimientoInventarioRepository, never()).save(any(MovimientoInventario.class));
+    }
+
+    @Test
+    void completarCargaRapidaRechazaUbicacionInexistente() {
+        ObjetoMuseo objeto = objetoRapidoPendiente(10L);
+        Inventario inventario = inventarioActual(objeto, 7L, "Pre ingreso");
+        when(objetoMuseoRepository.findById(10L)).thenReturn(Optional.of(objeto));
+        when(inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(10L)).thenReturn(Optional.of(inventario));
+        when(ubicacionRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.actualizar(10L, solicitudCompleta(99L), "operador-test"))
+                .isInstanceOf(ResourceNotFoundException.class);
+
+        assertThat(inventario.getUbicacion().getId()).isEqualTo(7L);
+        verify(movimientoInventarioRepository, never()).save(any(MovimientoInventario.class));
     }
 
     @Test
@@ -210,14 +454,94 @@ class ObjetoMuseoServiceTest {
     }
 
     private Inventario inventarioActual(ObjetoMuseo objeto, Long ubicacionId, String ubicacionNombre) {
-        Ubicacion ubicacion = new Ubicacion();
-        ubicacion.setId(ubicacionId);
-        ubicacion.setNombre(ubicacionNombre);
+        Ubicacion ubicacion = ubicacion(ubicacionId, ubicacionNombre);
         Inventario inventario = new Inventario();
         inventario.setObjetoMuseo(objeto);
         inventario.setUbicacion(ubicacion);
         inventario.setEliminado(false);
         return inventario;
+    }
+
+    private Ubicacion ubicacion(Long id, String nombre) {
+        Ubicacion ubicacion = new Ubicacion();
+        ubicacion.setId(id);
+        ubicacion.setNombre(nombre);
+        ubicacion.setActivo(true);
+        ubicacion.setEliminado(false);
+        return ubicacion;
+    }
+
+    private ObjetoMuseo objetoRapidoPendiente(Long id) {
+        ObjetoMuseo objeto = objeto(id, "INV-" + id);
+        objeto.setOrigenCarga(OrigenCargaObjeto.RAPIDA);
+        objeto.setDatosCompletos(false);
+        objeto.setVisibilidades(Map.of("depositante", VisibilidadCampo.PRIVADO, "ubicacion", VisibilidadCampo.PRIVADO));
+        return objeto;
+    }
+
+    private ObjetoMuseoRequestDTO solicitudCompleta(Long ubicacionId) {
+        return new ObjetoMuseoRequestDTO(
+                "INV-10",
+                "Objeto completo",
+                "Descripcion",
+                "Descripcion tecnica",
+                "Metal",
+                "10 cm",
+                EstadoConservacion.BUENO,
+                Set.of(20L),
+                ubicacionId,
+                30L,
+                CaracterRecepcionObjeto.DONACION,
+                null
+        );
+    }
+
+    private ObjetoMuseoRequestDTO solicitudAltaCompleta(
+            String descripcionTecnica,
+            String materiales,
+            String dimensiones,
+            EstadoConservacion estadoConservacion,
+            Set<Long> categoriaIds,
+            CaracterRecepcionObjeto caracterRecepcion,
+            java.time.LocalDate fechaVencimiento
+    ) {
+        return new ObjetoMuseoRequestDTO(
+                "INV-2",
+                "Carta",
+                "Descripcion",
+                descripcionTecnica,
+                materiales,
+                dimensiones,
+                estadoConservacion,
+                categoriaIds,
+                null,
+                3L,
+                caracterRecepcion,
+                fechaVencimiento
+        );
+    }
+
+    private void prepararActualizacion(ObjetoMuseo objeto, Inventario inventario) {
+        CategoriaObjeto categoria = new CategoriaObjeto();
+        categoria.setId(20L);
+        categoria.setNombre("Categoria");
+        categoria.setEliminado(false);
+        Depositante depositante = new Depositante();
+        depositante.setId(30L);
+        depositante.setNombre("Depositante");
+        depositante.setEliminado(false);
+
+        when(objetoMuseoRepository.findById(objeto.getId())).thenReturn(Optional.of(objeto));
+        when(objetoMuseoRepository.save(any(ObjetoMuseo.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(objeto.getId())).thenReturn(Optional.of(inventario));
+        when(objetoCategoriaRepository.findByObjetoMuseoIdAndEliminadoFalse(objeto.getId())).thenReturn(List.of());
+        when(categoriaObjetoRepository.findById(20L)).thenReturn(Optional.of(categoria));
+        when(depositanteRepository.findById(30L)).thenReturn(Optional.of(depositante));
+        when(fotoObjetoMuseoRepository.findByObjetoMuseoIdAndEliminadoFalse(objeto.getId())).thenReturn(List.of());
+        when(reciboEscaneadoObjetoMuseoRepository.findFirstByObjetoMuseoIdAndEliminadoFalseOrderByFechaCargaDesc(objeto.getId()))
+                .thenReturn(Optional.empty());
+        when(objetoDepositanteRepository.findFirstByObjetoMuseoIdAndEliminadoFalseOrderByIdAsc(objeto.getId()))
+                .thenReturn(Optional.empty());
     }
 
     private ObjetoMuseo objeto(Long id, String numeroInventario) {

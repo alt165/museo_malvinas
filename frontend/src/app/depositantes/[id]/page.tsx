@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
 import { exportarObjetosDepositantePdf } from "@/features/depositantes/api";
 import { useBajaLogicaDepositanteMutation, useDepositanteQuery, useObjetosDepositanteQuery } from "@/features/depositantes/queries";
-import { getApiErrorMessage, observacionesVisibles, telefonoVisible } from "@/features/depositantes/utils";
+import { getApiErrorMessage, identificacionVisible, observacionesVisibles, telefonoVisible } from "@/features/depositantes/utils";
 import type { DepositanteResponseDTO } from "@/features/depositantes/types";
 import type { ObjetoMuseoResponseDTO } from "@/features/objetos/types";
 import { descargarBlob } from "@/lib/download";
@@ -119,6 +119,10 @@ export default function DetalleDepositantePage() {
                 <div>
                   <dt className="text-muted-foreground">Nombre / organizacion</dt>
                   <dd className="font-medium">{data.nombre}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">{data.tipo === "PERSONA" ? "DNI" : "CUIT"}</dt>
+                  <dd className="font-medium">{identificacionVisible(data)}</dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Email</dt>

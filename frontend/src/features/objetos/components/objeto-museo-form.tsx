@@ -6,14 +6,14 @@ import { RequiredAsterisk } from "@/components/common/form-label";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, type FieldErrors, useForm, useWatch } from "react-hook-form";
 import { useCategoriasQuery } from "@/features/categorias/queries";
-import { useBuscarDepositantePorIdentificacionMutation, useBuscarDepositantesPorNombreQuery } from "@/features/depositantes/queries";
+import { useBuscarDepositantePorIdentificacionMutation, useBuscarDepositantesPorNombreQuery, useDepositanteQuery } from "@/features/depositantes/queries";
 import type { DepositanteResponseDTO } from "@/features/depositantes/types";
 import { identificacionVisible, telefonoVisible } from "@/features/depositantes/utils";
 import { useDetallesConservacionQuery } from "@/features/tablas-auxiliares/queries";
 import { useUbicacionesQuery } from "@/features/ubicaciones/queries";
 import { ApiClientError } from "@/lib/errors/api-error";
 import type { ObjetoMuseoRequestDTO, ObjetoMuseoResponseDTO, VisibilidadCampo } from "../types";
-import { objetoMuseoSchema, type ObjetoMuseoFormValues } from "../schemas";
+import { objetoMuseoFichaCompletaSchema, objetoMuseoSchema, type ObjetoMuseoFormValues } from "../schemas";
 import { getValidationErrors } from "../utils";
 import { MeasurementUnitSelector } from "./measurement-unit-selector";
 
@@ -201,6 +201,8 @@ export function ObjetoMuseoForm({
   submitError,
   submitLabel
 }: ObjetoMuseoFormProps) {
+  const esPendienteCargaRapida = initialValue?.origenCarga === "RAPIDA" && initialValue.datosCompletos === false;
+  const requiereFichaCompleta = !initialValue || esPendienteCargaRapida;
   const {
     data: categorias = [],
     isError: isCategoriasError,
@@ -222,17 +224,13 @@ export function ObjetoMuseoForm({
   const [draftToRestore, setDraftToRestore] = useState<ObjetoMuseoDraft | null>(null);
   const [draftReady, setDraftReady] = useState(!draftStorageKey);
   const lastResetSignalRef = useRef(0);
-  const [depositanteSeleccionado, setDepositanteSeleccionado] = useState<DepositanteResponseDTO | null>(() => {
-    if (!initialValue?.depositanteId || !initialValue.depositanteNombre) {
-      return null;
-    }
-    return {
-      id: initialValue.depositanteId,
-      nombre: initialValue.depositanteNombre,
-      tipo: "PERSONA",
-      activo: true
-    } as DepositanteResponseDTO;
-  });
+  const depositanteInicialQuery = useDepositanteQuery(initialValue?.depositanteId ?? Number.NaN);
+  const [depositanteSeleccionadoLocal, setDepositanteSeleccionado] = useState<DepositanteResponseDTO | null | undefined>(
+    initialValue?.depositanteId ? undefined : null
+  );
+  const depositanteSeleccionado = depositanteSeleccionadoLocal === undefined
+    ? depositanteInicialQuery.data ?? null
+    : depositanteSeleccionadoLocal;
   const buscarDepositanteMutation = useBuscarDepositantePorIdentificacionMutation();
   const depositantesPorNombreQuery = useBuscarDepositantesPorNombreQuery(nombreDepositanteDebounced);
   const {
@@ -245,7 +243,7 @@ export function ObjetoMuseoForm({
     setValue,
     control
   } = useForm<ObjetoMuseoFormValues>({
-    resolver: zodResolver(objetoMuseoSchema),
+    resolver: zodResolver(requiereFichaCompleta ? objetoMuseoFichaCompletaSchema : objetoMuseoSchema),
     defaultValues: {
       numeroInventario: initialValue?.numeroInventario ?? "",
       denominacionObjeto: initialValue?.denominacionObjeto ?? "",
@@ -691,11 +689,11 @@ export function ObjetoMuseoForm({
           </div>
         </div>
       ) : null}
-      {initialValue?.origenCarga === "RAPIDA" && initialValue.datosCompletos === false ? (
+      {esPendienteCargaRapida ? (
         <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
           <p className="font-medium">Ficha pendiente de completar</p>
           <p className="mt-1">
-            Para cerrar la carga se requiere descripcion tecnica, materiales, al menos una dimension, estado de conservacion y al menos una categoria.
+            Para cerrar la carga se requieren depositante, denominacion, caracter de recepcion, descripcion tecnica, materiales, al menos una dimension, estado de conservacion y al menos una categoria. Los prestamos y comodatos tambien requieren fecha de vencimiento.
           </p>
         </div>
       ) : null}
@@ -756,6 +754,16 @@ export function ObjetoMuseoForm({
             ) : null}
           </div>
         ) : null}
+        {!depositanteSeleccionado && depositanteSeleccionadoLocal === undefined && initialValue?.depositanteId ? (
+          <div className="rounded-md border bg-muted/30 p-3 text-sm">
+            <p className="font-medium">{initialValue.depositanteNombre || "Depositante asociado"}</p>
+            <p className={`mt-1 ${depositanteInicialQuery.isError ? "text-destructive" : "text-muted-foreground"}`}>
+              {depositanteInicialQuery.isError
+                ? "No se pudieron recuperar los datos del depositante. La relacion existente se conserva."
+                : "Cargando datos del depositante..."}
+            </p>
+          </div>
+        ) : null}
         {depositanteNoEncontrado ? (
           <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm">
             <p className="text-destructive">No se encontró un depositante con ese DNI/CUIT.</p>
@@ -770,29 +778,27 @@ export function ObjetoMuseoForm({
         {buscarDepositanteMutation.isError && !depositanteNoEncontrado ? <p className="text-sm text-destructive">No se pudo buscar el depositante.</p> : null}
         {errors.depositanteId ? <p className="text-sm text-destructive">{errors.depositanteId.message}</p> : null}
         <div className="grid gap-4 sm:grid-cols-2">
-          {!initialValue ? (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <label className="text-sm font-medium" htmlFor="ubicacionId">Ubicacion inicial</label>
-                {visibilidadControl("ubicacion")}
-              </div>
-              <select
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                disabled={isSubmitting || ubicacionesQuery.isLoading}
-                id="ubicacionId"
-                {...register("ubicacionId", { valueAsNumber: true })}
-              >
-                <option value={0}>Seleccionar ubicacion</option>
-                {(ubicacionesQuery.data ?? []).map((ubicacion) => (
-                  <option key={ubicacion.id} value={ubicacion.id}>
-                    {ubicacion.nombre}
-                  </option>
-                ))}
-              </select>
-              {ubicacionesQuery.isError ? <p className="text-sm text-destructive">No se pudieron cargar las ubicaciones.</p> : null}
-              {errors.ubicacionId ? <p className="text-sm text-destructive">{errors.ubicacionId.message}</p> : null}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-sm font-medium" htmlFor="ubicacionId">{initialValue ? "Ubicacion" : "Ubicacion inicial"}</label>
+              {visibilidadControl("ubicacion")}
             </div>
-          ) : null}
+            <select
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+              disabled={isSubmitting || ubicacionesQuery.isLoading}
+              id="ubicacionId"
+              {...register("ubicacionId", { valueAsNumber: true })}
+            >
+              <option value={0}>Seleccionar ubicacion</option>
+              {(ubicacionesQuery.data ?? []).map((ubicacion) => (
+                <option key={ubicacion.id} value={ubicacion.id}>
+                  {ubicacion.nombre}
+                </option>
+              ))}
+            </select>
+            {ubicacionesQuery.isError ? <p className="text-sm text-destructive">No se pudieron cargar las ubicaciones.</p> : null}
+            {errors.ubicacionId ? <p className="text-sm text-destructive">{errors.ubicacionId.message}</p> : null}
+          </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <label className="text-sm font-medium" htmlFor="caracterRecepcion">Carácter de recepción<RequiredAsterisk /></label>
@@ -820,7 +826,7 @@ export function ObjetoMuseoForm({
       <section className="space-y-3 rounded-md border bg-white p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-semibold">Categorías</h2>
+            <h2 className="text-base font-semibold">Categorías{requiereFichaCompleta ? <RequiredAsterisk /> : null}</h2>
             {visibilidadControl("categorias")}
           </div>
           <span className="text-xs text-muted-foreground">{categoriaIds.length} seleccionada(s)</span>
@@ -917,7 +923,7 @@ export function ObjetoMuseoForm({
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <label className="text-sm font-medium" htmlFor="descripcionTecnica">Descripcion tecnica</label>
+            <label className="text-sm font-medium" htmlFor="descripcionTecnica">Descripcion tecnica{requiereFichaCompleta ? <RequiredAsterisk /> : null}</label>
             {visibilidadControl("descripcionTecnica")}
           </div>
           <textarea
@@ -925,6 +931,7 @@ export function ObjetoMuseoForm({
             id="descripcionTecnica"
             {...register("descripcionTecnica")}
           />
+          {errors.descripcionTecnica ? <p className="text-sm text-destructive">{errors.descripcionTecnica.message}</p> : null}
         </div>
       </section>
 
@@ -933,19 +940,24 @@ export function ObjetoMuseoForm({
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="space-y-2 sm:col-span-2">
             <div className="flex items-center justify-between gap-2">
-              <label className="text-sm font-medium" htmlFor="materiales">Materiales</label>
+              <label className="text-sm font-medium" htmlFor="materiales">Materiales{requiereFichaCompleta ? <RequiredAsterisk /> : null}</label>
               {visibilidadControl("materiales")}
             </div>
             <textarea className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" id="materiales" {...register("materiales")} />
+            {errors.materiales ? <p className="text-sm text-destructive">{errors.materiales.message}</p> : null}
           </div>
           <div className="space-y-2 sm:col-span-2">
             <div className="flex items-center justify-between gap-2">
-              <label className="text-sm font-medium" htmlFor="medidas">Medidas</label>
+              <label className="text-sm font-medium" htmlFor="medidas">Dimensiones{requiereFichaCompleta ? <RequiredAsterisk /> : null}</label>
               {visibilidadControl("medidas")}
             </div>
             <textarea className="min-h-32 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" id="medidas" {...register("medidas")} />
+            {errors.medidas ? <p className="text-sm text-destructive">{errors.medidas.message}</p> : null}
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs text-muted-foreground">Usá el selector para insertar unidades normalizadas en el texto.</p>
+              <p className="text-xs text-muted-foreground">
+                {requiereFichaCompleta ? "Se requiere al menos una dimension. " : null}
+                Usá el selector para insertar unidades normalizadas en el texto.
+              </p>
               <MeasurementUnitSelector disabled={isSubmitting} onSelect={(unit) => {
                 const current = getValues("medidas")?.trimEnd() ?? "";
                 setValue("medidas", current ? ` ` : unit, { shouldDirty: true, shouldValidate: true });
@@ -1000,7 +1012,7 @@ export function ObjetoMuseoForm({
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <label className="text-sm font-medium" htmlFor="estadoConservacion">Estado de conservacion</label>
+              <label className="text-sm font-medium" htmlFor="estadoConservacion">Estado de conservacion{requiereFichaCompleta ? <RequiredAsterisk /> : null}</label>
               {visibilidadControl("estadoConservacion")}
             </div>
             <select

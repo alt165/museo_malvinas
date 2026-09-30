@@ -24,12 +24,14 @@ public class MovimientoInventarioService {
     private final ObjetoMuseoRepository objetoMuseoRepository;
     private final UbicacionRepository ubicacionRepository;
     private final UsuarioRepository usuarioRepository;
+    private final UsuarioMovimientoService usuarioMovimientoService;
 
-    public MovimientoInventarioService(MovimientoInventarioRepository movimientoInventarioRepository, ObjetoMuseoRepository objetoMuseoRepository, UbicacionRepository ubicacionRepository, UsuarioRepository usuarioRepository) {
+    public MovimientoInventarioService(MovimientoInventarioRepository movimientoInventarioRepository, ObjetoMuseoRepository objetoMuseoRepository, UbicacionRepository ubicacionRepository, UsuarioRepository usuarioRepository, UsuarioMovimientoService usuarioMovimientoService) {
         this.movimientoInventarioRepository = movimientoInventarioRepository;
         this.objetoMuseoRepository = objetoMuseoRepository;
         this.ubicacionRepository = ubicacionRepository;
         this.usuarioRepository = usuarioRepository;
+        this.usuarioMovimientoService = usuarioMovimientoService;
     }
 
     @Transactional
@@ -38,7 +40,7 @@ public class MovimientoInventarioService {
         entity.setObjetoMuseo(buscarObjeto(dto.objetoMuseoId()));
         entity.setUbicacionOrigen(buscarUbicacionOpcional(dto.ubicacionOrigenId()));
         entity.setUbicacionDestino(buscarUbicacionOpcional(dto.ubicacionDestinoId()));
-        entity.setUsuario(buscarUsuarioOpcional(dto.usuarioId()));
+        entity.setUsuario(dto.usuarioId() == null ? usuarioMovimientoService.resolver(null).orElse(null) : buscarUsuarioOpcional(dto.usuarioId()));
         return MovimientoInventarioMapper.toResponse(movimientoInventarioRepository.save(entity));
     }
 

@@ -15,7 +15,9 @@ import com.proveedores.entity.EstadoInventario;
 import com.proveedores.entity.Inventario;
 import com.proveedores.entity.OrigenCargaObjeto;
 import com.proveedores.entity.TipoDepositante;
+import com.proveedores.entity.TipoMovimientoInventario;
 import com.proveedores.entity.Ubicacion;
+import com.proveedores.entity.VisibilidadCampo;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.DepositanteRepository;
@@ -28,6 +30,7 @@ import com.proveedores.service.CategoriaObjetoService;
 import com.proveedores.service.ObjetoMuseoService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -515,6 +518,10 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
             assertThat(objeto.getDatosCompletos()).isFalse();
             assertThat(objeto.getFechaCargaRapida()).isNotNull();
             assertThat(objeto.getCargaRapidaPor()).isEqualTo("operador-test");
+            assertThat(objeto.getVisibilidades()).containsExactlyInAnyOrderEntriesOf(Map.of(
+                    "depositante", VisibilidadCampo.PRIVADO,
+                    "ubicacion", VisibilidadCampo.PRIVADO
+            ));
         });
         assertThat(objetoDepositanteRepository.findFirstByObjetoMuseoIdAndEliminadoFalseOrderByIdAsc(response.objeto().id()))
                 .get()
@@ -535,6 +542,10 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
                 "IT-PEND-002",
                 "Descripcion breve completar"
         ), "operador-test");
+        Inventario inventarioInicial = inventarioRepository
+                .findByObjetoMuseoIdAndEliminadoFalse(response.objeto().id())
+                .orElseThrow();
+        int movimientosIniciales = objetoMuseoService.listarMovimientos(response.objeto().id()).size();
 
         objetoMuseoService.actualizar(response.objeto().id(), new ObjetoMuseoRequestDTO(
                 "IT-PEND-002",
@@ -545,20 +556,74 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
                 "10 x 20 cm",
                 EstadoConservacion.BUENO,
                 Set.of(categoria.id()),
-                null,
+                inventarioInicial.getUbicacion().getId(),
                 depositante.getId(),
                 CaracterRecepcionObjeto.DONACION,
                 null
         ));
 
         assertThat(objetoMuseoRepository.findById(response.objeto().id())).get()
-                .satisfies(objeto -> assertThat(objeto.getDatosCompletos()).isTrue());
+                .satisfies(objeto -> {
+                    assertThat(objeto.getDatosCompletos()).isTrue();
+                    assertThat(objeto.getVisibilidades()).isEmpty();
+                });
+        assertThat(inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(response.objeto().id()))
+                .get()
+                .satisfies(inventario -> assertThat(inventario.getUbicacion().getId())
+                        .isEqualTo(inventarioInicial.getUbicacion().getId()));
+        assertThat(objetoMuseoService.listarMovimientos(response.objeto().id())).hasSize(movimientosIniciales);
         assertThat(objetoMuseoService.obtenerPorId(response.objeto().id()))
                 .satisfies(objeto -> {
                     assertThat(objeto.depositanteId()).isEqualTo(depositante.getId());
                     assertThat(objeto.caracterRecepcion()).isEqualTo(CaracterRecepcionObjeto.DONACION);
                     assertThat(objeto.fechaVencimiento()).isNull();
                 });
+    }
+
+    @Test
+    void completarCargaRapidaYEdicionPosteriorCambianUbicacionConMovimientos() {
+        Depositante depositante = crearDepositante("IT Depositante cambio ubicacion");
+        var categoria = categoriaObjetoService.crear(new CategoriaObjetoRequestDTO("IT Categoria cambio ubicacion", null));
+        Ubicacion destino = crearUbicacion("IT Destino carga rapida");
+        Ubicacion destinoPosterior = crearUbicacion("IT Destino no permitido por DTO");
+        var response = objetoMuseoService.cargaRapida(new CargaRapidaObjetoRequestDTO(
+                depositante.getId(),
+                "Objeto a ubicar",
+                "IT-PEND-UBI-001",
+                "Descripcion breve"
+        ), "operador-test");
+
+        objetoMuseoService.actualizar(response.objeto().id(), new ObjetoMuseoRequestDTO(
+                "IT-PEND-UBI-001", "Objeto a ubicar", "Descripcion breve",
+                "Descripcion tecnica", "Metal", "10 x 20 cm", EstadoConservacion.BUENO,
+                Set.of(categoria.id()), destino.getId(), depositante.getId(),
+                CaracterRecepcionObjeto.DONACION, null
+        ), "operador-test");
+
+        assertThat(inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(response.objeto().id()))
+                .get()
+                .satisfies(inventario -> assertThat(inventario.getUbicacion().getId()).isEqualTo(destino.getId()));
+        assertThat(objetoMuseoService.listarMovimientos(response.objeto().id()))
+                .extracting("tipoMovimiento")
+                .containsExactly(TipoMovimientoInventario.CAMBIO_UBICACION, TipoMovimientoInventario.INGRESO);
+
+        objetoMuseoService.actualizar(response.objeto().id(), new ObjetoMuseoRequestDTO(
+                "IT-PEND-UBI-001", "Objeto a ubicar", "Descripcion breve",
+                "Descripcion tecnica", "Metal", "10 x 20 cm", EstadoConservacion.BUENO,
+                Set.of(categoria.id()), destinoPosterior.getId(), depositante.getId(),
+                CaracterRecepcionObjeto.DONACION, null
+        ), "operador-test");
+
+        assertThat(inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(response.objeto().id()))
+                .get()
+                .satisfies(inventario -> assertThat(inventario.getUbicacion().getId()).isEqualTo(destinoPosterior.getId()));
+        assertThat(objetoMuseoService.listarMovimientos(response.objeto().id()))
+                .extracting("tipoMovimiento")
+                .containsExactly(
+                        TipoMovimientoInventario.CAMBIO_UBICACION,
+                        TipoMovimientoInventario.CAMBIO_UBICACION,
+                        TipoMovimientoInventario.INGRESO
+                );
     }
 
     @Test

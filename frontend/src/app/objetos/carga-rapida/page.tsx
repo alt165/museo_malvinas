@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { RequiredAsterisk } from "@/components/common/form-label";
 import { useForm } from "react-hook-form";
 import { ErrorState } from "@/components/common/error-state";
@@ -17,15 +18,32 @@ import { getApiErrorMessage, getValidationErrors } from "@/features/objetos/util
 import { ApiClientError } from "@/lib/errors/api-error";
 import { routePermissions } from "@/lib/routes";
 import { useCargaRapidaObjetoMutation } from "@/features/objetos/queries";
-import { useEffect, useState } from "react";
+import {
+  clearCargaRapidaDepositanteContext,
+  createCargaRapidaDepositanteContext,
+  readCargaRapidaDepositanteContext
+} from "@/features/objetos/carga-rapida-context";
+import { Suspense, useEffect, useRef, useState } from "react";
 
 function tipoDepositanteLabel(depositante: DepositanteResponseDTO) {
   return depositante.tipo === "PERSONA" ? "Persona" : "Institucion";
 }
 
 export default function CargaRapidaObjetoPage() {
+  return (
+    <Suspense>
+      <CargaRapidaObjetoContent />
+    </Suspense>
+  );
+}
+
+function CargaRapidaObjetoContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const retornoProcesado = useRef(false);
   const [resultado, setResultado] = useState<CargaRapidaObjetoResponseDTO | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [contextError, setContextError] = useState<string | null>(null);
   const [identificacion, setIdentificacion] = useState("");
   const [nombreDepositante, setNombreDepositante] = useState("");
   const [nombreDepositanteDebounced, setNombreDepositanteDebounced] = useState("");
@@ -36,6 +54,7 @@ export default function CargaRapidaObjetoPage() {
   const {
     formState: { errors },
     handleSubmit,
+    getValues,
     register,
     reset,
     setError,
@@ -48,6 +67,47 @@ export default function CargaRapidaObjetoPage() {
       descripcionBreve: ""
     }
   });
+
+  useEffect(() => {
+    if (retornoProcesado.current) {
+      return;
+    }
+
+    const retorno = searchParams.get("retorno");
+    const flowId = searchParams.get("flujo");
+    if (retorno !== "creado" && retorno !== "cancelado") {
+      return;
+    }
+
+    let active = true;
+    queueMicrotask(() => {
+      if (!active || retornoProcesado.current) {
+        return;
+      }
+
+      retornoProcesado.current = true;
+      const context = readCargaRapidaDepositanteContext(flowId);
+      if (context) {
+        const depositante = retorno === "creado" ? context.depositanteCreado : undefined;
+        reset({
+          depositanteId: depositante?.id ?? 0,
+          denominacionObjeto: context.form.denominacionObjeto,
+          descripcionBreve: context.form.descripcionBreve
+        });
+        setIdentificacion(context.identificacion);
+        setNombreDepositante(context.nombreDepositante);
+        setNombreDepositanteDebounced(context.nombreDepositante.trim());
+        setDepositanteSeleccionado(depositante ?? null);
+        clearCargaRapidaDepositanteContext();
+      }
+
+      router.replace("/objetos/carga-rapida");
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [reset, router, searchParams]);
 
   useEffect(() => {
     const validationErrors = getValidationErrors(mutation.error);
@@ -69,6 +129,27 @@ export default function CargaRapidaObjetoPage() {
   function seleccionarDepositante(depositante: DepositanteResponseDTO) {
     setDepositanteSeleccionado(depositante);
     setValue("depositanteId", depositante.id, { shouldDirty: true, shouldValidate: true });
+  }
+
+  function iniciarAltaDepositante() {
+    setContextError(null);
+
+    try {
+      const values = getValues();
+      const context = createCargaRapidaDepositanteContext({
+        form: {
+          denominacionObjeto: values.denominacionObjeto,
+          descripcionBreve: values.descripcionBreve
+        },
+        identificacion: identificacion.trim(),
+        nombreDepositante
+      });
+      router.push(
+        `/depositantes/nuevo?origen=carga-rapida&flujo=${encodeURIComponent(context.flowId)}&identificacion=${encodeURIComponent(context.identificacion)}`
+      );
+    } catch {
+      setContextError("No se pudo conservar la carga en este navegador. Intentalo nuevamente.");
+    }
   }
 
   const resultadosNombre = depositantesPorNombreQuery.data ?? [];
@@ -93,6 +174,7 @@ export default function CargaRapidaObjetoPage() {
             requestId={mutation.error instanceof ApiClientError ? mutation.error.requestId : undefined}
           />
         ) : null}
+        {contextError ? <ErrorState message={contextError} /> : null}
         {resultado ? (
           <div className="rounded-lg border p-5 text-sm">
             <p className="font-medium">Objeto creado: {resultado.objeto.numeroInventario}</p>
@@ -129,6 +211,7 @@ export default function CargaRapidaObjetoPage() {
                 descripcionBreve: values.descripcionBreve.trim()
               },
               { onSuccess: (data) => {
+                clearCargaRapidaDepositanteContext();
                 setDownloadError(null);
                 setResultado(data);
                 reset({
@@ -243,12 +326,13 @@ export default function CargaRapidaObjetoPage() {
             {buscarDepositanteMutation.error instanceof ApiClientError && buscarDepositanteMutation.error.status === 404 ? (
               <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm">
                 <p className="text-destructive">No se encontro un depositante con ese DNI/CUIT.</p>
-                <Link
+                <button
                   className="mt-3 inline-flex h-10 items-center justify-center rounded-md border bg-background px-4 text-sm font-medium hover:bg-muted"
-                  href={`/depositantes/nuevo?identificacion=${encodeURIComponent(identificacion.trim())}`}
+                  onClick={iniciarAltaDepositante}
+                  type="button"
                 >
                   Dar de alta depositante
-                </Link>
+                </button>
               </div>
             ) : null}
             {buscarDepositanteMutation.isError && !(buscarDepositanteMutation.error instanceof ApiClientError && buscarDepositanteMutation.error.status === 404) ? (
