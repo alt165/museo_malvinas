@@ -7,7 +7,7 @@ import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import type { DepositanteRequestDTO, DepositanteResponseDTO } from "../types";
 import { tiposDepositante } from "../types";
-import { depositanteSchema, type DepositanteFormValues } from "../schemas";
+import { altaDepositanteSchema, depositanteSchema, type DepositanteFormValues } from "../schemas";
 import { depositanteToFormValues, formValuesToDepositanteRequest, getValidationErrors } from "../utils";
 
 type DepositanteFormProps = {
@@ -17,6 +17,7 @@ type DepositanteFormProps = {
   submitError?: unknown;
   submitLabel: string;
   cancelHref?: string;
+  onCancel?: () => void;
   onSubmit: (payload: DepositanteRequestDTO) => void;
 };
 
@@ -27,8 +28,10 @@ export function DepositanteForm({
   onSubmit,
   submitError,
   submitLabel,
-  cancelHref = "/depositantes"
+  cancelHref = "/depositantes",
+  onCancel
 }: DepositanteFormProps) {
+  const esAlta = !initialValue;
   const {
     formState: { errors },
     control,
@@ -36,7 +39,7 @@ export function DepositanteForm({
     register,
     setError
   } = useForm<DepositanteFormValues>({
-    resolver: zodResolver(depositanteSchema),
+    resolver: zodResolver(esAlta ? altaDepositanteSchema : depositanteSchema),
     defaultValues: depositanteToFormValues(initialValue, initialIdentification)
   });
   const tipo = useWatch({ control, name: "tipo" });
@@ -70,7 +73,7 @@ export function DepositanteForm({
             ))}
           </select>
         </Field>
-        <Field label="Email" error={errors.email?.message}>
+        <Field required={esAlta} label="Email" error={errors.email?.message}>
           <input
             className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
             type="email"
@@ -86,13 +89,13 @@ export function DepositanteForm({
               {...register("nombre")}
             />
           </Field>
-          <Field label="Apellido" error={errors.apellido?.message}>
+          <Field required={esAlta} label="Apellido" error={errors.apellido?.message}>
             <input
               className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
               {...register("apellido")}
             />
           </Field>
-          <Field label="DNI" error={errors.dni?.message}>
+          <Field required={esAlta} label="DNI" error={errors.dni?.message}>
             <input
               className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
               {...register("dni")}
@@ -107,7 +110,7 @@ export function DepositanteForm({
               {...register("organizacion")}
             />
           </Field>
-          <Field label="CUIT" error={errors.cuit?.message}>
+          <Field required={esAlta} label="CUIT" error={errors.cuit?.message}>
             <input
               className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
               {...register("cuit")}
@@ -116,13 +119,13 @@ export function DepositanteForm({
         </div>
       )}
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Telefono" error={errors.telefono?.message}>
+        <Field required={esAlta} label="Telefono" error={errors.telefono?.message}>
           <input
             className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
             {...register("telefono")}
           />
         </Field>
-        <Field label="Direccion" error={errors.direccion?.message}>
+        <Field required={esAlta} label="Direccion" error={errors.direccion?.message}>
           <input
             className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
             {...register("direccion")}
@@ -143,9 +146,20 @@ export function DepositanteForm({
         >
           {isSubmitting ? "Guardando..." : submitLabel}
         </button>
-        <Link className="inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm hover:bg-muted" href={cancelHref}>
-          Cancelar
-        </Link>
+        {onCancel ? (
+          <button
+            className="inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isSubmitting}
+            onClick={onCancel}
+            type="button"
+          >
+            Cancelar
+          </button>
+        ) : (
+          <Link className="inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm hover:bg-muted" href={cancelHref}>
+            Cancelar
+          </Link>
+        )}
       </div>
     </form>
   );
