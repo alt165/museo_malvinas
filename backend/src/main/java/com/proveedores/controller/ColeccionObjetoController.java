@@ -109,7 +109,7 @@ public class ColeccionObjetoController {
     }
 
     private String nombreArchivoColeccionPdf(Long id) {
-        return "coleccion_" + id + "_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm")) + ".pdf";
+        return "coleccion_" + id + "_" + com.proveedores.time.MuseoTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm")) + ".pdf";
     }
 
     private String usuario(Authentication authentication) {

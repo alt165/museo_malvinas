@@ -38,7 +38,7 @@ public class UsuarioMovimientoService {
                 usuario.setKeycloakId(keycloakId);
                 usuario.setNombre(username);
                 usuario.setEmail(email);
-                usuario.setFechaCreacion(LocalDateTime.now());
+                usuario.setFechaCreacion(com.proveedores.time.MuseoTime.now());
                 return Optional.of(usuarioRepository.save(usuario));
             }
         }

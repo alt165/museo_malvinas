@@ -12,6 +12,7 @@ import { ObjetosColeccionPanel } from "@/features/colecciones/components/objetos
 import { useBajaLogicaColeccionMutation, useColeccionQuery } from "@/features/colecciones/queries";
 import { getApiErrorMessage } from "@/features/colecciones/utils";
 import { descargarBlob } from "@/lib/download";
+import { currentTimestampInArgentinaForFilename } from "@/lib/date-time";
 import { useEditingMode } from "@/lib/editing-mode";
 import { routes } from "@/lib/routes";
 
@@ -128,15 +129,13 @@ export default function ColeccionDetallePage() {
 }
 
 function nombreArchivoColeccionPdf(nombre: string, id: number) {
-  const now = new Date();
-  const pad = (value: number) => String(value).padStart(2, "0");
   const nombreSeguro = nombre
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "") || String(id);
-  return `coleccion_${nombreSeguro}_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}.pdf`;
+  return `coleccion_${nombreSeguro}_${currentTimestampInArgentinaForFilename()}.pdf`;
 }
 
 function Info({ className, label, value, valueClassName }: { className?: string; label: string; value: string; valueClassName?: string }) {

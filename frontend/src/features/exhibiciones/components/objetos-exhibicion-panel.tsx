@@ -10,6 +10,7 @@ import { RowActionButton, RowActions } from "@/components/common/row-actions";
 import { EmptyState } from "@/components/common/empty-state";
 import { useObjetosQuery } from "@/features/objetos/queries";
 import { ApiClientError } from "@/lib/errors/api-error";
+import { todayInArgentina } from "@/lib/date-time";
 import {
   useAgregarObjetoAExhibicionMutation,
   useObjetosExhibicionQuery,
@@ -42,7 +43,7 @@ export function ObjetosExhibicionPanel({ canWrite, estado, exhibicionId }: Objet
     resolver: zodResolver(agregarObjetoExhibicionSchema),
     defaultValues: {
       objetoMuseoId: 0,
-      fechaInclusion: new Date().toISOString().slice(0, 10)
+      fechaInclusion: todayInArgentina()
     }
   });
 
@@ -72,7 +73,7 @@ export function ObjetosExhibicionPanel({ canWrite, estado, exhibicionId }: Objet
                 observacionesDevolucion: null
               },
               {
-                onSuccess: () => reset({ objetoMuseoId: 0, fechaInclusion: new Date().toISOString().slice(0, 10) })
+                onSuccess: () => reset({ objetoMuseoId: 0, fechaInclusion: todayInArgentina() })
               }
             )
           )}

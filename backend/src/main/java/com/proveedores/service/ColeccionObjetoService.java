@@ -96,7 +96,7 @@ public class ColeccionObjetoService {
         });
         entity.setActivo(false);
         entity.setEliminado(true);
-        entity.setFechaEliminacion(LocalDateTime.now());
+        entity.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         coleccionObjetoRepository.save(entity);
         log.info("event=coleccion_objeto.deleted coleccionId={} objetosDesvinculados={}", entity.getId(), objetosAsociados.size());
     }

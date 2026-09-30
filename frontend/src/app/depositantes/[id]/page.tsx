@@ -14,6 +14,7 @@ import { getApiErrorMessage, identificacionVisible, observacionesVisibles, telef
 import type { DepositanteResponseDTO } from "@/features/depositantes/types";
 import type { ObjetoMuseoResponseDTO } from "@/features/objetos/types";
 import { descargarBlob } from "@/lib/download";
+import { currentTimestampInArgentinaForFilename } from "@/lib/date-time";
 import { useEditingMode } from "@/lib/editing-mode";
 import { routePermissions } from "@/lib/routes";
 
@@ -215,13 +216,11 @@ function fechaVisible(value?: string | null) {
 }
 
 function nombreArchivoDepositanteObjetosPdf(depositante: DepositanteResponseDTO) {
-  const now = new Date();
-  const pad = (value: number) => String(value).padStart(2, "0");
   const nombreSeguro = depositante.nombre
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "") || String(depositante.id);
-  return `depositante_${nombreSeguro}_objetos_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}.pdf`;
+  return `depositante_${nombreSeguro}_objetos_${currentTimestampInArgentinaForFilename()}.pdf`;
 }

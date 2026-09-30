@@ -86,7 +86,7 @@ public class ExhibicionService {
 
     @Transactional(readOnly = true)
     public List<ExhibicionProximaInicioResponseDTO> listarProximasAIniciar() {
-        LocalDate hoy = LocalDate.now();
+        LocalDate hoy = com.proveedores.time.MuseoTime.today();
         return exhibicionRepository.buscarProximasAIniciar(hoy, hoy.plusDays(15)).stream()
                 .map(exhibicion -> new ExhibicionProximaInicioResponseDTO(
                         exhibicion.getId(),
@@ -172,7 +172,7 @@ public class ExhibicionService {
         if (entity.getEstado() == EstadoExhibicion.FINALIZADA) {
             return toResponse(entity);
         }
-        LocalDate hoy = LocalDate.now();
+        LocalDate hoy = com.proveedores.time.MuseoTime.today();
         boolean anticipada = entity.getFechaFin() == null || entity.getFechaFin().isAfter(hoy);
         if (anticipada) {
             entity.setFechaFin(hoy);
@@ -188,7 +188,7 @@ public class ExhibicionService {
     @Transactional
     public ExhibicionResponseDTO cancelar(Long id) {
         Exhibicion entity = buscarActivo(id);
-        LocalDate hoy = LocalDate.now();
+        LocalDate hoy = com.proveedores.time.MuseoTime.today();
         if (entity.getEstado() != EstadoExhibicion.PLANIFICADA || !entity.getFechaInicio().isAfter(hoy)) {
             throw new BusinessException("No se puede cancelar una exhibición que ya inició.");
         }
@@ -202,7 +202,7 @@ public class ExhibicionService {
     @Scheduled(cron = "0 0 * * * *")
     @Transactional
     public void iniciarExhibicionesPlanificadasVencidas() {
-        LocalDate hoy = LocalDate.now();
+        LocalDate hoy = com.proveedores.time.MuseoTime.today();
         List<Exhibicion> exhibiciones = exhibicionRepository.findByEstadoAndEliminadoFalseAndFechaInicioLessThanEqual(EstadoExhibicion.PLANIFICADA, hoy);
         for (Exhibicion exhibicion : exhibiciones) {
             exhibicion.setEstado(EstadoExhibicion.ACTIVA);
@@ -221,7 +221,7 @@ public class ExhibicionService {
         }
         entity.setActivo(false);
         entity.setEliminado(true);
-        entity.setFechaEliminacion(LocalDateTime.now());
+        entity.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         exhibicionRepository.save(entity);
         log.info("event=exhibicion.deleted exhibicionId={}", entity.getId());
     }
@@ -264,7 +264,7 @@ public class ExhibicionService {
                 var anteriores = snapshotExhibicion(existente);
                 existente.setActivo(false);
                 existente.setEliminado(true);
-                existente.setFechaEliminacion(LocalDateTime.now());
+                existente.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
                 exhibicionObjetoRepository.save(existente);
                 auditoriaObjetoService.registrar(existente.getObjetoMuseo(), TipoOperacionAuditoria.MODIFICACION, "REMOCION_EXHIBICION", "Remoción del objeto de exhibición", "EXHIBICION", anteriores, null, operador);
             }
@@ -338,7 +338,7 @@ public class ExhibicionService {
 
     private void validarFechasAlta(LocalDate fechaInicio, LocalDate fechaFin) {
         validarFechas(fechaInicio, fechaFin);
-        if (fechaInicio.isBefore(LocalDate.now())) {
+        if (fechaInicio.isBefore(com.proveedores.time.MuseoTime.today())) {
             throw new BusinessException("La fecha de inicio no puede ser anterior a la fecha actual.");
         }
     }
@@ -357,7 +357,7 @@ public class ExhibicionService {
     }
 
     private EstadoExhibicion estadoInicial(LocalDate fechaInicio) {
-        return fechaInicio.isAfter(LocalDate.now()) ? EstadoExhibicion.PLANIFICADA : EstadoExhibicion.ACTIVA;
+        return fechaInicio.isAfter(com.proveedores.time.MuseoTime.today()) ? EstadoExhibicion.PLANIFICADA : EstadoExhibicion.ACTIVA;
     }
 
     private boolean bloqueaDisponibilidad(Exhibicion exhibicion) {
@@ -378,7 +378,7 @@ public class ExhibicionService {
     }
 
     private void liberarObjetosPorFinalizacion(Exhibicion exhibicion, boolean anticipada, String operador) {
-        LocalDate hoy = LocalDate.now();
+        LocalDate hoy = com.proveedores.time.MuseoTime.today();
         for (ExhibicionObjeto relacion : exhibicionObjetoRepository.findByExhibicionIdAndEliminadoFalse(exhibicion.getId())) {
             Map<String, Object> anteriores = snapshotExhibicion(relacion);
             relacion.setEstado(EstadoExhibicionObjeto.DEVUELTO);
@@ -402,7 +402,7 @@ public class ExhibicionService {
     }
 
     private void liberarObjetosPorCancelacion(Exhibicion exhibicion, String operador) {
-        LocalDate hoy = LocalDate.now();
+        LocalDate hoy = com.proveedores.time.MuseoTime.today();
         for (ExhibicionObjeto relacion : exhibicionObjetoRepository.findByExhibicionIdAndEliminadoFalse(exhibicion.getId())) {
             Map<String, Object> anteriores = snapshotExhibicion(relacion);
             relacion.setEstado(EstadoExhibicionObjeto.DEVUELTO);

@@ -10,6 +10,7 @@ import com.proveedores.entity.Auditoria;
 import com.proveedores.entity.ObjetoMuseo;
 import com.proveedores.entity.TipoOperacionAuditoria;
 import com.proveedores.repository.AuditoriaRepository;
+import com.proveedores.time.MuseoTime;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -58,6 +59,7 @@ class AuditoriaObjetoServiceTest {
         objeto.setId(7L);
         objeto.setNumeroInventario("INV-7");
 
+        LocalDateTime antes = MuseoTime.now();
         service.registrar(
                 objeto,
                 TipoOperacionAuditoria.CREACION,
@@ -68,6 +70,7 @@ class AuditoriaObjetoServiceTest {
                 service.mapOf("numeroInventario", "INV-7"),
                 null
         );
+        LocalDateTime despues = MuseoTime.now();
 
         ArgumentCaptor<Auditoria> captor = ArgumentCaptor.forClass(Auditoria.class);
         verify(auditoriaRepository).save(captor.capture());
@@ -78,6 +81,7 @@ class AuditoriaObjetoServiceTest {
         assertThat(auditoria.getUsuarioNombre()).isEqualTo("Administrador Museo");
         assertThat(auditoria.getRol()).isEqualTo("ADMIN");
         assertThat(auditoria.getDatosNuevos()).contains("INV-7");
+        assertThat(auditoria.getFecha()).isBetween(antes, despues);
     }
 
     @Test

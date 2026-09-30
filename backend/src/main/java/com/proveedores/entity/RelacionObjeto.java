@@ -50,7 +50,7 @@ public class RelacionObjeto extends EntidadBase {
     private String descripcion;
 
     @Column(name = "fecha_creacion", nullable = false)
-    private LocalDateTime fechaCreacion = LocalDateTime.now();
+    private LocalDateTime fechaCreacion = com.proveedores.time.MuseoTime.now();
 
     @Column(name = "creado_por", length = 160)
     private String creadoPor;

@@ -69,7 +69,7 @@ public class UnidadMilitarService {
         UnidadMilitar unidad = buscarActivo(id);
         unidad.setActivo(false);
         unidad.setEliminado(true);
-        unidad.setFechaEliminacion(LocalDateTime.now());
+        unidad.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         unidadMilitarRepository.save(unidad);
     }
 

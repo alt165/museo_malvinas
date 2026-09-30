@@ -120,7 +120,7 @@ public class SecurityConfig {
         response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getWriter(), new ApiErrorResponse(
-                LocalDateTime.now(),
+                com.proveedores.time.MuseoTime.now(),
                 status.value(),
                 status.getReasonPhrase(),
                 message,

@@ -20,13 +20,12 @@ import {
 import type { EmbargoObjetoResponseDTO, ObjetoMuseoResponseDTO } from "@/features/objetos/types";
 import { getApiErrorMessage } from "@/features/objetos/utils";
 import { descargarBlob } from "@/lib/download";
+import { todayInArgentina } from "@/lib/date-time";
 import { ApiClientError } from "@/lib/errors/api-error";
 import { routePermissions } from "@/lib/routes";
 
 function fechaLocalIso() {
-  const date = new Date();
-  const offset = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 10);
+  return todayInArgentina();
 }
 
 function formatearFecha(value?: string | null) {

@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { estadosExhibicion, tiposExhibicion } from "./types";
-
-const today = new Date().toISOString().slice(0, 10);
+import { todayInArgentina } from "@/lib/date-time";
 
 export const exhibicionSchema = z
   .object({
@@ -22,7 +21,7 @@ export const agregarObjetoExhibicionSchema = z.object({
   fechaInclusion: z
     .string()
     .min(1, "La fecha de inclusion es obligatoria")
-    .refine((value) => value <= today, "La fecha de inclusion no puede ser futura")
+    .refine((value) => value <= todayInArgentina(), "La fecha de inclusion no puede ser futura")
 });
 
 export type ExhibicionFormValues = z.infer<typeof exhibicionSchema>;

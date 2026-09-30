@@ -11,6 +11,7 @@ import { ObjetosExhibicionPanel } from "@/features/exhibiciones/components/objet
 import { useCancelarExhibicionMutation, useExhibicionQuery, useFinalizarExhibicionMutation } from "@/features/exhibiciones/queries";
 import { formatDate, getApiErrorMessage } from "@/features/exhibiciones/utils";
 import { useEditingMode } from "@/lib/editing-mode";
+import { todayInArgentina } from "@/lib/date-time";
 import { ApiClientError } from "@/lib/errors/api-error";
 
 function getParamId(value: string | string[] | undefined) {
@@ -26,7 +27,7 @@ export default function DetalleExhibicionPage() {
   const { data, error, isError, isLoading } = useExhibicionQuery(id);
   const finalizarMutation = useFinalizarExhibicionMutation(id);
   const cancelarMutation = useCancelarExhibicionMutation(id);
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = todayInArgentina();
 
   return (
     <AppShell>

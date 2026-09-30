@@ -53,7 +53,7 @@ public class ReciboEscaneadoObjetoMuseoService {
         recibo.setContentType(archivo.getContentType());
         recibo.setTamanioBytes(archivo.getSize());
         recibo.setRutaRelativa(storedFile.relativePath());
-        recibo.setFechaCarga(LocalDateTime.now());
+        recibo.setFechaCarga(com.proveedores.time.MuseoTime.now());
         recibo.setCargadoPor(cargadoPor);
         return toResponse(reciboEscaneadoRepository.save(recibo));
     }
@@ -83,7 +83,7 @@ public class ReciboEscaneadoObjetoMuseoService {
     private void eliminarActivo(ReciboEscaneadoObjetoMuseo recibo) {
         recibo.setActivo(false);
         recibo.setEliminado(true);
-        recibo.setFechaEliminacion(LocalDateTime.now());
+        recibo.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         reciboEscaneadoRepository.save(recibo);
     }
 

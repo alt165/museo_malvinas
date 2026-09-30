@@ -10,6 +10,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { useMovimientosObjetoQuery, useObjetoQuery } from "@/features/objetos/queries";
 import { getApiErrorMessage } from "@/features/objetos/utils";
 import { ApiClientError } from "@/lib/errors/api-error";
+import { formatDateTimeArgentina } from "@/lib/date-time";
 import { routePermissions } from "@/lib/routes";
 
 function getParamId(value: string | string[] | undefined) {
@@ -19,13 +20,7 @@ function getParamId(value: string | string[] | undefined) {
 }
 
 function formatDateTime(value?: string | null) {
-  if (!value) {
-    return "Sin dato";
-  }
-  return new Intl.DateTimeFormat("es-AR", {
-    dateStyle: "short",
-    timeStyle: "short"
-  }).format(new Date(value));
+  return formatDateTimeArgentina(value, "Sin dato");
 }
 
 export default function MovimientosObjetoPage() {

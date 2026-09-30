@@ -52,7 +52,7 @@ public class ComodatoPrestamoService {
     @Transactional(readOnly = true)
     public List<ComodatoPrestamoResponseDTO> listar() {
         int diasAlerta = obtenerDiasAlerta();
-        LocalDate hoy = LocalDate.now();
+        LocalDate hoy = com.proveedores.time.MuseoTime.today();
         return objetoDepositanteRepository.findComodatosPrestamosActivosOrdenados(CARACTERES_GESTIONADOS).stream()
                 .map(relacion -> toComodatoPrestamoResponse(relacion, hoy, diasAlerta))
                 .toList();
@@ -61,7 +61,7 @@ public class ComodatoPrestamoService {
     @Transactional(readOnly = true)
     public List<ObjetoVencimientoProximoResponseDTO> listarVencimientosProximos(Integer dias) {
         int diasAlerta = dias == null ? obtenerDiasAlerta() : Math.max(0, dias);
-        LocalDate hoy = LocalDate.now();
+        LocalDate hoy = com.proveedores.time.MuseoTime.today();
         LocalDate fechaHasta = hoy.plusDays(diasAlerta);
         return objetoDepositanteRepository
                 .findByTipoDepositoInAndFechaVencimientoBetweenAndActivoTrueAndEliminadoFalseAndObjetoMuseoActivoTrueAndObjetoMuseoEliminadoFalseOrderByFechaVencimientoAsc(
@@ -103,7 +103,7 @@ public class ComodatoPrestamoService {
                 auditoriaObjetoService.mapOf("fechaVencimiento", fechaVencimiento),
                 operador
         );
-        return toComodatoPrestamoResponse(saved, LocalDate.now(), obtenerDiasAlerta());
+        return toComodatoPrestamoResponse(saved, com.proveedores.time.MuseoTime.today(), obtenerDiasAlerta());
     }
 
     @Transactional(readOnly = true)
@@ -172,7 +172,7 @@ public class ComodatoPrestamoService {
     private LocalDate fechaIngreso(ObjetoDepositante relacion) {
         return inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(relacion.getObjetoMuseo().getId())
                 .map(Inventario::getFechaIngreso)
-                .orElseGet(() -> relacion.getFechaDeposito() == null ? LocalDate.now() : relacion.getFechaDeposito());
+                .orElseGet(() -> relacion.getFechaDeposito() == null ? com.proveedores.time.MuseoTime.today() : relacion.getFechaDeposito());
     }
 
     private int obtenerDiasAlerta() {

@@ -58,7 +58,7 @@ public class ObjetoDigitalService {
         ObjetoDigital entity = buscarActivo(id);
         entity.setActivo(false);
         entity.setEliminado(true);
-        entity.setFechaEliminacion(LocalDateTime.now());
+        entity.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         objetoDigitalRepository.save(entity);
     }
 

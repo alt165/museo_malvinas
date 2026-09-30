@@ -40,7 +40,7 @@ public class ComodatoPrestamoExportService {
                 objetos,
                 "No hay objetos activos recibidos como préstamo o comodato."
         );
-        return pdfReportService.generate(report, new ReportMetadata(INSTITUTION_NAME, LocalDateTime.now(), usuario));
+        return pdfReportService.generate(report, new ReportMetadata(INSTITUTION_NAME, com.proveedores.time.MuseoTime.now(), usuario));
     }
 
     private List<ReportColumn<ComodatoPrestamoResponseDTO>> columnas() {

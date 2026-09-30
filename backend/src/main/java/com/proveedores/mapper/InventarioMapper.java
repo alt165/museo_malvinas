@@ -17,7 +17,7 @@ public final class InventarioMapper {
         entity.setEstadoConservacion(dto.estadoConservacion());
         entity.setFechaIngreso(dto.fechaIngreso());
         entity.setFechaSalida(dto.fechaSalida());
-        entity.setFechaUltimoMovimiento(LocalDateTime.now());
+        entity.setFechaUltimoMovimiento(com.proveedores.time.MuseoTime.now());
         entity.setObservaciones(dto.observaciones());
         return entity;
     }

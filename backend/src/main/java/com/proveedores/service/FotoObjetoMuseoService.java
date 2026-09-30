@@ -70,7 +70,7 @@ public class FotoObjetoMuseoService {
         foto.setRutaRelativa(storedFile.relativePath());
         foto.setDescripcion(descripcion);
         foto.setVisibilidad(visibilidad == null ? VisibilidadCampo.PUBLICO : visibilidad);
-        foto.setFechaCarga(LocalDateTime.now());
+        foto.setFechaCarga(com.proveedores.time.MuseoTime.now());
         foto.setCargadoPor(cargadoPor);
         return toResponse(fotoObjetoMuseoRepository.save(foto));
     }
@@ -109,7 +109,7 @@ public class FotoObjetoMuseoService {
         FotoObjetoMuseo foto = buscarFoto(objetoId, fotoId);
         foto.setActivo(false);
         foto.setEliminado(true);
-        foto.setFechaEliminacion(LocalDateTime.now());
+        foto.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         fotoObjetoMuseoRepository.save(foto);
     }
 

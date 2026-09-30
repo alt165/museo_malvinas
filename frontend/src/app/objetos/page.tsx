@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
 import { hasRole, useAuth } from "@/lib/auth";
 import { descargarBlob } from "@/lib/download";
+import { currentTimestampInArgentinaForFilename } from "@/lib/date-time";
 import { useEditingMode } from "@/lib/editing-mode";
 import { exportarObjetosPdf } from "@/features/objetos/api";
 import { useBajaLogicaObjetoMutation, useBuscarObjetosQuery } from "@/features/objetos/queries";
@@ -425,7 +426,5 @@ export default function ObjetosPage() {
 }
 
 function nombreArchivoObjetosPdf() {
-  const now = new Date();
-  const pad = (value: number) => String(value).padStart(2, "0");
-  return `objetos_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}.pdf`;
+  return `objetos_${currentTimestampInArgentinaForFilename()}.pdf`;
 }

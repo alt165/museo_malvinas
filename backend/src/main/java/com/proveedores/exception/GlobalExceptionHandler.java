@@ -196,7 +196,7 @@ public class GlobalExceptionHandler {
             Map<String, String> validationErrors
     ) {
         return ResponseEntity.status(status).body(new ApiErrorResponse(
-                LocalDateTime.now(),
+                com.proveedores.time.MuseoTime.now(),
                 status.value(),
                 status.getReasonPhrase(),
                 message,

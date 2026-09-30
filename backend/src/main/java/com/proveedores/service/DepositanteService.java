@@ -98,7 +98,7 @@ public class DepositanteService {
         Depositante entity = buscarActivo(id);
         entity.setActivo(false);
         entity.setEliminado(true);
-        entity.setFechaEliminacion(LocalDateTime.now());
+        entity.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         depositanteRepository.save(entity);
     }
 

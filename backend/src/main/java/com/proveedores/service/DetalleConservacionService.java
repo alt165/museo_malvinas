@@ -59,7 +59,7 @@ public class DetalleConservacionService {
         DetalleConservacion detalle = buscarActivo(id);
         detalle.setActivo(false);
         detalle.setEliminado(true);
-        detalle.setFechaEliminacion(LocalDateTime.now());
+        detalle.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         detalleConservacionRepository.save(detalle);
     }
 

@@ -72,7 +72,7 @@ public class MovimientoInventarioService {
         MovimientoInventario entity = buscarActivo(id);
         entity.setActivo(false);
         entity.setEliminado(true);
-        entity.setFechaEliminacion(LocalDateTime.now());
+        entity.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         movimientoInventarioRepository.save(entity);
     }
 

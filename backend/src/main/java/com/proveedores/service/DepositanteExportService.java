@@ -43,7 +43,7 @@ public class DepositanteExportService {
                 objetos,
                 "Este depositante no tiene objetos registrados."
         );
-        return pdfReportService.generate(report, new ReportMetadata(INSTITUTION_NAME, LocalDateTime.now(), usuario));
+        return pdfReportService.generate(report, new ReportMetadata(INSTITUTION_NAME, com.proveedores.time.MuseoTime.now(), usuario));
     }
 
     private List<ReportFilter> datosDepositante(DepositanteResponseDTO depositante, int cantidadObjetos) {

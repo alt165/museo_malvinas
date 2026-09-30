@@ -15,6 +15,7 @@ import type {
   ObjetosPendientesSort
 } from "@/features/objetos/types";
 import { getApiErrorMessage } from "@/features/objetos/utils";
+import { currentTimestampInArgentinaForFilename, formatDateTimeArgentina } from "@/lib/date-time";
 import { descargarBlob } from "@/lib/download";
 import { routePermissions } from "@/lib/routes";
 
@@ -210,9 +211,7 @@ export default function ObjetosPendientesPage() {
 }
 
 function nombreArchivoPendientesPdf() {
-  const now = new Date();
-  const pad = (value: number) => String(value).padStart(2, "0");
-  return `objetos_pendientes_completar_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}.pdf`;
+  return `objetos_pendientes_completar_${currentTimestampInArgentinaForFilename()}.pdf`;
 }
 
 function SortHeader({
@@ -242,17 +241,5 @@ function SortHeader({
 }
 
 function formatearFechaHora(value?: string | null) {
-  if (!value) {
-    return "Sin dato";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("es-AR", {
-    dateStyle: "short",
-    timeStyle: "short"
-  }).format(date);
+  return formatDateTimeArgentina(value, "Sin dato");
 }

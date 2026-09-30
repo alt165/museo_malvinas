@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -40,6 +41,8 @@ import com.proveedores.repository.ObjetoMuseoRepository;
 import com.proveedores.repository.ReciboEscaneadoObjetoMuseoRepository;
 import com.proveedores.repository.ReciboIngresoObjetoRepository;
 import com.proveedores.repository.UbicacionRepository;
+import com.proveedores.time.MuseoTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -264,15 +267,28 @@ class ObjetoMuseoServiceTest {
         when(reciboEscaneadoObjetoMuseoRepository.findFirstByObjetoMuseoIdAndEliminadoFalseOrderByFechaCargaDesc(12L)).thenReturn(Optional.empty());
         when(objetoDepositanteRepository.findFirstByObjetoMuseoIdAndEliminadoFalseOrderByIdAsc(12L)).thenReturn(Optional.empty());
 
+        LocalDateTime antes = MuseoTime.now();
         service.cargaRapida(
                 new CargaRapidaObjetoRequestDTO(4L, "Objeto rapido", "Descripcion breve"),
                 "operador-test"
         );
+        LocalDateTime despues = MuseoTime.now();
+
+        ArgumentCaptor<ObjetoMuseo> objetoCaptor = ArgumentCaptor.forClass(ObjetoMuseo.class);
+        verify(objetoMuseoRepository).save(objetoCaptor.capture());
+        assertThat(objetoCaptor.getValue().getFechaCargaRapida()).isBetween(antes, despues);
+
+        ArgumentCaptor<Inventario> inventarioCaptor = ArgumentCaptor.forClass(Inventario.class);
+        verify(inventarioRepository, times(2)).save(inventarioCaptor.capture());
+        assertThat(inventarioCaptor.getAllValues())
+                .extracting(Inventario::getFechaUltimoMovimiento)
+                .allSatisfy(fecha -> assertThat(fecha).isBetween(antes, despues));
 
         ArgumentCaptor<MovimientoInventario> captor = ArgumentCaptor.forClass(MovimientoInventario.class);
         verify(movimientoInventarioRepository).save(captor.capture());
         assertThat(captor.getValue().getTipo()).isEqualTo(TipoMovimientoInventario.INGRESO);
         assertThat(captor.getValue().getUsuario()).isSameAs(operador);
+        assertThat(captor.getValue().getFecha()).isBetween(antes, despues);
     }
 
     @Test
@@ -303,7 +319,9 @@ class ObjetoMuseoServiceTest {
         operador.setNombre("operador-test");
         when(usuarioMovimientoService.resolver("operador-test")).thenReturn(Optional.of(operador));
 
+        LocalDateTime antes = MuseoTime.now();
         service.actualizar(10L, solicitudCompleta(8L), "operador-test");
+        LocalDateTime despues = MuseoTime.now();
 
         assertThat(inventario.getUbicacion()).isSameAs(destino);
         ArgumentCaptor<MovimientoInventario> movimientoCaptor = ArgumentCaptor.forClass(MovimientoInventario.class);
@@ -311,6 +329,7 @@ class ObjetoMuseoServiceTest {
         assertThat(movimientoCaptor.getValue().getTipo()).isEqualTo(TipoMovimientoInventario.CAMBIO_UBICACION);
         assertThat(movimientoCaptor.getValue().getUbicacionOrigen().getId()).isEqualTo(7L);
         assertThat(movimientoCaptor.getValue().getUbicacionDestino().getId()).isEqualTo(8L);
+        assertThat(movimientoCaptor.getValue().getFecha()).isBetween(antes, despues);
         assertThat(movimientoCaptor.getValue().getUsuario()).isSameAs(operador);
     }
 

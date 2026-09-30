@@ -15,6 +15,7 @@ import { ApiClientError } from "@/lib/errors/api-error";
 import type { ObjetoMuseoRequestDTO, ObjetoMuseoResponseDTO, VisibilidadCampo } from "../types";
 import { objetoMuseoFichaCompletaSchema, objetoMuseoSchema, type ObjetoMuseoFormValues } from "../schemas";
 import { getValidationErrors } from "../utils";
+import { todayInArgentina } from "@/lib/date-time";
 import { MeasurementUnitSelector } from "./measurement-unit-selector";
 
 type ObjetoMuseoFormProps = {
@@ -493,7 +494,7 @@ export function ObjetoMuseoForm({
   const buscandoPorNombre = Boolean(nombreDepositante.trim()) && (nombreDepositante.trim() !== nombreDepositanteDebounced || depositantesPorNombreQuery.isFetching);
   const mostrarFechaVencimiento = caracteresConVencimiento.has(caracterRecepcion);
   const depositanteNoEncontrado = buscarDepositanteMutation.error instanceof ApiClientError && buscarDepositanteMutation.error.status === 404;
-  const fechaMinimaVencimiento = initialValue?.fechaIngreso ?? new Date().toISOString().slice(0, 10);
+  const fechaMinimaVencimiento = initialValue?.fechaIngreso ?? todayInArgentina();
 
   function limpiarDepositante() {
     setDepositanteSeleccionado(null);
