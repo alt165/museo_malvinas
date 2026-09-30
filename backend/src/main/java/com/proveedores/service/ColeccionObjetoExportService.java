@@ -42,7 +42,7 @@ public class ColeccionObjetoExportService {
                 objetos,
                 "La colección no tiene objetos asociados."
         );
-        return pdfReportService.generate(report, new ReportMetadata(INSTITUTION_NAME, LocalDateTime.now(), usuario));
+        return pdfReportService.generate(report, new ReportMetadata(INSTITUTION_NAME, com.proveedores.time.MuseoTime.now(), usuario));
     }
 
     private List<ReportFilter> datosColeccion(ColeccionObjetoResponseDTO coleccion, int cantidadObjetos) {

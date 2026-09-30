@@ -112,7 +112,7 @@ public class DepositanteController {
     }
 
     private String nombreArchivoDepositanteObjetosPdf(Long id) {
-        return "depositante_" + id + "_objetos_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm")) + ".pdf";
+        return "depositante_" + id + "_objetos_" + com.proveedores.time.MuseoTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm")) + ".pdf";
     }
 
     private String usuario(Authentication authentication) {

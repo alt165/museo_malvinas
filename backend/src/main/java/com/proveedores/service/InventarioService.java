@@ -54,7 +54,7 @@ public class InventarioService {
         Inventario entity = InventarioMapper.toEntity(dto);
         entity.setObjetoMuseo(objeto);
         entity.setUbicacion(ubicacion);
-        entity.setFechaUltimoMovimiento(LocalDateTime.now());
+        entity.setFechaUltimoMovimiento(com.proveedores.time.MuseoTime.now());
         Inventario saved = inventarioRepository.save(entity);
         registrarMovimiento(saved, TipoMovimientoInventario.INGRESO, null, ubicacion);
         log.info("event=inventario.created inventarioId={} objetoMuseoId={} ubicacionId={} estado={}", saved.getId(), objeto.getId(), ubicacion.getId(), saved.getEstado());
@@ -87,7 +87,7 @@ public class InventarioService {
         entity.setEstadoConservacion(dto.estadoConservacion());
         entity.setFechaIngreso(dto.fechaIngreso());
         entity.setFechaSalida(dto.fechaSalida());
-        entity.setFechaUltimoMovimiento(LocalDateTime.now());
+        entity.setFechaUltimoMovimiento(com.proveedores.time.MuseoTime.now());
         entity.setObservaciones(dto.observaciones());
         Inventario saved = inventarioRepository.save(entity);
 
@@ -113,7 +113,7 @@ public class InventarioService {
         Inventario entity = buscarActivo(id);
         entity.setActivo(false);
         entity.setEliminado(true);
-        entity.setFechaEliminacion(LocalDateTime.now());
+        entity.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         inventarioRepository.save(entity);
         log.info("event=inventario.deleted inventarioId={} objetoMuseoId={}", entity.getId(), entity.getObjetoMuseo().getId());
     }
@@ -122,7 +122,7 @@ public class InventarioService {
         MovimientoInventario movimiento = new MovimientoInventario();
         movimiento.setObjetoMuseo(inventario.getObjetoMuseo());
         movimiento.setTipo(tipo);
-        movimiento.setFecha(LocalDateTime.now());
+        movimiento.setFecha(com.proveedores.time.MuseoTime.now());
         movimiento.setUbicacionOrigen(origen);
         movimiento.setUbicacionDestino(destino);
         movimiento.setObservaciones("Movimiento generado desde inventario");

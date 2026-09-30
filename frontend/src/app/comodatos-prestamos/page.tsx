@@ -17,6 +17,7 @@ import {
 import type { CaracterRecepcionObjeto, ComodatoPrestamoResponseDTO, EstadoVencimientoComodatoPrestamo } from "@/features/objetos/types";
 import { getApiErrorMessage } from "@/features/objetos/utils";
 import { descargarBlob } from "@/lib/download";
+import { currentTimestampInArgentinaForFilename } from "@/lib/date-time";
 import { useEditingMode } from "@/lib/editing-mode";
 import { routePermissions } from "@/lib/routes";
 
@@ -294,7 +295,5 @@ export default function ComodatosPrestamosPage() {
 }
 
 function nombreArchivoComodatosPdf() {
-  const now = new Date();
-  const pad = (value: number) => String(value).padStart(2, "0");
-  return `comodatos_prestamos_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}.pdf`;
+  return `comodatos_prestamos_${currentTimestampInArgentinaForFilename()}.pdf`;
 }

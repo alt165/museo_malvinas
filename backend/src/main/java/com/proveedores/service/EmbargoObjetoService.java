@@ -51,7 +51,7 @@ public class EmbargoObjetoService {
         if (embargoObjetoRepository.existsByObjetoMuseoIdAndFechaFinalizacionIsNullAndEliminadoFalse(objeto.getId())) {
             throw new BusinessException("El objeto ya tiene un embargo vigente");
         }
-        LocalDate fechaInicio = dto.fechaInicio() == null ? LocalDate.now() : dto.fechaInicio();
+        LocalDate fechaInicio = dto.fechaInicio() == null ? com.proveedores.time.MuseoTime.today() : dto.fechaInicio();
         validarFechas(fechaInicio, dto.fechaFinalizacion());
 
         EmbargoObjeto embargo = new EmbargoObjeto();
@@ -94,7 +94,7 @@ public class EmbargoObjetoService {
         }
 
         Object anteriores = snapshot(embargo);
-        embargo.setFechaFinalizacion(LocalDate.now());
+        embargo.setFechaFinalizacion(com.proveedores.time.MuseoTime.today());
         EmbargoObjeto saved = embargoObjetoRepository.save(embargo);
 
         auditoriaObjetoService.registrar(
@@ -126,7 +126,7 @@ public class EmbargoObjetoService {
                 embargos,
                 "No hay embargos vigentes."
         );
-        return pdfReportService.generate(report, new ReportMetadata(INSTITUTION_NAME, LocalDateTime.now(), usuario));
+        return pdfReportService.generate(report, new ReportMetadata(INSTITUTION_NAME, com.proveedores.time.MuseoTime.now(), usuario));
     }
 
     private void validarFechas(LocalDate fechaInicio, LocalDate fechaFinalizacion) {

@@ -69,7 +69,7 @@ public class EmbargoObjetoController {
     }
 
     private String nombreArchivoPdf() {
-        return "embargos_objetos_" + DateTimeFormatter.ofPattern("yyyyMMdd_HHmm").format(LocalDateTime.now()) + ".pdf";
+        return "embargos_objetos_" + DateTimeFormatter.ofPattern("yyyyMMdd_HHmm").format(com.proveedores.time.MuseoTime.now()) + ".pdf";
     }
 
     private String usuario(Authentication authentication) {

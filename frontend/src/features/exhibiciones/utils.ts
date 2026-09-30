@@ -1,4 +1,5 @@
 import { ApiClientError, getUserFacingErrorMessage } from "@/lib/errors/api-error";
+import { formatDateTimeArgentina } from "@/lib/date-time";
 
 export function getApiErrorMessage(error: unknown) {
   return getUserFacingErrorMessage(error);
@@ -21,12 +22,5 @@ export function formatDate(value?: string | null) {
 }
 
 export function formatDateTime(value?: string | null) {
-  if (!value) {
-    return "No registrada";
-  }
-
-  return new Intl.DateTimeFormat("es-AR", {
-    dateStyle: "short",
-    timeStyle: "short"
-  }).format(new Date(value));
+  return formatDateTimeArgentina(value, "No registrada");
 }

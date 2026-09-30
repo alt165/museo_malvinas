@@ -53,7 +53,7 @@ public class RelacionObjetoService {
         entity.setObjetoDestino(buscarObjeto(dto.objetoDestinoId()));
         entity.setTipoRelacion(normalizarTipo(dto.tipoRelacion()));
         entity.setDescripcion(normalizarDescripcion(dto.descripcion()));
-        entity.setFechaCreacion(LocalDateTime.now());
+        entity.setFechaCreacion(com.proveedores.time.MuseoTime.now());
         entity.setCreadoPor(creadoPor);
         return RelacionObjetoMapper.toResponse(relacionObjetoRepository.save(entity));
     }
@@ -135,7 +135,7 @@ public class RelacionObjetoService {
         RelacionObjeto entity = buscarActivo(id);
         entity.setActivo(false);
         entity.setEliminado(true);
-        entity.setFechaEliminacion(LocalDateTime.now());
+        entity.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         relacionObjetoRepository.save(entity);
     }
 

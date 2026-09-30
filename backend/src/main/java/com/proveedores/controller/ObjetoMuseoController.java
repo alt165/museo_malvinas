@@ -409,11 +409,11 @@ public class ObjetoMuseoController {
     }
 
     private String nombreArchivoObjetosPdf() {
-        return "objetos_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm")) + ".pdf";
+        return "objetos_" + com.proveedores.time.MuseoTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm")) + ".pdf";
     }
 
     private String nombreArchivoPendientesCompletarPdf() {
-        return "objetos_pendientes_completar_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm")) + ".pdf";
+        return "objetos_pendientes_completar_" + com.proveedores.time.MuseoTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm")) + ".pdf";
     }
 
     private String usuario(Authentication authentication) {

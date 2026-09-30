@@ -80,7 +80,7 @@ public class ObjetoMuseoExportService {
                 objetoMuseoReportColumns.columns(),
                 objetos
         );
-        return pdfReportService.generate(report, new ReportMetadata(INSTITUTION_NAME, LocalDateTime.now(), usuario));
+        return pdfReportService.generate(report, new ReportMetadata(INSTITUTION_NAME, com.proveedores.time.MuseoTime.now(), usuario));
     }
 
     public byte[] exportarPendientesCompletarPdf(Sort sort, String usuario) {
@@ -93,7 +93,7 @@ public class ObjetoMuseoExportService {
                 objetos,
                 "No hay objetos de alta rápida pendientes de completar."
         );
-        return pdfReportService.generate(report, new ReportMetadata(INSTITUTION_NAME, LocalDateTime.now(), usuario));
+        return pdfReportService.generate(report, new ReportMetadata(INSTITUTION_NAME, com.proveedores.time.MuseoTime.now(), usuario));
     }
 
     private List<ReportFilter> filtros(

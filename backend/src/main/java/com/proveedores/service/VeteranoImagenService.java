@@ -54,7 +54,7 @@ public class VeteranoImagenService {
         imagen.setRutaRelativa(storedFile.relativePath());
         imagen.setDescripcion(descripcion);
         imagen.setOrden((int) veteranoImagenRepository.countByVeteranoIdAndEliminadoFalse(veteranoId));
-        imagen.setFechaCarga(LocalDateTime.now());
+        imagen.setFechaCarga(com.proveedores.time.MuseoTime.now());
         imagen.setCargadoPor(cargadoPor);
         return toResponse(veteranoImagenRepository.save(imagen));
     }
@@ -84,7 +84,7 @@ public class VeteranoImagenService {
         VeteranoImagen imagen = buscarImagen(veteranoId, imagenId);
         imagen.setActivo(false);
         imagen.setEliminado(true);
-        imagen.setFechaEliminacion(LocalDateTime.now());
+        imagen.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         veteranoImagenRepository.save(imagen);
     }
 

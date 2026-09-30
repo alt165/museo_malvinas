@@ -16,6 +16,7 @@ import { estadosExhibicion, tiposExhibicion } from "../types";
 import { exhibicionSchema, type ExhibicionFormValues } from "../schemas";
 import { formatDate, getApiErrorMessage, getValidationErrors } from "../utils";
 import { ApiClientError } from "@/lib/errors/api-error";
+import { todayInArgentina } from "@/lib/date-time";
 
 type ExhibicionFormProps = {
   initialValue?: ExhibicionResponseDTO;
@@ -62,7 +63,7 @@ export function ExhibicionForm({ initialValue, isSubmitting = false, repetirExhi
       nombre: initialValue?.nombre ?? "",
       descripcion: initialValue?.descripcion ?? "",
       tipo: initialValue?.tipo ?? "TEMPORAL",
-      fechaInicio: initialValue?.fechaInicio ?? new Date().toISOString().slice(0, 10),
+      fechaInicio: initialValue?.fechaInicio ?? todayInArgentina(),
       fechaFin: initialValue?.fechaFin ?? "",
       estado: initialValue?.estado ?? "PLANIFICADA"
     }
@@ -70,7 +71,7 @@ export function ExhibicionForm({ initialValue, isSubmitting = false, repetirExhi
 
   const fechaInicio = useWatch({ control, name: "fechaInicio" });
   const fechaFin = useWatch({ control, name: "fechaFin" });
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInArgentina();
   const tipoDerivado = fechaFin ? "TEMPORAL" : "PERMANENTE";
   const estadosDisponibles = useMemo(() => estadosExhibicion.filter((estado) => estado !== "CANCELADA"), []);
   const objetoIds = useMemo(() => objetosIncluidos.map((objeto) => objeto.id), [objetosIncluidos]);

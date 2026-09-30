@@ -77,7 +77,7 @@ public class ComodatoPrestamoAdminController {
     }
 
     private String nombreArchivoPdf() {
-        return "comodatos_prestamos_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm")) + ".pdf";
+        return "comodatos_prestamos_" + com.proveedores.time.MuseoTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm")) + ".pdf";
     }
 
     private String usuario(Authentication authentication) {

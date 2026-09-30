@@ -1,14 +1,13 @@
 import { z } from "zod";
 import { fuerzas } from "./types";
-
-const today = new Date().toISOString().slice(0, 10);
+import { todayInArgentina } from "@/lib/date-time";
 
 export const veteranoSchema = z.object({
   nombre: z.string().trim().min(1, "El nombre es obligatorio").max(100, "El nombre no puede superar 100 caracteres"),
   apellido: z.string().trim().min(1, "El apellido es obligatorio").max(100, "El apellido no puede superar 100 caracteres"),
   fuerza: z.enum(fuerzas, { message: "Selecciona una fuerza" }),
-  fechaNacimiento: z.string().optional().or(z.literal("")).refine((value) => !value || value <= today, "La fecha de nacimiento no puede ser futura"),
-  fechaFallecimiento: z.string().optional().or(z.literal("")).refine((value) => !value || value <= today, "La fecha de fallecimiento no puede ser futura"),
+  fechaNacimiento: z.string().optional().or(z.literal("")).refine((value) => !value || value <= todayInArgentina(), "La fecha de nacimiento no puede ser futura"),
+  fechaFallecimiento: z.string().optional().or(z.literal("")).refine((value) => !value || value <= todayInArgentina(), "La fecha de fallecimiento no puede ser futura"),
   historia: z.string().trim().optional().or(z.literal(""))
 });
 
@@ -19,8 +18,8 @@ export const actuacionVeteranoSchema = z.object({
   rangoId: z.number().int().positive().nullable().optional(),
   unidadId: z.number().int().positive().nullable().optional(),
   rol: z.string().trim().max(120, "El rol no puede superar 120 caracteres").optional().or(z.literal("")),
-  fechaInicio: z.string().optional().or(z.literal("")).refine((value) => !value || value <= today, "La fecha de inicio no puede ser futura"),
-  fechaFin: z.string().optional().or(z.literal("")).refine((value) => !value || value <= today, "La fecha de fin no puede ser futura"),
+  fechaInicio: z.string().optional().or(z.literal("")).refine((value) => !value || value <= todayInArgentina(), "La fecha de inicio no puede ser futura"),
+  fechaFin: z.string().optional().or(z.literal("")).refine((value) => !value || value <= todayInArgentina(), "La fecha de fin no puede ser futura"),
   descripcion: z.string().trim().optional().or(z.literal(""))
 });
 

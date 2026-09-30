@@ -83,7 +83,7 @@ public class ReciboIngresoObjetoService {
         recibo.setCopiaFirmadaContentType(archivo.getContentType());
         recibo.setCopiaFirmadaTamanioBytes(archivo.getSize());
         recibo.setCopiaFirmadaRutaAlmacenamiento(destino.toString());
-        recibo.setCopiaFirmadaFechaCarga(LocalDateTime.now());
+        recibo.setCopiaFirmadaFechaCarga(com.proveedores.time.MuseoTime.now());
         recibo.setCopiaFirmadaCargadoPor(cargadoPor);
         return toResponse(reciboIngresoObjetoRepository.save(recibo));
     }

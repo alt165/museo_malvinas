@@ -51,7 +51,7 @@ public class AuditoriaObjetoService {
         ActorAuditoria actor = actorActual(usuarioFallback);
 
         Auditoria auditoria = new Auditoria();
-        auditoria.setFecha(LocalDateTime.now());
+        auditoria.setFecha(com.proveedores.time.MuseoTime.now());
         auditoria.setTipoOperacion(tipoOperacion);
         auditoria.setEntidad(ENTIDAD_OBJETO);
         auditoria.setEntidadId(objeto.getId());

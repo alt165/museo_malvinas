@@ -113,7 +113,7 @@ public class ExhibicionObjetoService {
         entity.setEstado(EstadoExhibicionObjeto.DEVUELTO);
         entity.setDevolucionVerificada(true);
         entity.setVerificadoPor(buscarUsuarioOpcional(usuarioId));
-        entity.setFechaVerificacion(LocalDateTime.now());
+        entity.setFechaVerificacion(com.proveedores.time.MuseoTime.now());
         entity.setObservacionesDevolucion(observaciones);
         ExhibicionObjeto saved = exhibicionObjetoRepository.save(entity);
         auditoriaObjetoService.registrar(
@@ -170,7 +170,7 @@ public class ExhibicionObjetoService {
         var anteriores = snapshotExhibicion(entity);
         entity.setActivo(false);
         entity.setEliminado(true);
-        entity.setFechaEliminacion(LocalDateTime.now());
+        entity.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         exhibicionObjetoRepository.save(entity);
         auditoriaObjetoService.registrar(
                 entity.getObjetoMuseo(),

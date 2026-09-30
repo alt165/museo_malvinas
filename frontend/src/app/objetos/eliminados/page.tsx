@@ -12,6 +12,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { ApiClientError } from "@/lib/errors/api-error";
 import { routePermissions } from "@/lib/routes";
 import { useObjetosEliminadosQuery, useRestaurarObjetoMutation } from "@/features/objetos/queries";
+import { formatDateTimeArgentina } from "@/lib/date-time";
 import type { ObjetoMuseoEliminadoResponseDTO } from "@/features/objetos/types";
 import { getApiErrorMessage, resumenDescripcion } from "@/features/objetos/utils";
 
@@ -90,7 +91,7 @@ export default function ObjetosEliminadosPage() {
                       <td className="px-4 py-3 align-top text-muted-foreground">{resumenDescripcion(objeto.descripcion)}</td>
                       <td className="px-4 py-3 align-top">{objeto.eliminadoPor || "Sin dato"}</td>
                       <td className="px-4 py-3 align-top">
-                        {objeto.fechaEliminacion ? new Date(objeto.fechaEliminacion).toLocaleString("es-AR") : "Sin dato"}
+                        {formatDateTimeArgentina(objeto.fechaEliminacion, "Sin dato")}
                       </td>
                       <td className="px-4 py-3 text-right align-top">
                         <RowActions>

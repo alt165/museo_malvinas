@@ -60,7 +60,7 @@ public class RangoMilitarService {
         RangoMilitar rango = buscarActivo(id);
         rango.setActivo(false);
         rango.setEliminado(true);
-        rango.setFechaEliminacion(LocalDateTime.now());
+        rango.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         rangoMilitarRepository.save(rango);
     }
 

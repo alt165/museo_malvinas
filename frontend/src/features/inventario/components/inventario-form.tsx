@@ -11,6 +11,7 @@ import type { InventarioRequestDTO, InventarioResponseDTO } from "../types";
 import { estadosConservacion, estadosInventario } from "../types";
 import { inventarioSchema, type InventarioFormValues } from "../schemas";
 import { getValidationErrors } from "../utils";
+import { todayInArgentina } from "@/lib/date-time";
 
 type InventarioFormProps = {
   initialValue?: InventarioResponseDTO;
@@ -41,7 +42,7 @@ export function InventarioForm({
       ubicacionId: initialValue?.ubicacionId ?? 0,
       estado: initialValue?.estado ?? "DISPONIBLE",
       estadoConservacion: initialValue?.estadoConservacion ?? "BUENO",
-      fechaIngreso: initialValue?.fechaIngreso ?? new Date().toISOString().slice(0, 10),
+      fechaIngreso: initialValue?.fechaIngreso ?? todayInArgentina(),
       fechaSalida: initialValue?.fechaSalida ?? "",
       observaciones: initialValue?.observaciones ?? ""
     }

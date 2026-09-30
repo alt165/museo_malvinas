@@ -8,6 +8,7 @@ import { useMemo } from "react";
 import { Ban, CopyPlus, Pencil, Search, SquareCheckBig } from "lucide-react";
 import type { ExhibicionResponseDTO } from "../types";
 import { formatDate } from "../utils";
+import { todayInArgentina } from "@/lib/date-time";
 
 type ExhibicionesTableProps = {
   exhibiciones: ExhibicionResponseDTO[];
@@ -19,7 +20,7 @@ type ExhibicionesTableProps = {
 };
 
 export function ExhibicionesTable({ canEdit, cancelandoId, exhibiciones, finalizandoId, onCancelar, onFinalizar }: ExhibicionesTableProps) {
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = todayInArgentina();
 
   const columns = useMemo<ColumnDef<ExhibicionResponseDTO>[]>(
     () => [

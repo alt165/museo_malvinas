@@ -336,7 +336,7 @@ public class ObjetoMuseoService {
                 .orElseThrow(() -> new ResourceNotFoundException("Categoria del objeto no encontrada"));
         relacion.setActivo(false);
         relacion.setEliminado(true);
-        relacion.setFechaEliminacion(LocalDateTime.now());
+        relacion.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         objetoCategoriaRepository.save(relacion);
         return toResponse(objeto);
     }
@@ -344,7 +344,7 @@ public class ObjetoMuseoService {
     @Transactional
     public CargaRapidaObjetoResponseDTO cargaRapida(CargaRapidaObjetoRequestDTO dto, String operador) {
         Depositante depositante = buscarDepositanteActivo(dto.depositanteId());
-        LocalDateTime fechaCargaRapida = LocalDateTime.now();
+        LocalDateTime fechaCargaRapida = com.proveedores.time.MuseoTime.now();
 
         ObjetoMuseo objeto = new ObjetoMuseo();
         objeto.setNumeroInventario(generarNumeroInventario());
@@ -362,7 +362,7 @@ public class ObjetoMuseoService {
         ObjetoDepositante relacion = new ObjetoDepositante();
         relacion.setObjetoMuseo(saved);
         relacion.setDepositante(depositante);
-        relacion.setFechaDeposito(LocalDate.now());
+        relacion.setFechaDeposito(com.proveedores.time.MuseoTime.today());
         relacion.setTipoDeposito(CaracterRecepcionObjeto.RECEPCION);
         relacion.setObservaciones("Carga rapida");
         objetoDepositanteRepository.save(relacion);
@@ -407,7 +407,7 @@ public class ObjetoMuseoService {
         java.util.Optional<Inventario> inventarioActual = inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(id);
         Inventario inventario = inventarioActual.orElseGet(() -> crearInventarioInicialSinMovimiento(objeto, destino));
         Ubicacion origen = inventarioActual.map(Inventario::getUbicacion).orElse(null);
-        LocalDateTime fecha = LocalDateTime.now();
+        LocalDateTime fecha = com.proveedores.time.MuseoTime.now();
 
         inventario.setUbicacion(destino);
         inventario.setFechaUltimoMovimiento(fecha);
@@ -458,7 +458,7 @@ public class ObjetoMuseoService {
         Map<String, Object> anteriores = snapshotObjeto(entity);
         entity.setActivo(false);
         entity.setEliminado(true);
-        entity.setFechaEliminacion(LocalDateTime.now());
+        entity.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         entity.setEliminadoPor(eliminadoPor);
         objetoMuseoRepository.save(entity);
         auditoriaObjetoService.registrar(
@@ -514,13 +514,13 @@ public class ObjetoMuseoService {
 
     private void restaurarInventarioActivo(Inventario inventario, String restauradoPor) {
         inventario.setEstado(EstadoInventario.DISPONIBLE);
-        inventario.setFechaUltimoMovimiento(LocalDateTime.now());
+        inventario.setFechaUltimoMovimiento(com.proveedores.time.MuseoTime.now());
         inventarioRepository.save(inventario);
 
         MovimientoInventario movimiento = new MovimientoInventario();
         movimiento.setObjetoMuseo(inventario.getObjetoMuseo());
         movimiento.setTipo(TipoMovimientoInventario.RESTAURACION);
-        movimiento.setFecha(LocalDateTime.now());
+        movimiento.setFecha(com.proveedores.time.MuseoTime.now());
         movimiento.setUbicacionDestino(inventario.getUbicacion());
         usuarioMovimientoService.resolver(restauradoPor).ifPresent(movimiento::setUsuario);
         movimiento.setObservaciones("Restauracion de objeto eliminado logicamente");
@@ -532,7 +532,7 @@ public class ObjetoMuseoService {
     }
 
     private String generarNumeroInventario() {
-        int anio = LocalDate.now(ZoneId.of("America/Argentina/Salta")).getYear();
+        int anio = com.proveedores.time.MuseoTime.today().getYear();
         int correlativo = numeroInventarioRepository.siguienteCorrelativo(anio);
         return "MMAS" + anio + String.format("%05d", correlativo);
     }
@@ -772,7 +772,7 @@ public class ObjetoMuseoService {
             throw new BusinessException("La fecha de vencimiento es obligatoria para prestamo o comodato");
         }
         if (dto.fechaVencimiento() != null) {
-            LocalDate fechaBase = fechaIngreso == null ? LocalDate.now() : fechaIngreso;
+            LocalDate fechaBase = fechaIngreso == null ? com.proveedores.time.MuseoTime.today() : fechaIngreso;
             if (dto.fechaVencimiento().isBefore(fechaBase)) {
                 throw new BusinessException("La fecha de vencimiento no puede ser anterior a la fecha de ingreso");
             }
@@ -786,7 +786,7 @@ public class ObjetoMuseoService {
     private Depositante sincronizarRecepcion(ObjetoMuseo objeto, ObjetoMuseoRequestDTO dto, String observaciones) {
         validarRecepcionObligatoria(dto);
         Inventario inventario = inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(objeto.getId()).orElse(null);
-        LocalDate fechaIngreso = inventario == null ? LocalDate.now() : inventario.getFechaIngreso();
+        LocalDate fechaIngreso = inventario == null ? com.proveedores.time.MuseoTime.today() : inventario.getFechaIngreso();
         validarFechaVencimiento(dto, fechaIngreso);
         Depositante depositante = buscarDepositanteActivo(dto.depositanteId());
 
@@ -886,7 +886,7 @@ public class ObjetoMuseoService {
             if (!idsUnicos.contains(existente.getCategoriaObjeto().getId())) {
                 existente.setActivo(false);
                 existente.setEliminado(true);
-                existente.setFechaEliminacion(LocalDateTime.now());
+                existente.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
                 objetoCategoriaRepository.save(existente);
             }
         }
@@ -1080,10 +1080,10 @@ public class ObjetoMuseoService {
                 .orElseGet(() -> crearInventarioInicialSinMovimiento(objeto, ubicacion));
         Ubicacion origen = inventario.getUbicacion();
         inventario.setUbicacion(ubicacion);
-        inventario.setFechaUltimoMovimiento(LocalDateTime.now());
+        inventario.setFechaUltimoMovimiento(com.proveedores.time.MuseoTime.now());
         inventario.setObservaciones(observaciones);
         inventarioRepository.save(inventario);
-        registrarMovimiento(objeto, TipoMovimientoInventario.INGRESO, origen == ubicacion ? null : origen, ubicacion, observaciones, usuarioMovimiento, LocalDateTime.now());
+        registrarMovimiento(objeto, TipoMovimientoInventario.INGRESO, origen == ubicacion ? null : origen, ubicacion, observaciones, usuarioMovimiento, com.proveedores.time.MuseoTime.now());
     }
 
     private void actualizarUbicacionDesdeEdicion(ObjetoMuseo objeto, Long ubicacionId, String operador) {
@@ -1111,8 +1111,8 @@ public class ObjetoMuseoService {
         inventario.setUbicacion(ubicacion);
         inventario.setEstado(EstadoInventario.DISPONIBLE);
         inventario.setEstadoConservacion(objeto.getEstadoConservacion() == null ? com.proveedores.entity.EstadoConservacion.BUENO : objeto.getEstadoConservacion());
-        inventario.setFechaIngreso(LocalDate.now());
-        inventario.setFechaUltimoMovimiento(LocalDateTime.now());
+        inventario.setFechaIngreso(com.proveedores.time.MuseoTime.today());
+        inventario.setFechaUltimoMovimiento(com.proveedores.time.MuseoTime.now());
         return inventarioRepository.save(inventario);
     }
 
@@ -1216,7 +1216,7 @@ public class ObjetoMuseoService {
     }
 
     private ReciboIngresoObjeto crearRecibo(ObjetoMuseo objeto, Depositante depositante, String descripcionBreve, String operador) {
-        LocalDateTime fecha = LocalDateTime.now();
+        LocalDateTime fecha = com.proveedores.time.MuseoTime.now();
         ReciboIngresoObjeto recibo = new ReciboIngresoObjeto();
         recibo.setNumeroRecibo("REC-" + fecha.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + "-" + objeto.getId());
         recibo.setFechaEmision(fecha);

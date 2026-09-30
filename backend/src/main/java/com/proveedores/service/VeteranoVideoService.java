@@ -55,7 +55,7 @@ public class VeteranoVideoService {
         VeteranoVideo video = buscarVideo(veteranoId, videoId);
         video.setActivo(false);
         video.setEliminado(true);
-        video.setFechaEliminacion(LocalDateTime.now());
+        video.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         veteranoVideoRepository.save(video);
     }
 

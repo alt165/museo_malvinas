@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
 import { useHistorialObjetoQuery, useObjetoQuery } from "@/features/objetos/queries";
 import { getApiErrorMessage } from "@/features/objetos/utils";
+import { formatDateTimeArgentina } from "@/lib/date-time";
 import { routePermissions } from "@/lib/routes";
 
 function getParamId(value: string | string[] | undefined) {
@@ -17,13 +18,7 @@ function getParamId(value: string | string[] | undefined) {
 }
 
 function formatFecha(value?: string | null) {
-  if (!value) {
-    return "Sin fecha";
-  }
-  return new Intl.DateTimeFormat("es-AR", {
-    dateStyle: "short",
-    timeStyle: "short"
-  }).format(new Date(value));
+  return formatDateTimeArgentina(value, "Sin fecha");
 }
 
 function etiquetaAuditoria(value?: string | null) {
