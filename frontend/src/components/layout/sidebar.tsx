@@ -28,8 +28,9 @@ function activeHref(pathname: string, groups: NavigationGroup[]) {
     .sort((a, b) => b.href.length - a.href.length)[0]?.href;
 }
 
-function groupHasRoute(pathname: string, group: NavigationGroup) {
-  return group.items.some((item) => !item.disabled && isRouteActive(pathname, item.href));
+function groupHasRoute(pathname: string, group: NavigationGroup, groups: NavigationGroup[]) {
+  const matchedHref = activeHref(pathname, groups);
+  return group.items.some((item) => !item.disabled && item.href === matchedHref);
 }
 
 function visibleItems(items: NavigationItem[], roles: UserRole[], permitirEdicion: boolean) {
@@ -49,20 +50,34 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     [permitirEdicion, roles]
   );
   const currentActiveHref = activeHref(pathname, visibleGroups);
-  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
-  const [collapsedActiveGroups, setCollapsedActiveGroups] = useState<string[]>([]);
+  const [expansionState, setExpansionState] = useState<{
+    pathname: string;
+    expandedGroups: string[];
+    collapsedActiveGroups: string[];
+  }>({ pathname, expandedGroups: [], collapsedActiveGroups: [] });
+  const expandedGroups = expansionState.pathname === pathname ? expansionState.expandedGroups : [];
+  const collapsedActiveGroups = expansionState.pathname === pathname ? expansionState.collapsedActiveGroups : [];
 
   function toggleGroup(key: string, expanded: boolean) {
     if (expanded) {
-      setExpandedGroups((current) => current.filter((item) => item !== key));
-      setCollapsedActiveGroups((current) => (current.includes(key) ? current : [...current, key]));
+      setExpansionState((current) => {
+        const activeCollapsedGroups = current.pathname === pathname ? current.collapsedActiveGroups : [];
+        return {
+          pathname,
+          expandedGroups: (current.pathname === pathname ? current.expandedGroups : []).filter((item) => item !== key),
+          collapsedActiveGroups: activeCollapsedGroups.includes(key) ? activeCollapsedGroups : [...activeCollapsedGroups, key]
+        };
+      });
       return;
     }
 
-    const activeGroupKeys = visibleGroups.filter((group) => groupHasRoute(pathname, group)).map((group) => group.key);
+    const activeGroupKeys = visibleGroups.filter((group) => groupHasRoute(pathname, group, visibleGroups)).map((group) => group.key);
 
-    setExpandedGroups([key]);
-    setCollapsedActiveGroups(activeGroupKeys.filter((activeKey) => activeKey !== key));
+    setExpansionState({
+      pathname,
+      expandedGroups: [key],
+      collapsedActiveGroups: activeGroupKeys.filter((activeKey) => activeKey !== key)
+    });
   }
 
   return (
@@ -106,7 +121,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           <div className="space-y-2">
             {visibleGroups.map((group) => {
               const GroupIcon = group.icon;
-              const groupActive = groupHasRoute(pathname, group);
+              const groupActive = groupHasRoute(pathname, group, visibleGroups);
               const expanded = expandedGroups.includes(group.key) || (groupActive && !collapsedActiveGroups.includes(group.key));
 
               return (

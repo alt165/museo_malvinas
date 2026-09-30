@@ -44,6 +44,17 @@ export function ObjetosTable({ canEdit, canViewHistory = false, deletingId, obje
         cell: ({ row }) => row.original.categorias?.map((categoria) => categoria.nombre).join(", ") || "Sin categorias"
       },
       {
+        accessorKey: "ubicacionNombre",
+        header: "Ubicación actual",
+        cell: ({ row }) => {
+          if (row.original.ubicacionVisible === false) {
+            return "No disponible";
+          }
+
+          return row.original.ubicacionNombre || "Sin ubicación asignada";
+        }
+      },
+      {
         accessorKey: "descripcion",
         header: () => <SortHeader field="descripcion" label="Descripcion" onSortChange={onSortChange} sort={sort} />,
         cell: ({ row }) => <span className="text-muted-foreground">{resumenDescripcion(row.original.descripcion)}</span>
