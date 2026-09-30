@@ -49,6 +49,24 @@ export const objetoMuseoSchema = z.object({
   }
 });
 
+export const objetoMuseoFichaCompletaSchema = objetoMuseoSchema.superRefine((values, ctx) => {
+  if (!values.descripcionTecnica?.trim()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "La descripcion tecnica es obligatoria", path: ["descripcionTecnica"] });
+  }
+  if (!values.materiales?.trim()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Los materiales son obligatorios", path: ["materiales"] });
+  }
+  if (![values.medidas, values.alto, values.ancho, values.diametro, values.espesor, values.peso].some((value) => value?.trim())) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Se requiere al menos una dimension", path: ["medidas"] });
+  }
+  if (!values.estadoConservacion) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "El estado de conservacion es obligatorio", path: ["estadoConservacion"] });
+  }
+  if (!values.categoriaIds?.length) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Se requiere al menos una categoria", path: ["categoriaIds"] });
+  }
+});
+
 export type ObjetoMuseoFormValues = z.infer<typeof objetoMuseoSchema>;
 
 export const cargaRapidaObjetoSchema = z.object({

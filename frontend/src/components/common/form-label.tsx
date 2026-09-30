@@ -13,7 +13,7 @@ export function FormLabel({ children, className = "space-y-2 text-sm font-medium
     <label className={className} htmlFor={htmlFor}>
       <span>
         {label}
-        {required ? <span aria-hidden="true" className="ml-1 text-destructive">*</span> : null}
+        {required ? <RequiredAsterisk /> : null}
       </span>
       {children}
     </label>
@@ -21,5 +21,5 @@ export function FormLabel({ children, className = "space-y-2 text-sm font-medium
 }
 
 export function RequiredAsterisk() {
-  return <span aria-hidden="true" className="ml-1 text-destructive">*</span>;
+  return <span aria-hidden="true" className="ml-1 text-[1.1em] font-bold leading-none text-destructive">*</span>;
 }

@@ -31,17 +31,20 @@ public class InventarioService {
     private final ObjetoMuseoRepository objetoMuseoRepository;
     private final UbicacionRepository ubicacionRepository;
     private final MovimientoInventarioRepository movimientoInventarioRepository;
+    private final UsuarioMovimientoService usuarioMovimientoService;
 
     public InventarioService(
             InventarioRepository inventarioRepository,
             ObjetoMuseoRepository objetoMuseoRepository,
             UbicacionRepository ubicacionRepository,
-            MovimientoInventarioRepository movimientoInventarioRepository
+            MovimientoInventarioRepository movimientoInventarioRepository,
+            UsuarioMovimientoService usuarioMovimientoService
     ) {
         this.inventarioRepository = inventarioRepository;
         this.objetoMuseoRepository = objetoMuseoRepository;
         this.ubicacionRepository = ubicacionRepository;
         this.movimientoInventarioRepository = movimientoInventarioRepository;
+        this.usuarioMovimientoService = usuarioMovimientoService;
     }
 
     @Transactional
@@ -123,6 +126,7 @@ public class InventarioService {
         movimiento.setUbicacionOrigen(origen);
         movimiento.setUbicacionDestino(destino);
         movimiento.setObservaciones("Movimiento generado desde inventario");
+        usuarioMovimientoService.resolver(null).ifPresent(movimiento::setUsuario);
         movimientoInventarioRepository.save(movimiento);
         log.info(
                 "event=movimiento_inventario.created movimientoInventarioId={} objetoMuseoId={} tipo={} ubicacionOrigenId={} ubicacionDestinoId={}",
