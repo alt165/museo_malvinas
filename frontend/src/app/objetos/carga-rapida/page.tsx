@@ -40,7 +40,7 @@ export default function CargaRapidaObjetoPage() {
 function CargaRapidaObjetoContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const retornoProcesado = useRef(false);
+  const retornoProcesado = useRef<string | null>(null);
   const [resultado, setResultado] = useState<CargaRapidaObjetoResponseDTO | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [contextError, setContextError] = useState<string | null>(null);
@@ -69,23 +69,24 @@ function CargaRapidaObjetoContent() {
   });
 
   useEffect(() => {
-    if (retornoProcesado.current) {
-      return;
-    }
-
     const retorno = searchParams.get("retorno");
     const flowId = searchParams.get("flujo");
     if (retorno !== "creado" && retorno !== "cancelado") {
+      retornoProcesado.current = null;
+      return;
+    }
+    const retornoKey = `${retorno}:${flowId ?? ""}`;
+    if (retornoProcesado.current === retornoKey) {
       return;
     }
 
     let active = true;
     queueMicrotask(() => {
-      if (!active || retornoProcesado.current) {
+      if (!active || retornoProcesado.current === retornoKey) {
         return;
       }
 
-      retornoProcesado.current = true;
+      retornoProcesado.current = retornoKey;
       const context = readCargaRapidaDepositanteContext(flowId);
       if (context) {
         const depositante = retorno === "creado" ? context.depositanteCreado : undefined;

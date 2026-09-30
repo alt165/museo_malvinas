@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { ErrorState } from "@/components/common/error-state";
@@ -19,9 +20,16 @@ import {
 export default function NuevoDepositantePage() {
   return (
     <Suspense>
-      <NuevoDepositanteContent />
+      <NuevoDepositanteRoute />
     </Suspense>
   );
+}
+
+function NuevoDepositanteRoute() {
+  const searchParams = useSearchParams();
+  const routeKey = `${searchParams.get("origen") ?? "normal"}:${searchParams.get("flujo") ?? "sin-flujo"}`;
+
+  return <NuevoDepositanteContent key={routeKey} />;
 }
 
 function NuevoDepositanteContent() {
@@ -30,20 +38,72 @@ function NuevoDepositanteContent() {
   const mutation = useCrearDepositanteMutation();
   const identificacion = searchParams.get("identificacion") ?? undefined;
   const flowId = searchParams.get("flujo");
-  const [cargaRapidaContext, setCargaRapidaContext] = useState<CargaRapidaDepositanteContext | null>(null);
+  const esOrigenCargaRapida = searchParams.get("origen") === "carga-rapida";
+  const [resolucionContexto, setResolucionContexto] = useState<ResolucionContexto>(() =>
+    esOrigenCargaRapida
+      ? { estado: "resolviendo", flowId }
+      : { estado: "normal", flowId: null }
+  );
 
   useEffect(() => {
     let active = true;
     queueMicrotask(() => {
-      if (active && searchParams.get("origen") === "carga-rapida") {
-        setCargaRapidaContext(readCargaRapidaDepositanteContext(flowId));
+      if (!active) {
+        return;
       }
+      if (!esOrigenCargaRapida) {
+        setResolucionContexto({ estado: "normal", flowId: null });
+        return;
+      }
+
+      const context = readCargaRapidaDepositanteContext(flowId);
+      setResolucionContexto(context
+        ? { estado: "valido", flowId, context }
+        : { estado: "invalido", flowId });
     });
 
     return () => {
       active = false;
     };
-  }, [flowId, searchParams]);
+  }, [esOrigenCargaRapida, flowId]);
+
+  const resolucionActual = !esOrigenCargaRapida
+    ? ({ estado: "normal", flowId: null } as const)
+    : resolucionContexto.flowId === flowId
+      ? resolucionContexto
+      : ({ estado: "resolviendo", flowId } as const);
+
+  if (resolucionActual.estado === "resolviendo") {
+    return (
+      <AppShell requiredRoles={[...routePermissions.write]}>
+        <div className="space-y-6">
+          <PageHeader description="Alta de depositante." title="Nuevo depositante" />
+          <div className="rounded-md border bg-muted/30 p-4 text-sm text-muted-foreground">
+            Recuperando el contexto de Alta Rápida...
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (resolucionActual.estado === "invalido") {
+    return (
+      <AppShell requiredRoles={[...routePermissions.write]}>
+        <div className="space-y-6">
+          <PageHeader description="Alta de depositante." title="Nuevo depositante" />
+          <ErrorState message="El contexto de Alta Rápida ya no está disponible o no es válido." />
+          <Link
+            className="inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm font-medium hover:bg-muted"
+            href="/objetos/carga-rapida"
+          >
+            Volver a Alta Rápida
+          </Link>
+        </div>
+      </AppShell>
+    );
+  }
+
+  const cargaRapidaContext = resolucionActual.estado === "valido" ? resolucionActual.context : null;
 
   const cargaRapidaReturnUrl = cargaRapidaContext
     ? `/objetos/carga-rapida?retorno=cancelado&flujo=${encodeURIComponent(cargaRapidaContext.flowId)}`
@@ -63,6 +123,7 @@ function NuevoDepositanteContent() {
           cancelHref={cargaRapidaReturnUrl}
           initialIdentification={identificacion}
           isSubmitting={mutation.isPending}
+          key={cargaRapidaContext?.flowId ?? "alta-normal"}
           onSubmit={(payload) => mutation.mutate(payload, { onSuccess: (depositante) => {
             if (cargaRapidaContext) {
               saveCreatedDepositante(cargaRapidaContext, depositante);
@@ -79,3 +140,9 @@ function NuevoDepositanteContent() {
     </AppShell>
   );
 }
+
+type ResolucionContexto =
+  | { estado: "normal"; flowId: null }
+  | { estado: "resolviendo"; flowId: string | null }
+  | { estado: "valido"; flowId: string | null; context: CargaRapidaDepositanteContext }
+  | { estado: "invalido"; flowId: string | null };
