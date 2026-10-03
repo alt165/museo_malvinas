@@ -1,6 +1,6 @@
 "use client";
 
-import { Archive, ImageIcon, Maximize2, Network, Table2 } from "lucide-react";
+import { Archive, ImageIcon, Maximize2, Network, Table2, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { memo, useMemo, useState } from "react";
 import ReactFlow, {
@@ -20,13 +20,15 @@ import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import type { ObjetoMuseoResponseDTO } from "@/features/objetos/types";
 import { ApiClientError } from "@/lib/errors/api-error";
-import { useGrafoRelacionesObjetoQuery } from "../queries";
-import type { AristaGrafoObjetoDTO, NodoGrafoObjetoDTO, ObjetoGrafoResponseDTO } from "../types";
+import { useGrafoRelacionesObjetoQuery, useGrafoRelacionesPersonaQuery } from "../queries";
+import type { AristaGrafoObjetoDTO, NodoGrafoObjetoDTO, ObjetoGrafoResponseDTO, TipoNodoRelacion } from "../types";
 import { getApiErrorMessage } from "../utils";
 
 type ObjetoRelacionesGraphProps = {
-  objetoId: number;
+  entidadId: number;
+  tipoCentral: TipoNodoRelacion;
   objeto?: ObjetoMuseoResponseDTO;
+  tituloCentral?: string;
   profundidad: number;
   onBackToTable?: () => void;
   onProfundidadChange: (value: number) => void;
@@ -34,31 +36,38 @@ type ObjetoRelacionesGraphProps = {
 
 type ObjectNodeData = {
   isCentral: boolean;
+  tipo: TipoNodoRelacion;
+  entidadId: number;
   label: string;
-  numeroInventario: string;
+  numeroInventario?: string | null;
 };
 
 const relationPalette = ["#163A61", "#2F7FA2", "#DBB060", "#5E8C61", "#8A5F32", "#7E6AAE"];
 
 export function ObjetoRelacionesGraph({
+  entidadId,
+  tipoCentral,
   objeto,
-  objetoId,
+  tituloCentral,
   onBackToTable,
   onProfundidadChange,
   profundidad
 }: ObjetoRelacionesGraphProps) {
   const router = useRouter();
-  const graphQuery = useGrafoRelacionesObjetoQuery(objetoId, profundidad);
+  const objectGraphQuery = useGrafoRelacionesObjetoQuery(tipoCentral === "OBJETO" ? entidadId : Number.NaN, profundidad);
+  const personGraphQuery = useGrafoRelacionesPersonaQuery(tipoCentral === "PERSONA" ? entidadId : Number.NaN, profundidad);
+  const graphQuery = tipoCentral === "OBJETO" ? objectGraphQuery : personGraphQuery;
   const [flowInstance, setFlowInstance] = useState<ReactFlowInstance | null>(null);
 
   const relationColors = useMemo(() => getRelationColors(graphQuery.data?.edges ?? []), [graphQuery.data?.edges]);
-  const flowNodes = useMemo(() => (graphQuery.data ? toFlowNodes(graphQuery.data, objetoId) : []), [graphQuery.data, objetoId]);
+  const centralNodeId = `${tipoCentral}-${entidadId}`;
+  const flowNodes = useMemo(() => (graphQuery.data ? toFlowNodes(graphQuery.data, centralNodeId) : []), [centralNodeId, graphQuery.data]);
   const flowEdges = useMemo(() => (graphQuery.data ? toFlowEdges(graphQuery.data, relationColors) : []), [graphQuery.data, relationColors]);
 
-  const centralNode = graphQuery.data?.nodes.find((node) => node.id === objetoId);
+  const centralNode = graphQuery.data?.nodes.find((node) => node.id === centralNodeId);
   const objetoPrincipal = {
-    nombre: objeto?.denominacionObjeto ?? centralNode?.label ?? "Objeto consultado",
-    numeroInventario: objeto?.numeroInventario ?? centralNode?.numeroInventario ?? String(objetoId),
+    nombre: tituloCentral ?? objeto?.denominacionObjeto ?? centralNode?.label ?? (tipoCentral === "PERSONA" ? "Persona consultada" : "Objeto consultado"),
+    numeroInventario: objeto?.numeroInventario ?? centralNode?.numeroInventario,
     ubicacion: objeto?.ubicacionNombre,
     coleccion: objeto?.coleccionNombre
   };
@@ -134,8 +143,8 @@ export function ObjetoRelacionesGraph({
               nodesDraggable={false}
               onInit={setFlowInstance}
               onNodeClick={(_, node) => {
-                if (node.id !== String(objetoId)) {
-                  router.push(`/objetos/${node.id}`);
+                if (node.id !== centralNodeId) {
+                  router.push(node.data.tipo === "PERSONA" ? `/veteranos/${node.data.entidadId}` : `/objetos/${node.data.entidadId}`);
                 }
               }}
               panOnScroll
@@ -143,7 +152,7 @@ export function ObjetoRelacionesGraph({
             >
               <MiniMap
                 nodeBorderRadius={8}
-                nodeColor={(node) => (node.data?.isCentral ? "#163A61" : "#DBB060")}
+                nodeColor={(node) => node.data?.isCentral ? "#163A61" : node.data?.tipo === "PERSONA" ? "#7E6AAE" : "#DBB060"}
                 pannable
                 zoomable
               />
@@ -154,9 +163,9 @@ export function ObjetoRelacionesGraph({
 
           <aside className="space-y-4 rounded-lg border bg-white p-4 shadow-sm">
             <div>
-              <p className="text-xs font-semibold uppercase text-muted-foreground">Objeto principal</p>
+              <p className="text-xs font-semibold uppercase text-muted-foreground">{tipoCentral === "PERSONA" ? "Persona principal" : "Objeto principal"}</p>
               <div className="mt-3 rounded-md border border-[#163A61]/20 bg-[#163A61] p-3 text-white">
-                <p className="text-xs text-white/75">{objetoPrincipal.numeroInventario}</p>
+                {objetoPrincipal.numeroInventario ? <p className="text-xs text-white/75">{objetoPrincipal.numeroInventario}</p> : null}
                 <p className="mt-1 text-sm font-semibold leading-snug">{objetoPrincipal.nombre}</p>
               </div>
               {objetoPrincipal.ubicacion || objetoPrincipal.coleccion ? (
@@ -180,6 +189,8 @@ export function ObjetoRelacionesGraph({
             <div>
               <p className="text-xs font-semibold uppercase text-muted-foreground">Leyenda</p>
               <div className="mt-3 space-y-2">
+                <div className="flex items-center gap-2 text-sm"><Archive className="h-4 w-4 text-[#DBB060]" /><span>Objeto</span></div>
+                <div className="flex items-center gap-2 text-sm"><UserRound className="h-4 w-4 text-[#7E6AAE]" /><span>Persona</span></div>
                 {Object.entries(relationColors).map(([tipo, color]) => (
                   <div className="flex items-center gap-2 text-sm" key={tipo}>
                     <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
@@ -219,18 +230,18 @@ const ObjectNode = memo(function ObjectNode({ data }: NodeProps<ObjectNodeData>)
           }
           aria-hidden="true"
         >
-          {isCentral ? <Network className="h-6 w-6" /> : <ImageIcon className="h-6 w-6" />}
+          {isCentral ? <Network className="h-6 w-6" /> : data.tipo === "PERSONA" ? <UserRound className="h-6 w-6" /> : <ImageIcon className="h-6 w-6" />}
         </div>
         <div className="min-w-0">
           <p className={isCentral ? "truncate text-xs text-white/75" : "truncate text-xs text-muted-foreground"}>
-            {data.numeroInventario}
+            {data.numeroInventario || (data.tipo === "PERSONA" ? "Persona" : "Objeto")}
           </p>
           <p className="mt-1 line-clamp-2 text-sm font-semibold leading-snug">{data.label}</p>
         </div>
       </div>
       <div className={isCentral ? "mt-3 flex items-center gap-1 text-xs text-white/75" : "mt-3 flex items-center gap-1 text-xs text-muted-foreground"}>
         <Archive className="h-3.5 w-3.5" />
-        {isCentral ? "Objeto consultado" : "Objeto relacionado"}
+        {isCentral ? (data.tipo === "PERSONA" ? "Persona consultada" : "Objeto consultado") : (data.tipo === "PERSONA" ? "Persona relacionada" : "Objeto relacionado")}
       </div>
     </div>
   );
@@ -238,13 +249,15 @@ const ObjectNode = memo(function ObjectNode({ data }: NodeProps<ObjectNodeData>)
 
 const nodeTypes = { objectNode: ObjectNode };
 
-function toFlowNodes(graph: ObjetoGrafoResponseDTO, objetoId: number): Node<ObjectNodeData>[] {
-  const positions = calculateRadialPositions(graph, objetoId);
+function toFlowNodes(graph: ObjetoGrafoResponseDTO, centralNodeId: string): Node<ObjectNodeData>[] {
+  const positions = calculateRadialPositions(graph, centralNodeId);
 
   return graph.nodes.map((node) => ({
     id: String(node.id),
     data: {
-      isCentral: node.id === objetoId,
+      isCentral: node.id === centralNodeId,
+      tipo: node.tipo,
+      entidadId: node.entidadId,
       label: node.label,
       numeroInventario: node.numeroInventario
     },
@@ -253,15 +266,15 @@ function toFlowNodes(graph: ObjetoGrafoResponseDTO, objetoId: number): Node<Obje
   }));
 }
 
-function calculateRadialPositions(graph: ObjetoGrafoResponseDTO, objetoId: number) {
-  const positions = new Map<number, { x: number; y: number }>();
-  const metadata = getLayoutMetadata(graph, objetoId);
+function calculateRadialPositions(graph: ObjetoGrafoResponseDTO, centralNodeId: string) {
+  const positions = new Map<string, { x: number; y: number }>();
+  const metadata = getLayoutMetadata(graph, centralNodeId);
   const groups = new Map<string, NodoGrafoObjetoDTO[]>();
 
-  positions.set(objetoId, { x: 0, y: 0 });
+  positions.set(centralNodeId, { x: 0, y: 0 });
 
   graph.nodes
-    .filter((node) => node.id !== objetoId)
+    .filter((node) => node.id !== centralNodeId)
     .forEach((node) => {
       const item = metadata.get(node.id) ?? { distance: 1, side: "outgoing" as LayoutSide };
       const key = `${item.side}:${Math.min(item.distance, 3)}`;
@@ -280,7 +293,7 @@ function calculateRadialPositions(graph: ObjetoGrafoResponseDTO, objetoId: numbe
     const levelOffset = level % 2 === 0 ? 70 : 0;
 
     nodes
-      .sort((a, b) => a.numeroInventario.localeCompare(b.numeroInventario))
+      .sort((a, b) => (a.numeroInventario ?? a.label).localeCompare(b.numeroInventario ?? b.label))
       .forEach((node, index) => {
         const centeredIndex = index - (nodes.length - 1) / 2;
         const alternatingOffset = index % 2 === 0 ? 0 : 34;
@@ -301,23 +314,23 @@ type LayoutMetadata = {
   side: LayoutSide;
 };
 
-function getLayoutMetadata(graph: ObjetoGrafoResponseDTO, objetoId: number) {
-  const adjacency = new Map<number, number[]>();
+function getLayoutMetadata(graph: ObjetoGrafoResponseDTO, centralNodeId: string) {
+  const adjacency = new Map<string, string[]>();
   graph.nodes.forEach((node) => adjacency.set(node.id, []));
   graph.edges.forEach((edge) => {
     adjacency.get(edge.source)?.push(edge.target);
     adjacency.get(edge.target)?.push(edge.source);
   });
 
-  const metadata = new Map<number, LayoutMetadata>([[objetoId, { distance: 0, side: "outgoing" }]]);
-  const queue: number[] = [];
+  const metadata = new Map<string, LayoutMetadata>([[centralNodeId, { distance: 0, side: "outgoing" }]]);
+  const queue: string[] = [];
 
   graph.edges
-    .filter((edge) => edge.source === objetoId || edge.target === objetoId)
+    .filter((edge) => edge.source === centralNodeId || edge.target === centralNodeId)
     .sort((a, b) => `${a.tipoRelacion}-${a.id}`.localeCompare(`${b.tipoRelacion}-${b.id}`))
     .forEach((edge) => {
-      const neighbor = edge.source === objetoId ? edge.target : edge.source;
-      const side: LayoutSide = edge.source === objetoId ? "outgoing" : "incoming";
+      const neighbor = edge.source === centralNodeId ? edge.target : edge.source;
+      const side: LayoutSide = edge.source === centralNodeId ? "outgoing" : "incoming";
       if (!metadata.has(neighbor)) {
         metadata.set(neighbor, { distance: 1, side });
         queue.push(neighbor);
@@ -377,10 +390,10 @@ function getParallelEdgeIndexes(edges: AristaGrafoObjetoDTO[]) {
     groups.set(key, [...(groups.get(key) ?? []), edge]);
   });
 
-  const indexes = new Map<number, { index: number; total: number }>();
+  const indexes = new Map<string, { index: number; total: number }>();
   groups.forEach((group) => {
     group
-      .sort((a, b) => a.id - b.id)
+      .sort((a, b) => a.id.localeCompare(b.id))
       .forEach((edge, index) => indexes.set(edge.id, { index, total: group.length }));
   });
 

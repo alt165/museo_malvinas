@@ -46,6 +46,7 @@ import com.proveedores.repository.ObjetoMuseoRepository;
 import com.proveedores.repository.ReciboEscaneadoObjetoMuseoRepository;
 import com.proveedores.repository.ReciboIngresoObjetoRepository;
 import com.proveedores.repository.UbicacionRepository;
+import com.proveedores.security.ObjetoVisibilityPolicy;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
@@ -67,9 +68,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -928,18 +926,11 @@ public class ObjetoMuseoService {
     }
 
     private boolean objetoVisiblePorEmbargo(ObjetoMuseo objeto) {
-        return puedeVerObjetosEmbargados()
-                || !embargoObjetoRepository.existsByObjetoMuseoIdAndFechaFinalizacionIsNullAndEliminadoFalse(objeto.getId());
+        return ObjetoVisibilityPolicy.objetoVisible(objeto, embargoObjetoRepository);
     }
 
     private boolean puedeVerObjetosEmbargados() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
-            return false;
-        }
-        return authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .anyMatch(authority -> "ROLE_ADMIN".equals(authority) || "ROLE_OPERATOR".equals(authority));
+        return ObjetoVisibilityPolicy.puedeVerCamposPrivados();
     }
 
     private ObjetoMuseoResponseDTO toResponse(ObjetoMuseo objeto) {
@@ -1066,13 +1057,7 @@ public class ObjetoMuseoService {
     }
 
     private boolean puedeVerCamposPrivados() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
-            return false;
-        }
-        return authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .anyMatch(authority -> "ROLE_ADMIN".equals(authority) || "ROLE_OPERATOR".equals(authority));
+        return ObjetoVisibilityPolicy.puedeVerCamposPrivados();
     }
 
     private void crearInventarioInicial(ObjetoMuseo objeto, Ubicacion ubicacion, String observaciones, String usuarioMovimiento) {

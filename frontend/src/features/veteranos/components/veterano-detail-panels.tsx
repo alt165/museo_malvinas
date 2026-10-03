@@ -2,7 +2,7 @@
 import { FormLabel } from "@/components/common/form-label";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link2, Medal, Pencil, Search, Trash2, UserRound, type LucideIcon } from "lucide-react";
+import { Link2, Medal, Network, Pencil, Search, Trash2, UserRound, type LucideIcon } from "lucide-react";
 import { useRef, useState, type KeyboardEvent } from "react";
 import { useForm } from "react-hook-form";
 import { EmptyState } from "@/components/common/empty-state";
@@ -11,6 +11,9 @@ import { LoadingState } from "@/components/common/loading-state";
 import { RowActionButton, RowActionLink, RowActions } from "@/components/common/row-actions";
 import { useObjetosQuery } from "@/features/objetos/queries";
 import { ApiClientError } from "@/lib/errors/api-error";
+import { ObjetoRelacionesGraph } from "@/features/relaciones-objetos/components/ObjetoRelacionesGraph";
+import { RelacionesTable } from "@/features/relaciones-objetos/components/RelacionesTable";
+import { useRelacionesPorPersonaQuery } from "@/features/relaciones-objetos/queries";
 import {
   useActuacionesVeteranoQuery,
   useAsociarObjetoVeteranoMutation,
@@ -24,18 +27,20 @@ import { actuacionVeteranoSchema, objetoVeteranoSchema, type ActuacionVeteranoFo
 import type { VeteranoResponseDTO } from "../types";
 import { formatDate, getApiErrorMessage } from "../utils";
 
-type DetailTab = "datos-personales" | "actuaciones-militares" | "objetos-vinculados";
+type DetailTab = "datos-personales" | "actuaciones-militares" | "objetos-vinculados" | "relaciones";
 
 const detailTabs = [
   { id: "datos-personales", label: "Datos personales", icon: UserRound },
   { id: "actuaciones-militares", label: "Actuaciones militares", icon: Medal },
-  { id: "objetos-vinculados", label: "Objetos vinculados", icon: Link2 }
+  { id: "objetos-vinculados", label: "Objetos vinculados", icon: Link2 },
+  { id: "relaciones", label: "Relaciones", icon: Network }
 ] as const;
 
 export function VeteranoDetailPanels({ canWrite, veterano }: { canWrite: boolean; veterano: VeteranoResponseDTO }) {
   const veteranoId = veterano.id;
   const actuacionesQuery = useActuacionesVeteranoQuery(veteranoId);
   const objetosQuery = useObjetosVeteranoQuery(veteranoId);
+  const relacionesQuery = useRelacionesPorPersonaQuery(veteranoId);
   const objetosMuseoQuery = useObjetosQuery();
   const crearActuacion = useCrearActuacionVeteranoMutation(veteranoId);
   const asociarObjeto = useAsociarObjetoVeteranoMutation(veteranoId);
@@ -45,6 +50,8 @@ export function VeteranoDetailPanels({ canWrite, veterano }: { canWrite: boolean
   const actuacionForm = useForm<ActuacionVeteranoFormValues>({ resolver: zodResolver(actuacionVeteranoSchema), defaultValues: { rango: "", unidad: "", rangoId: null, unidadId: null, rol: "", fechaInicio: "", fechaFin: "", descripcion: "" } });
   const objetoForm = useForm<ObjetoVeteranoFormValues>({ resolver: zodResolver(objetoVeteranoSchema), defaultValues: { objetoMuseoId: 0, tipoRelacion: "", descripcion: "" } });
   const [activeTab, setActiveTab] = useState<DetailTab>("datos-personales");
+  const [vistaRelaciones, setVistaRelaciones] = useState<"tabla" | "grafo">("tabla");
+  const [profundidadRelaciones, setProfundidadRelaciones] = useState(1);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   function handleTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
@@ -163,6 +170,20 @@ export function VeteranoDetailPanels({ canWrite, veterano }: { canWrite: boolean
         {objetosQuery.isLoading ? <LoadingState /> : null}
         {objetosQuery.data?.length === 0 ? <EmptyState title="Sin objetos asociados" /> : null}
         {objetosQuery.data && objetosQuery.data.length > 0 ? <div className="rounded-lg border">{objetosQuery.data.map((objeto) => <div className="flex items-start justify-between gap-3 border-b p-4 text-sm last:border-b-0" key={objeto.id}><div><p className="font-medium">{objeto.objetoNombre}</p><p className="text-muted-foreground">{objeto.tipoRelacion}</p><p>{objeto.descripcion || "Sin descripción"}</p></div>{canWrite ? <RowActions><RowActionButton disabled={eliminarRelacion.isPending} icon={Trash2} label="Eliminar" onClick={() => { if (window.confirm("Eliminar relación objeto-veterano")) eliminarRelacion.mutate(objeto.id); }} variant="destructive" /></RowActions> : null}</div>)}</div> : null}
+        </div>
+      </section>
+      <section aria-labelledby={`tab-relaciones-${veteranoId}`} className="bg-white" hidden={activeTab !== "relaciones"} id={`panel-relaciones-${veteranoId}`} role="tabpanel" tabIndex={0}>
+        <PanelHeader icon={Network} title="Relaciones" />
+        <div className="space-y-4 p-5 sm:p-6">
+          <div className="inline-flex rounded-md border bg-white p-1">
+            <button className={vistaRelaciones === "tabla" ? "rounded bg-primary px-3 py-1.5 text-sm font-medium text-white" : "rounded px-3 py-1.5 text-sm font-medium hover:bg-muted"} onClick={() => setVistaRelaciones("tabla")} type="button">Vista tabla</button>
+            <button className={vistaRelaciones === "grafo" ? "rounded bg-primary px-3 py-1.5 text-sm font-medium text-white" : "rounded px-3 py-1.5 text-sm font-medium hover:bg-muted"} onClick={() => setVistaRelaciones("grafo")} type="button">Vista grafo</button>
+          </div>
+          {relacionesQuery.isLoading ? <LoadingState label="Cargando relaciones..." /> : null}
+          {relacionesQuery.isError ? <ErrorState message={getApiErrorMessage(relacionesQuery.error)} requestId={relacionesQuery.error instanceof ApiClientError ? relacionesQuery.error.requestId : undefined} /> : null}
+          {vistaRelaciones === "tabla" && relacionesQuery.data?.length === 0 ? <EmptyState description="La persona no tiene objetos relacionados." title="Sin relaciones" /> : null}
+          {vistaRelaciones === "tabla" && relacionesQuery.data && relacionesQuery.data.length > 0 ? <RelacionesTable relaciones={relacionesQuery.data} /> : null}
+          {vistaRelaciones === "grafo" ? <ObjetoRelacionesGraph entidadId={veteranoId} onBackToTable={() => setVistaRelaciones("tabla")} onProfundidadChange={setProfundidadRelaciones} profundidad={profundidadRelaciones} tipoCentral="PERSONA" tituloCentral={veterano.nombreCompleto} /> : null}
         </div>
       </section>
     </div>

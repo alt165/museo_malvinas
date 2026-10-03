@@ -1,6 +1,5 @@
 "use client";
 
-import { Search } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -8,11 +7,11 @@ import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
-import { RowActionLink, RowActions } from "@/components/common/row-actions";
 import { AppShell } from "@/components/layout/app-shell";
 import { useObjetoQuery } from "@/features/objetos/queries";
 import { getApiErrorMessage as getObjetoApiErrorMessage } from "@/features/objetos/utils";
 import { ObjetoRelacionesGraph } from "@/features/relaciones-objetos/components/ObjetoRelacionesGraph";
+import { RelacionesTable } from "@/features/relaciones-objetos/components/RelacionesTable";
 import { useRelacionesPorObjetoQuery } from "@/features/relaciones-objetos/queries";
 import { getApiErrorMessage } from "@/features/relaciones-objetos/utils";
 import { useEditingMode } from "@/lib/editing-mode";
@@ -102,58 +101,13 @@ export default function RelacionesObjetoPage() {
           <EmptyState description="El objeto no tiene relaciones registradas." title="Sin relaciones" />
         ) : null}
         {vista === "tabla" && !relacionesQuery.isLoading && !relacionesQuery.isError && relaciones.length > 0 ? (
-          <div className="overflow-hidden rounded-lg border">
-            <table className="w-full border-collapse text-sm">
-              <thead className="bg-primary text-primary-foreground">
-                <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-white">Direccion</th>
-                  <th className="px-4 py-3 text-left font-semibold text-white">Objeto relacionado</th>
-                  <th className="px-4 py-3 text-left font-semibold text-white">Tipo</th>
-                  <th className="px-4 py-3 text-left font-semibold text-white">Descripcion</th>
-                  <th className="px-4 py-3 text-left font-semibold text-white">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {relaciones.map((relacion) => {
-                  const relacionado =
-                    relacion.direccion === "SALIENTE"
-                      ? {
-                          id: relacion.objetoDestinoId,
-                          inventario: relacion.objetoDestinoNumeroInventario,
-                          nombre: relacion.objetoDestinoNombre
-                        }
-                      : {
-                          id: relacion.objetoOrigenId,
-                          inventario: relacion.objetoOrigenNumeroInventario,
-                          nombre: relacion.objetoOrigenNombre
-                        };
-
-                  return (
-                    <tr className="border-t" key={relacion.idRelacion}>
-                      <td className="px-4 py-3 align-top font-medium">{relacion.direccion}</td>
-                      <td className="px-4 py-3 align-top">
-                        <Link className="text-primary underline-offset-4 hover:underline" href={`/objetos/${relacionado.id}`}>
-                          {relacionado.inventario} - {relacionado.nombre}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 align-top">{relacion.tipoRelacion}</td>
-                      <td className="px-4 py-3 align-top text-muted-foreground">{relacion.descripcion || "Sin descripcion"}</td>
-                      <td className="px-4 py-3 align-top">
-                        <RowActions className="justify-start">
-                          <RowActionLink href={`/relaciones-objetos/${relacion.idRelacion}`} icon={Search} label="Ver" />
-                        </RowActions>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <RelacionesTable relaciones={relaciones} />
         ) : null}
         {vista === "grafo" ? (
           <ObjetoRelacionesGraph
             objeto={objetoQuery.data}
-            objetoId={id}
+            entidadId={id}
+            tipoCentral="OBJETO"
             onBackToTable={() => setVista("tabla")}
             onProfundidadChange={setProfundidad}
             profundidad={profundidad}

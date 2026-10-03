@@ -1,7 +1,7 @@
 import { apiRequest } from "@/lib/api";
 import type {
   ObjetoGrafoResponseDTO,
-  RelacionObjetoPorObjetoResponseDTO,
+  RelacionElementoResponseDTO,
   RelacionObjetoRequestDTO,
   RelacionObjetoResponseDTO
 } from "../types";
@@ -17,11 +17,19 @@ export function obtenerRelacionObjetoPorId(id: number) {
 }
 
 export function listarRelacionesDeObjeto(objetoId: number) {
-  return apiRequest<RelacionObjetoPorObjetoResponseDTO[]>(`/api/objetos/${objetoId}/relaciones`);
+  return apiRequest<RelacionElementoResponseDTO[]>(`/api/objetos/${objetoId}/relaciones`);
 }
 
 export function obtenerGrafoRelacionesObjeto(objetoId: number, profundidad: number) {
   return apiRequest<ObjetoGrafoResponseDTO>(`/api/objetos/${objetoId}/grafo-relaciones?profundidad=${profundidad}`);
+}
+
+export function listarRelacionesDePersona(personaId: number) {
+  return apiRequest<RelacionElementoResponseDTO[]>(`${basePath}/persona/${personaId}`);
+}
+
+export function obtenerGrafoRelacionesPersona(personaId: number, profundidad: number) {
+  return apiRequest<ObjetoGrafoResponseDTO>(`${basePath}/persona/${personaId}/grafo?profundidad=${profundidad}`);
 }
 
 export function crearRelacionObjeto(payload: RelacionObjetoRequestDTO) {

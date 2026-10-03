@@ -4,8 +4,10 @@ import {
   bajaLogicaRelacionObjeto,
   crearRelacionObjeto,
   listarRelacionesDeObjeto,
+  listarRelacionesDePersona,
   listarRelacionesObjeto,
   obtenerGrafoRelacionesObjeto,
+  obtenerGrafoRelacionesPersona,
   obtenerRelacionObjetoPorId
 } from "./api";
 import type { RelacionObjetoRequestDTO } from "./types";
@@ -15,6 +17,8 @@ export const relacionesObjetosQueryKeys = {
   lists: () => [...relacionesObjetosQueryKeys.all, "list"] as const,
   byObjeto: (objetoId: number) => [...relacionesObjetosQueryKeys.all, "objeto", objetoId] as const,
   grafoObjeto: (objetoId: number, profundidad: number) => [...relacionesObjetosQueryKeys.all, "objeto", objetoId, "grafo", profundidad] as const,
+  byPersona: (personaId: number) => [...relacionesObjetosQueryKeys.all, "persona", personaId] as const,
+  grafoPersona: (personaId: number, profundidad: number) => [...relacionesObjetosQueryKeys.all, "persona", personaId, "grafo", profundidad] as const,
   detail: (id: number) => [...relacionesObjetosQueryKeys.all, "detail", id] as const
 };
 
@@ -46,6 +50,22 @@ export function useGrafoRelacionesObjetoQuery(objetoId: number, profundidad: num
     queryKey: relacionesObjetosQueryKeys.grafoObjeto(objetoId, profundidad),
     queryFn: () => obtenerGrafoRelacionesObjeto(objetoId, profundidad),
     enabled: Number.isFinite(objetoId) && profundidad >= 1 && profundidad <= 3
+  });
+}
+
+export function useRelacionesPorPersonaQuery(personaId: number) {
+  return useQuery({
+    queryKey: relacionesObjetosQueryKeys.byPersona(personaId),
+    queryFn: () => listarRelacionesDePersona(personaId),
+    enabled: Number.isFinite(personaId)
+  });
+}
+
+export function useGrafoRelacionesPersonaQuery(personaId: number, profundidad: number) {
+  return useQuery({
+    queryKey: relacionesObjetosQueryKeys.grafoPersona(personaId, profundidad),
+    queryFn: () => obtenerGrafoRelacionesPersona(personaId, profundidad),
+    enabled: Number.isFinite(personaId) && profundidad >= 1 && profundidad <= 3
   });
 }
 

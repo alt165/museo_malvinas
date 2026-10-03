@@ -14,7 +14,7 @@ import com.proveedores.dto.ObjetoPendienteCompletarResponseDTO;
 import com.proveedores.dto.ObjetoVencimientoProximoResponseDTO;
 import com.proveedores.dto.ReciboEscaneadoObjetoMuseoResponseDTO;
 import com.proveedores.dto.ReciboIngresoObjetoResponseDTO;
-import com.proveedores.dto.RelacionObjetoPorObjetoResponseDTO;
+import com.proveedores.dto.RelacionElementoResponseDTO;
 import com.proveedores.entity.VisibilidadCampo;
 import com.proveedores.service.ComodatoPrestamoService;
 import com.proveedores.service.FotoObjetoMuseoService;
@@ -248,7 +248,7 @@ public class ObjetoMuseoController {
     @Operation(summary = "Listar relaciones del objeto")
     @ApiResponse(responseCode = "200", description = "Relaciones obtenidas")
     @GetMapping("/{id}/relaciones")
-    public ResponseEntity<List<RelacionObjetoPorObjetoResponseDTO>> listarRelaciones(@PathVariable Long id) {
+    public ResponseEntity<List<RelacionElementoResponseDTO>> listarRelaciones(@PathVariable Long id) {
         return ResponseEntity.ok(relacionObjetoService.listarPorObjeto(id));
     }
 

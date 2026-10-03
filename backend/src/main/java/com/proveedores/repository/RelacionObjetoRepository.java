@@ -2,12 +2,22 @@ package com.proveedores.repository;
 
 import com.proveedores.entity.RelacionObjeto;
 import java.util.List;
+import java.util.Collection;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface RelacionObjetoRepository extends JpaRepository<RelacionObjeto, Long> {
+
+    @org.springframework.data.jpa.repository.Query("""
+            select distinct r from RelacionObjeto r
+            join fetch r.objetoOrigen origen
+            join fetch r.objetoDestino destino
+            where r.eliminado = false
+              and (origen.id in :objetoIds or destino.id in :objetoIds)
+            """)
+    List<RelacionObjeto> findAllByObjetoMuseoIds(@org.springframework.data.repository.query.Param("objetoIds") Collection<Long> objetoIds);
 
     List<RelacionObjeto> findByObjetoOrigenIdAndEliminadoFalse(Long objetoOrigenId);
 
