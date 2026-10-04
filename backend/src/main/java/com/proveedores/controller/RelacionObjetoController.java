@@ -2,6 +2,8 @@ package com.proveedores.controller;
 
 import com.proveedores.dto.RelacionObjetoRequestDTO;
 import com.proveedores.dto.RelacionObjetoResponseDTO;
+import com.proveedores.dto.RelacionElementoResponseDTO;
+import com.proveedores.dto.ObjetoGrafoResponseDTO;
 import com.proveedores.service.RelacionObjetoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Relaciones entre objetos", description = "Relaciones direccionales entre objetos del museo")
@@ -52,6 +55,21 @@ public class RelacionObjetoController {
     @GetMapping
     public ResponseEntity<List<RelacionObjetoResponseDTO>> listar() {
         return ResponseEntity.ok(relacionObjetoService.listar());
+    }
+
+    @Operation(summary = "Listar relaciones de una persona")
+    @GetMapping("/persona/{personaId}")
+    public ResponseEntity<List<RelacionElementoResponseDTO>> listarPorPersona(@PathVariable Long personaId) {
+        return ResponseEntity.ok(relacionObjetoService.listarPorPersona(personaId));
+    }
+
+    @Operation(summary = "Obtener grafo de relaciones de una persona")
+    @GetMapping("/persona/{personaId}/grafo")
+    public ResponseEntity<ObjetoGrafoResponseDTO> obtenerGrafoPersona(
+            @PathVariable Long personaId,
+            @RequestParam(defaultValue = "1") Integer profundidad
+    ) {
+        return ResponseEntity.ok(relacionObjetoService.obtenerGrafoRelacionesPersona(personaId, profundidad));
     }
 
     @Operation(summary = "Actualizar recurso")

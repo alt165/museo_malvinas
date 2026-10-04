@@ -4,15 +4,34 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
+import com.proveedores.dto.CategoriaObjetoRequestDTO;
 import com.proveedores.entity.CaracterRecepcionObjeto;
+import com.proveedores.entity.EstadoConservacion;
+import com.proveedores.entity.EmbargoObjeto;
+import com.proveedores.entity.Fuerza;
+import com.proveedores.entity.ObjetoVeterano;
+import com.proveedores.entity.Veterano;
+import com.proveedores.entity.VisibilidadCampo;
 import com.proveedores.dto.RelacionObjetoRequestDTO;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.RelacionObjetoRepository;
+import com.proveedores.repository.EmbargoObjetoRepository;
+import com.proveedores.repository.ObjetoMuseoRepository;
+import com.proveedores.repository.ObjetoVeteranoRepository;
+import com.proveedores.repository.VeteranoRepository;
+import com.proveedores.service.CategoriaObjetoService;
 import com.proveedores.service.ObjetoMuseoService;
 import com.proveedores.service.RelacionObjetoService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Set;
+import java.util.HashMap;
+import java.time.LocalDate;
+import org.junit.jupiter.api.AfterEach;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 class RelacionObjetoServiceIntegrationTest extends IntegrationTestBase {
 
@@ -24,6 +43,26 @@ class RelacionObjetoServiceIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private RelacionObjetoRepository relacionObjetoRepository;
+
+    @Autowired
+    private ObjetoMuseoRepository objetoMuseoRepository;
+
+    @Autowired
+    private ObjetoVeteranoRepository objetoVeteranoRepository;
+
+    @Autowired
+    private VeteranoRepository veteranoRepository;
+
+    @Autowired
+    private CategoriaObjetoService categoriaObjetoService;
+
+    @Autowired
+    private EmbargoObjetoRepository embargoObjetoRepository;
+
+    @AfterEach
+    void limpiarSeguridad() {
+        SecurityContextHolder.clearContext();
+    }
 
     @Test
     void creaRelacionValida() {
@@ -94,11 +133,11 @@ class RelacionObjetoServiceIntegrationTest extends IntegrationTestBase {
 
         var relaciones = relacionObjetoService.listarPorObjeto(objeto.id());
 
-        assertThat(relaciones).extracting("idRelacion").contains(saliente.id(), entrante.id());
-        assertThat(relaciones).filteredOn(item -> item.idRelacion().equals(saliente.id()))
+        assertThat(relaciones).extracting("idRelacion").contains("OBJETO_RELACION-" + saliente.id(), "OBJETO_RELACION-" + entrante.id());
+        assertThat(relaciones).filteredOn(item -> item.idRelacion().equals("OBJETO_RELACION-" + saliente.id()))
                 .singleElement()
                 .satisfies(item -> assertThat(item.direccion()).isEqualTo("SALIENTE"));
-        assertThat(relaciones).filteredOn(item -> item.idRelacion().equals(entrante.id()))
+        assertThat(relaciones).filteredOn(item -> item.idRelacion().equals("OBJETO_RELACION-" + entrante.id()))
                 .singleElement()
                 .satisfies(item -> assertThat(item.direccion()).isEqualTo("ENTRANTE"));
     }
@@ -130,9 +169,9 @@ class RelacionObjetoServiceIntegrationTest extends IntegrationTestBase {
 
         var grafo = relacionObjetoService.obtenerGrafoRelaciones(inicial.id(), 1);
 
-        assertThat(grafo.nodes()).extracting("id").containsExactlyInAnyOrder(inicial.id(), directo.id());
+        assertThat(grafo.nodes()).extracting("id").containsExactlyInAnyOrder("OBJETO-" + inicial.id(), "OBJETO-" + directo.id());
         assertThat(grafo.edges()).hasSize(1);
-        assertThat(grafo.edges()).extracting("source").contains(inicial.id());
+        assertThat(grafo.edges()).extracting("source").contains("OBJETO-" + inicial.id());
     }
 
     @Test
@@ -145,7 +184,7 @@ class RelacionObjetoServiceIntegrationTest extends IntegrationTestBase {
 
         var grafo = relacionObjetoService.obtenerGrafoRelaciones(inicial.id(), 2);
 
-        assertThat(grafo.nodes()).extracting("id").contains(inicial.id(), directo.id(), segundoNivel.id());
+        assertThat(grafo.nodes()).extracting("id").contains("OBJETO-" + inicial.id(), "OBJETO-" + directo.id(), "OBJETO-" + segundoNivel.id());
         assertThat(grafo.edges()).hasSize(2);
     }
 
@@ -160,7 +199,7 @@ class RelacionObjetoServiceIntegrationTest extends IntegrationTestBase {
 
         var grafo = relacionObjetoService.obtenerGrafoRelaciones(uno.id(), 3);
 
-        assertThat(grafo.nodes()).extracting("id").containsExactlyInAnyOrder(uno.id(), dos.id(), tres.id());
+        assertThat(grafo.nodes()).extracting("id").containsExactlyInAnyOrder("OBJETO-" + uno.id(), "OBJETO-" + dos.id(), "OBJETO-" + tres.id());
         assertThat(grafo.edges()).extracting("id").doesNotHaveDuplicates();
         assertThat(grafo.nodes()).extracting("id").doesNotHaveDuplicates();
     }
@@ -186,7 +225,7 @@ class RelacionObjetoServiceIntegrationTest extends IntegrationTestBase {
 
         var grafo = relacionObjetoService.obtenerGrafoRelaciones(inicial.id(), 1);
 
-        assertThat(grafo.nodes()).extracting("id").containsExactly(inicial.id());
+        assertThat(grafo.nodes()).extracting("id").containsExactly("OBJETO-" + inicial.id());
         assertThat(grafo.edges()).isEmpty();
     }
 
@@ -197,20 +236,130 @@ class RelacionObjetoServiceIntegrationTest extends IntegrationTestBase {
                 .hasMessage("Objeto de museo no encontrado");
     }
 
+    @Test
+    void integraPersonaConVariosObjetosEnTablaYGrafoSinColisiones() {
+        var uniforme = crearObjeto("IT-PER-001", "Uniforme");
+        var fotografia = crearObjeto("IT-PER-002", "Fotografia");
+        Veterano persona = crearPersona("Juan", "Perez");
+        vincular(uniforme.id(), persona, "pertenecio a");
+        vincular(fotografia.id(), persona, "retrata a");
+
+        var tablaPersona = relacionObjetoService.listarPorPersona(persona.getId());
+        var tablaObjeto = relacionObjetoService.listarPorObjeto(uniforme.id());
+        var grafo = relacionObjetoService.obtenerGrafoRelacionesPersona(persona.getId(), 1);
+
+        assertThat(tablaPersona).extracting("elementoId").containsExactlyInAnyOrder(uniforme.id(), fotografia.id());
+        assertThat(tablaObjeto).singleElement().satisfies(item -> {
+            assertThat(item.tipoElemento().name()).isEqualTo("PERSONA");
+            assertThat(item.elementoId()).isEqualTo(persona.getId());
+        });
+        assertThat(grafo.nodes()).extracting("id").containsExactlyInAnyOrder(
+                "PERSONA-" + persona.getId(), "OBJETO-" + uniforme.id(), "OBJETO-" + fotografia.id());
+        assertThat(grafo.nodes()).extracting("id").doesNotHaveDuplicates();
+        assertThat(grafo.edges()).hasSize(2);
+    }
+
+    @Test
+    void grafoObjetoCombinaRelacionesConPersonaYOtroObjeto() {
+        var uniforme = crearObjeto("IT-MIX-001", "Uniforme");
+        var documento = crearObjeto("IT-MIX-002", "Documento");
+        var fotografia = crearObjeto("IT-MIX-003", "Fotografia");
+        Veterano persona = crearPersona("Ana", "Gomez");
+        relacionObjetoService.crear(new RelacionObjetoRequestDTO(uniforme.id(), documento.id(), "documentado por", null));
+        vincular(uniforme.id(), persona, "pertenecio a");
+        vincular(fotografia.id(), persona, "retrata a");
+
+        var grafo = relacionObjetoService.obtenerGrafoRelaciones(uniforme.id(), 1);
+
+        assertThat(grafo.nodes()).extracting("id").contains(
+                "OBJETO-" + uniforme.id(), "OBJETO-" + documento.id(),
+                "PERSONA-" + persona.getId(), "OBJETO-" + fotografia.id());
+        assertThat(grafo.edges()).extracting("tipoVinculo").extracting(Object::toString)
+                .contains("OBJETO_OBJETO", "OBJETO_PERSONA");
+    }
+
+    @Test
+    void personaYObjetoSinRelacionesDevuelvenResultadosVacios() {
+        var objeto = crearObjeto("IT-EMPTY-001", "Objeto aislado");
+        Veterano persona = crearPersona("Sin", "Objetos");
+
+        assertThat(relacionObjetoService.listarPorObjeto(objeto.id())).isEmpty();
+        assertThat(relacionObjetoService.listarPorPersona(persona.getId())).isEmpty();
+        assertThat(relacionObjetoService.obtenerGrafoRelacionesPersona(persona.getId(), 1).nodes())
+                .extracting("id").containsExactly("PERSONA-" + persona.getId());
+    }
+
+    @Test
+    void viewerNoRecibeObjetoEmbargadoNiIndirectamenteDesdePersona() {
+        var visible = crearObjeto("IT-SEC-001", "Objeto visible");
+        var embargado = crearObjeto("IT-SEC-002", "Objeto embargado");
+        Veterano persona = crearPersona("Persona", "Visible");
+        vincular(visible.id(), persona, "vinculado a");
+        vincular(embargado.id(), persona, "vinculado a");
+        EmbargoObjeto embargo = new EmbargoObjeto();
+        embargo.setObjetoMuseo(objetoMuseoRepository.findById(embargado.id()).orElseThrow());
+        embargo.setFechaInicio(LocalDate.now());
+        embargoObjetoRepository.save(embargo);
+        var objetoVisible = objetoMuseoRepository.findById(visible.id()).orElseThrow();
+        var visibilidades = new HashMap<String, VisibilidadCampo>();
+        visibilidades.put("denominacionObjeto", VisibilidadCampo.PRIVADO);
+        visibilidades.put("numeroInventario", VisibilidadCampo.PRIVADO);
+        objetoVisible.setVisibilidades(visibilidades);
+        objetoMuseoRepository.save(objetoVisible);
+        autenticarComo("ROLE_VIEWER");
+
+        var tabla = relacionObjetoService.listarPorPersona(persona.getId());
+        var grafo = relacionObjetoService.obtenerGrafoRelacionesPersona(persona.getId(), 2);
+
+        assertThat(tabla).extracting("elementoId").containsExactly(visible.id());
+        assertThat(grafo.nodes()).extracting("id")
+                .contains("PERSONA-" + persona.getId(), "OBJETO-" + visible.id())
+                .doesNotContain("OBJETO-" + embargado.id());
+        assertThat(grafo.edges()).noneMatch(edge -> edge.target().equals("OBJETO-" + embargado.id()));
+        assertThat(grafo.nodes()).filteredOn(node -> node.id().equals("OBJETO-" + visible.id()))
+                .singleElement()
+                .satisfies(node -> {
+                    assertThat(node.label()).isEqualTo("Objeto patrimonial");
+                    assertThat(node.numeroInventario()).isNull();
+                });
+    }
+
     private com.proveedores.dto.ObjetoMuseoResponseDTO crearObjeto(String numeroInventario, String denominacion) {
+        var categoria = categoriaObjetoService.crear(new CategoriaObjetoRequestDTO("Categoria " + numeroInventario, null));
         return objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
                 numeroInventario,
                 denominacion,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
+                "Descripcion " + denominacion,
+                "Descripcion tecnica " + denominacion,
+                "Material de prueba",
+                "10 cm",
+                EstadoConservacion.BUENO,
+                Set.of(categoria.id()),
                 null,
                 1L,
                 CaracterRecepcionObjeto.DONACION,
                 null
         ));
+    }
+
+    private Veterano crearPersona(String nombre, String apellido) {
+        Veterano persona = new Veterano();
+        persona.setNombre(nombre);
+        persona.setApellido(apellido);
+        persona.setFuerza(Fuerza.EJERCITO);
+        return veteranoRepository.save(persona);
+    }
+
+    private void vincular(Long objetoId, Veterano persona, String tipoRelacion) {
+        ObjetoVeterano relacion = new ObjetoVeterano();
+        relacion.setObjetoMuseo(objetoMuseoRepository.findById(objetoId).orElseThrow());
+        relacion.setVeterano(persona);
+        relacion.setTipoRelacion(tipoRelacion);
+        objetoVeteranoRepository.save(relacion);
+    }
+
+    private void autenticarComo(String authority) {
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                "tester", "n/a", Set.of(new SimpleGrantedAuthority(authority))));
     }
 }

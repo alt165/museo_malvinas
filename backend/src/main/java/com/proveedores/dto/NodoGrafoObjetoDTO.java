@@ -1,7 +1,9 @@
 package com.proveedores.dto;
 
 public record NodoGrafoObjetoDTO(
-        Long id,
+        String id,
+        Long entidadId,
+        TipoNodoRelacion tipo,
         String label,
         String numeroInventario
 ) {

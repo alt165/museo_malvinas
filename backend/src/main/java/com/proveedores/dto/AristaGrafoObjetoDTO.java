@@ -1,9 +1,10 @@
 package com.proveedores.dto;
 
 public record AristaGrafoObjetoDTO(
-        Long id,
-        Long source,
-        Long target,
+        String id,
+        String source,
+        String target,
+        TipoVinculoRelacion tipoVinculo,
         String tipoRelacion,
         String descripcion
 ) {

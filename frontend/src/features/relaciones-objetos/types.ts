@@ -16,29 +16,34 @@ export type RelacionObjetoResponseDTO = RelacionObjetoRequestDTO & {
   activo?: boolean;
 };
 
-export type RelacionObjetoPorObjetoResponseDTO = {
-  idRelacion: number;
-  objetoOrigenId: number;
-  objetoOrigenNumeroInventario: string;
-  objetoOrigenNombre: string;
-  objetoDestinoId: number;
-  objetoDestinoNumeroInventario: string;
-  objetoDestinoNombre: string;
+export type TipoNodoRelacion = "OBJETO" | "PERSONA";
+export type TipoVinculoRelacion = "OBJETO_OBJETO" | "OBJETO_PERSONA";
+
+export type RelacionElementoResponseDTO = {
+  idRelacion: string;
+  tipoVinculo: TipoVinculoRelacion;
+  tipoElemento: TipoNodoRelacion;
+  elementoId: number;
+  numeroInventario?: string | null;
+  denominacion: string;
   tipoRelacion: string;
   descripcion?: string | null;
-  direccion: "SALIENTE" | "ENTRANTE";
+  direccion: "SALIENTE" | "ENTRANTE" | "VINCULADA" | "VINCULADO";
 };
 
 export type NodoGrafoObjetoDTO = {
-  id: number;
+  id: string;
+  entidadId: number;
+  tipo: TipoNodoRelacion;
   label: string;
-  numeroInventario: string;
+  numeroInventario?: string | null;
 };
 
 export type AristaGrafoObjetoDTO = {
-  id: number;
-  source: number;
-  target: number;
+  id: string;
+  source: string;
+  target: string;
+  tipoVinculo: TipoVinculoRelacion;
   tipoRelacion: string;
   descripcion?: string | null;
 };
