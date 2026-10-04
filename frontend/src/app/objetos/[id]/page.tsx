@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { Camera, ChevronLeft, ChevronRight, ClipboardList, FileText, Leaf, Receipt, Scale, Trash2, X, type LucideIcon } from "lucide-react";
+import { Camera, ChevronLeft, ChevronRight, ClipboardList, Download, FileText, Leaf, Receipt, Scale, Trash2, X, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -17,6 +17,7 @@ import { ApiClientError } from "@/lib/errors/api-error";
 import {
   descargarCopiaFirmadaRecibo,
   descargarFotoObjeto,
+  descargarFotoOriginalObjeto,
   descargarReciboPdf
 } from "@/features/objetos/api";
 import {
@@ -134,9 +135,10 @@ function SectionHeader({ icon: Icon, title }: { icon: LucideIcon; title: string 
 type GaleriaObjetoProps = {
   objeto: ObjetoMuseoResponseDTO;
   puedeEscribir: boolean;
+  esAdmin: boolean;
 };
 
-function GaleriaObjeto({ objeto, puedeEscribir }: GaleriaObjetoProps) {
+function GaleriaObjeto({ objeto, puedeEscribir, esAdmin }: GaleriaObjetoProps) {
   const queryClient = useQueryClient();
   const eliminarFotoMutation = useEliminarFotoObjetoMutation(objeto.id);
   const fotosOrdenadas = useMemo(() => ordenarFotos(objeto.fotos), [objeto.fotos]);
@@ -145,6 +147,8 @@ function GaleriaObjeto({ objeto, puedeEscribir }: GaleriaObjetoProps) {
   const [modalCargaAbierto, setModalCargaAbierto] = useState(false);
   const [visorFotoId, setVisorFotoId] = useState<number | null>(null);
   const [fotoUrls, setFotoUrls] = useState<Record<number, string>>({});
+  const [descargandoOriginal, setDescargandoOriginal] = useState(false);
+  const [errorDescargaOriginal, setErrorDescargaOriginal] = useState<unknown>(null);
   const fotoUrlsRef = useRef<Record<number, string>>({});
   const miniaturaRefs = useRef<Record<number, HTMLButtonElement | null>>({});
 
@@ -225,6 +229,20 @@ function GaleriaObjeto({ objeto, puedeEscribir }: GaleriaObjetoProps) {
         void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.detail(objeto.id) });
       }
     });
+  }
+
+  async function descargarOriginalSeleccionado() {
+    if (!fotoPrincipal || descargandoOriginal) return;
+    setDescargandoOriginal(true);
+    setErrorDescargaOriginal(null);
+    try {
+      const blob = await descargarFotoOriginalObjeto(objeto.id, fotoPrincipal.id);
+      descargarBlob(blob, fotoPrincipal.nombreArchivo || `objeto-${objeto.numeroInventario}-foto-${fotoPrincipal.id}`);
+    } catch (error) {
+      setErrorDescargaOriginal(error);
+    } finally {
+      setDescargandoOriginal(false);
+    }
   }
 
   useEffect(() => {
@@ -326,20 +344,35 @@ function GaleriaObjeto({ objeto, puedeEscribir }: GaleriaObjetoProps) {
         <div className="space-y-3 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-sm font-semibold text-primary">Imagenes del objeto</h2>
-            {puedeEscribir ? (
+            {puedeEscribir || esAdmin ? (
               <div className="flex flex-wrap items-center gap-2">
-                <button className="rounded-md border border-primary/20 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/5" onClick={() => setModalCargaAbierto(true)} type="button">
-                  Agregar mas imagenes
-                </button>
-                <button
-                  className="inline-flex items-center gap-1.5 rounded-md border border-destructive/30 px-3 py-1.5 text-sm font-medium text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={eliminarFotoMutation.isPending}
-                  onClick={eliminarFotoSeleccionada}
-                  type="button"
-                >
-                  <Trash2 aria-hidden="true" className="h-4 w-4" />
-                  {eliminarFotoMutation.isPending ? "Eliminando..." : "Eliminar imagen"}
-                </button>
+                {esAdmin ? (
+                  <button
+                    className="inline-flex items-center gap-1.5 rounded-md border border-primary/20 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={descargandoOriginal}
+                    onClick={() => void descargarOriginalSeleccionado()}
+                    type="button"
+                  >
+                    <Download aria-hidden="true" className="h-4 w-4" />
+                    {descargandoOriginal ? "Descargando..." : "Descargar original"}
+                  </button>
+                ) : null}
+                {puedeEscribir ? (
+                  <>
+                    <button className="rounded-md border border-primary/20 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/5" onClick={() => setModalCargaAbierto(true)} type="button">
+                      Agregar mas imagenes
+                    </button>
+                    <button
+                      className="inline-flex items-center gap-1.5 rounded-md border border-destructive/30 px-3 py-1.5 text-sm font-medium text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={eliminarFotoMutation.isPending}
+                      onClick={eliminarFotoSeleccionada}
+                      type="button"
+                    >
+                      <Trash2 aria-hidden="true" className="h-4 w-4" />
+                      {eliminarFotoMutation.isPending ? "Eliminando..." : "Eliminar imagen"}
+                    </button>
+                  </>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -401,6 +434,13 @@ function GaleriaObjeto({ objeto, puedeEscribir }: GaleriaObjetoProps) {
         <ErrorState
           message={getApiErrorMessage(eliminarFotoMutation.error)}
           requestId={eliminarFotoMutation.error instanceof ApiClientError ? eliminarFotoMutation.error.requestId : undefined}
+        />
+      ) : null}
+
+      {errorDescargaOriginal ? (
+        <ErrorState
+          message={getApiErrorMessage(errorDescargaOriginal)}
+          requestId={errorDescargaOriginal instanceof ApiClientError ? errorDescargaOriginal.requestId : undefined}
         />
       ) : null}
 
@@ -629,7 +669,7 @@ export default function DetalleObjetoPage() {
         {data ? (
           <section className="grid gap-4 lg:grid-cols-2">
             <div className="min-w-0 lg:col-start-1 lg:row-start-1 lg:[&>div:first-child]:h-full">
-              <GaleriaObjeto objeto={data} puedeEscribir={puedeEscribir} />
+              <GaleriaObjeto esAdmin={esAdmin} objeto={data} puedeEscribir={puedeEscribir} />
             </div>
 
             <div className="h-full min-w-0 overflow-hidden rounded-lg border border-primary/15 bg-white shadow-sm lg:col-start-2 lg:row-start-1">

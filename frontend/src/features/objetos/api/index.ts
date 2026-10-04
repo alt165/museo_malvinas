@@ -11,6 +11,7 @@ export {
   crearObjeto,
   descargarCopiaFirmadaRecibo,
   descargarFotoObjeto,
+  descargarFotoOriginalObjeto,
   descargarReciboEscaneadoObjeto,
   descargarReciboPdf,
   eliminarFotoObjeto,

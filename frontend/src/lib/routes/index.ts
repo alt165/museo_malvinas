@@ -21,7 +21,6 @@ export type NavigationItem = {
   roles: UserRole[];
   disabled?: boolean;
   badge?: string;
-  requiresEditing?: boolean;
 };
 
 export type NavigationGroup = {
@@ -82,8 +81,8 @@ export const navigationGroups: NavigationGroup[] = [
     roles: readRoles,
     items: [
       { href: routes.veteranos, label: "Consulta", icon: IdCard, roles: readRoles },
-      { href: routes.veteranoNuevo, label: "Alta de persona", icon: IdCard, roles: writeRoles, requiresEditing: true },
-      { href: routes.actuacionesVeteranos, label: "Actuaciones de personas", icon: History, roles: writeRoles, requiresEditing: true }
+      { href: routes.veteranoNuevo, label: "Alta de persona", icon: IdCard, roles: writeRoles },
+      { href: routes.actuacionesVeteranos, label: "Actuaciones de personas", icon: History, roles: writeRoles }
     ]
   },
   {
@@ -93,10 +92,10 @@ export const navigationGroups: NavigationGroup[] = [
     roles: readRoles,
     items: [
       { href: routes.objetos, label: "Consulta", icon: Archive, roles: readRoles },
-      { href: routes.objetosEliminados, label: "Eliminados", icon: Archive, roles: adminRoles, requiresEditing: true },
-      { href: routes.objetosCargaRapida, label: "Alta rapida", icon: Archive, roles: writeRoles, requiresEditing: true },
-      { href: routes.objetosPendientes, label: "Pendientes de completar", icon: Archive, roles: writeRoles, requiresEditing: true },
-      { href: routes.objetoNuevo, label: "Alta completa", icon: Archive, roles: writeRoles, requiresEditing: true },
+      { href: routes.objetosEliminados, label: "Eliminados", icon: Archive, roles: adminRoles },
+      { href: routes.objetosCargaRapida, label: "Alta rapida", icon: Archive, roles: writeRoles },
+      { href: routes.objetosPendientes, label: "Pendientes de completar", icon: Archive, roles: writeRoles },
+      { href: routes.objetoNuevo, label: "Alta completa", icon: Archive, roles: writeRoles },
       { href: routes.comodatosPrestamos, label: "Comodatos y préstamos", icon: FileClock, roles: adminRoles },
       { href: routes.objetosEmbargos, label: "Embargos", icon: Gavel, roles: adminRoles },
       { href: routes.relacionesObjetos, label: "Relaciones entre objetos", icon: Link2, roles: readRoles }
@@ -109,7 +108,7 @@ export const navigationGroups: NavigationGroup[] = [
     roles: readRoles,
     items: [
       { href: routes.objetosColecciones, label: "Consulta", icon: FolderTree, roles: readRoles },
-      { href: routes.objetosColeccionNueva, label: "Alta", icon: FolderTree, roles: writeRoles, requiresEditing: true }
+      { href: routes.objetosColeccionNueva, label: "Alta", icon: FolderTree, roles: writeRoles }
     ]
   },
   {
@@ -119,8 +118,8 @@ export const navigationGroups: NavigationGroup[] = [
     roles: readRoles,
     items: [
       { href: routes.exhibiciones, label: "Consulta", icon: Landmark, roles: readRoles },
-      { href: routes.exhibicionNueva, label: "Alta", icon: Landmark, roles: writeRoles, requiresEditing: true },
-      { href: routes.exhibicionesFinalizadas, label: "Repetir", icon: Landmark, roles: writeRoles, requiresEditing: true }
+      { href: routes.exhibicionNueva, label: "Alta", icon: Landmark, roles: writeRoles },
+      { href: routes.exhibicionesFinalizadas, label: "Repetir", icon: Landmark, roles: writeRoles }
     ]
   },
   {
@@ -130,7 +129,7 @@ export const navigationGroups: NavigationGroup[] = [
     roles: writeRoles,
     items: [
       { href: routes.depositantes, label: "Consulta", icon: Handshake, roles: writeRoles },
-      { href: routes.depositanteNuevo, label: "Alta", icon: Handshake, roles: writeRoles, requiresEditing: true }
+      { href: routes.depositanteNuevo, label: "Alta", icon: Handshake, roles: writeRoles }
     ]
   },
   {
@@ -140,7 +139,7 @@ export const navigationGroups: NavigationGroup[] = [
     roles: adminRoles,
     items: [
       { href: routes.usuarios, label: "Consulta", icon: UserCog, roles: adminRoles },
-      { href: routes.usuarioNuevo, label: "Alta", icon: UserCog, roles: adminRoles, requiresEditing: true }
+      { href: routes.usuarioNuevo, label: "Alta", icon: UserCog, roles: adminRoles }
     ]
   },
   {
@@ -159,6 +158,25 @@ export const navigationGroups: NavigationGroup[] = [
 ];
 
 export const navigationItems: NavigationItem[] = navigationGroups.flatMap((group) => group.items);
+
+const editModeRoutePatterns: RegExp[] = [
+  /^\/actuaciones-veteranos(?:\/.*)?$/,
+  /^\/categorias\/(?:nueva|[^/]+\/editar)$/,
+  /^\/depositantes\/(?:nuevo|[^/]+\/editar)$/,
+  /^\/exhibiciones\/(?:nueva|finalizadas|repetir\/[^/]+|[^/]+\/editar)$/,
+  /^\/inventario\/(?:nuevo|[^/]+\/editar)$/,
+  /^\/objetos\/(?:nuevo|carga-rapida|pendientes|eliminados|[^/]+\/editar)$/,
+  /^\/objetos\/colecciones\/(?:nueva|[^/]+\/editar)$/,
+  /^\/relaciones-objetos\/(?:nueva|[^/]+\/editar)$/,
+  /^\/ubicaciones\/(?:nueva|[^/]+\/editar)$/,
+  /^\/usuarios\/(?:nuevo|[^/]+\/editar)$/,
+  /^\/veteranos\/(?:nuevo|[^/]+\/editar)$/
+];
+
+export function requiresEditMode(pathname: string) {
+  const normalizedPath = pathname.split(/[?#]/, 1)[0].replace(/\/$/, "") || "/";
+  return editModeRoutePatterns.some((pattern) => pattern.test(normalizedPath));
+}
 
 export const operationActions: NavigationItem[] = navigationItems.filter((item) => item.roles === writeRoles);
 

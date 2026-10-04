@@ -5,6 +5,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 import com.proveedores.security.KeycloakJwtAuthenticationConverter;
 import com.proveedores.security.SecurityConfig;
@@ -118,16 +120,25 @@ class ObjetoPendienteCompletarSecurityTest {
     }
 
     @Test
-    void adminYMuseologoPuedenObtenerFotoOriginal() throws Exception {
+    void soloAdminPuedeDescargarFotoOriginalComoAdjunto() throws Exception {
         var metadata = new FotoObjetoMuseoResponseDTO(2L, 1L, "foto.png", null, "image/png", 3L, null,
                 VisibilidadCampo.PUBLICO, java.time.LocalDateTime.now(), "tester");
         when(fotoObjetoMuseoService.descargarOriginal(1L, 2L))
-                .thenReturn(new FotoObjetoMuseoService.FotoArchivo(metadata, new ByteArrayResource(new byte[]{1}), "image/png", true, 0));
+                .thenReturn(new FotoObjetoMuseoService.FotoArchivo(metadata, new ByteArrayResource(new byte[]{1, 2, 3}), "image/png", true, 0));
 
         mockMvc.perform(get("/api/objetos/1/fotos/2/original").with(user("admin").roles("ADMIN")))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("image/png"))
+                .andExpect(content().bytes(new byte[]{1, 2, 3}))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.startsWith("attachment;")))
+                .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("no-store")))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("original/a.png"))));
         mockMvc.perform(get("/api/objetos/1/fotos/2/original").with(user("museologo").roles("MUSEOLOGO")))
-                .andExpect(status().isOk());
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/objetos/1/fotos/2/original").with(user("operator").roles("OPERATOR")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/objetos/1/fotos/2/original"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

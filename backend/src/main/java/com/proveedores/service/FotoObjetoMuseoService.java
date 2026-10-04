@@ -121,7 +121,7 @@ public class FotoObjetoMuseoService {
 
     @Transactional(readOnly = true)
     public FotoArchivo descargarOriginal(Long objetoId, Long fotoId) {
-        if (!puedeVerOriginal()) throw new AccessDeniedException("No tiene permiso para acceder a la fotografia original");
+        if (!esAdmin()) throw new AccessDeniedException("No tiene permiso para descargar la fotografia original");
         FotoObjetoMuseo foto = buscarFoto(objetoId, fotoId);
         validarPuedeVerFoto(foto);
         return new FotoArchivo(toResponse(foto), cargarOriginal(foto), foto.getContentType(), true, 0);
@@ -205,6 +205,13 @@ public class FotoObjetoMuseoService {
 
     private boolean puedeVerOriginal() {
         return puedeVerPrivados();
+    }
+
+    private boolean esAdmin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch("ROLE_ADMIN"::equals);
     }
 
     private Resource cargarOriginal(FotoObjetoMuseo foto) {

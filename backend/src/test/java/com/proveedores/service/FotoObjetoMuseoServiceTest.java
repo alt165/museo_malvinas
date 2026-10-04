@@ -110,17 +110,50 @@ class FotoObjetoMuseoServiceTest {
     }
 
     @Test
-    void adminYMuseologoRecibenOriginal() {
-        for (String role : List.of("ROLE_ADMIN", "ROLE_MUSEOLOGO")) {
-            SecurityContextHolder.clearContext();
-            FotoObjetoMuseo foto = foto(VisibilidadCampo.PUBLICO);
-            when(objetoMuseoService.buscarObjetoActivo(7L)).thenReturn(objeto());
-            when(repository.findByIdAndObjetoMuseoIdAndEliminadoFalse(9L, 7L)).thenReturn(Optional.of(foto));
-            when(storage.load("original/a.png")).thenReturn(new ByteArrayResource(new byte[]{1}));
-            authenticate(role);
+    void soloAdminDescargaElOriginalExacto() throws Exception {
+        FotoObjetoMuseo foto = foto(VisibilidadCampo.PUBLICO);
+        when(objetoMuseoService.buscarObjetoActivo(7L)).thenReturn(objeto());
+        when(repository.findByIdAndObjetoMuseoIdAndEliminadoFalse(9L, 7L)).thenReturn(Optional.of(foto));
+        when(storage.load("original/a.png")).thenReturn(new ByteArrayResource(new byte[]{1, 2, 3}));
+        authenticate("ROLE_ADMIN");
 
-            assertThat(service.descargarOriginal(7L, 9L).original()).isTrue();
-        }
+        var archivo = service.descargarOriginal(7L, 9L);
+
+        assertThat(archivo.original()).isTrue();
+        assertThat(archivo.resource().getInputStream().readAllBytes()).containsExactly(1, 2, 3);
+        verify(storage).load("original/a.png");
+        verify(storage, never()).load("public/b.png");
+    }
+
+    @Test
+    void museologoNoPuedeDescargarOriginal() {
+        authenticate("ROLE_MUSEOLOGO");
+
+        assertThatThrownBy(() -> service.descargarOriginal(7L, 9L)).isInstanceOf(AccessDeniedException.class);
+        verify(repository, never()).findByIdAndObjetoMuseoIdAndEliminadoFalse(anyLong(), anyLong());
+    }
+
+    @Test
+    void museologoMantieneAccesoAlOriginalParaVisualizacionNormal() {
+        FotoObjetoMuseo foto = foto(VisibilidadCampo.PUBLICO);
+        when(objetoMuseoService.buscarObjetoActivo(7L)).thenReturn(objeto());
+        when(repository.findByIdAndObjetoMuseoIdAndEliminadoFalse(9L, 7L)).thenReturn(Optional.of(foto));
+        when(storage.load("original/a.png")).thenReturn(new ByteArrayResource(new byte[]{1}));
+        authenticate("ROLE_MUSEOLOGO");
+
+        assertThat(service.descargar(7L, 9L).original()).isTrue();
+    }
+
+    @Test
+    void noDescargaUnaFotoInexistenteONoPertenecienteAlObjeto() {
+        when(objetoMuseoService.buscarObjetoActivo(7L)).thenReturn(objeto());
+        when(repository.findByIdAndObjetoMuseoIdAndEliminadoFalse(99L, 7L)).thenReturn(Optional.empty());
+        authenticate("ROLE_ADMIN");
+
+        assertThatThrownBy(() -> service.descargarOriginal(7L, 99L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Foto del objeto no encontrada");
+        verify(storage, never()).load(anyString());
     }
 
     @Test
