@@ -10,4 +10,6 @@ public interface FotoObjetoMuseoRepository extends JpaRepository<FotoObjetoMuseo
     List<FotoObjetoMuseo> findByObjetoMuseoIdAndEliminadoFalse(Long objetoMuseoId);
 
     Optional<FotoObjetoMuseo> findByIdAndObjetoMuseoIdAndEliminadoFalse(Long id, Long objetoMuseoId);
+
+    List<FotoObjetoMuseo> findByEliminadoFalseOrderByIdAsc();
 }

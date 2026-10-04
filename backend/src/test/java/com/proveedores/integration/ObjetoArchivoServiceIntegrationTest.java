@@ -4,11 +4,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
+import com.proveedores.dto.CategoriaObjetoRequestDTO;
 import com.proveedores.entity.CaracterRecepcionObjeto;
+import com.proveedores.entity.EstadoConservacion;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.repository.FotoObjetoMuseoRepository;
 import com.proveedores.service.FotoObjetoMuseoService;
 import com.proveedores.service.ObjetoMuseoService;
+import com.proveedores.service.CategoriaObjetoService;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.util.Set;
+import javax.imageio.ImageIO;
 import com.proveedores.service.ReciboEscaneadoObjetoMuseoService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,22 +37,33 @@ class ObjetoArchivoServiceIntegrationTest extends IntegrationTestBase {
     @Autowired
     private FotoObjetoMuseoRepository fotoObjetoMuseoRepository;
 
+    @Autowired
+    private CategoriaObjetoService categoriaObjetoService;
+
     @Test
-    void subirFotoValidaListaDescargaYElimina() {
+    void subirFotoValidaCreaAmbasVersionesListaDescargaYElimina() throws Exception {
         Long objetoId = crearObjeto("IT-FILE-FOTO-001");
-        MockMultipartFile foto = new MockMultipartFile("archivo", "foto.webp", "image/webp", "imagen".getBytes());
+        byte[] original = imagenPng(1800, 900);
+        MockMultipartFile foto = new MockMultipartFile("archivo", "foto.png", "image/png", original);
 
         var response = fotoObjetoMuseoService.subir(objetoId, foto, "Vista frontal", "tester");
 
         assertThat(response.id()).isNotNull();
-        assertThat(response.nombreArchivo()).matches("MMAS\\d{9}.webp");
+        assertThat(response.nombreArchivo()).matches("MMAS\\d{9}.png");
+        assertThat(response.nombreArchivoAlmacenado()).isNull();
         assertThat(fotoObjetoMuseoService.listar(objetoId)).extracting("id").contains(response.id());
-        assertThat(fotoObjetoMuseoService.descargar(objetoId, response.id()).resource().exists()).isTrue();
+        var entity = fotoObjetoMuseoRepository.findById(response.id()).orElseThrow();
+        assertThat(entity.getRutaRelativa()).contains("/original/");
+        assertThat(entity.getRutaPublica()).contains("/public/");
+        assertThat(java.nio.file.Files.readAllBytes(java.nio.file.Path.of(entity.getRutaAlmacenamiento()))).containsExactly(original);
+        BufferedImage publica = ImageIO.read(fotoObjetoMuseoService.descargar(objetoId, response.id()).resource().getInputStream());
+        assertThat(publica.getWidth()).isEqualTo(1600);
+        assertThat(publica.getHeight()).isEqualTo(800);
 
         fotoObjetoMuseoService.eliminar(objetoId, response.id());
 
         assertThat(fotoObjetoMuseoRepository.findById(response.id())).get()
-                .satisfies(entity -> assertThat(entity.getEliminado()).isTrue());
+                .satisfies(fotoEliminada -> assertThat(fotoEliminada.getEliminado()).isTrue());
         assertThat(fotoObjetoMuseoService.listar(objetoId)).extracting("id").doesNotContain(response.id());
     }
 
@@ -87,15 +107,27 @@ class ObjetoArchivoServiceIntegrationTest extends IntegrationTestBase {
     }
 
     private Long crearObjeto(String numeroInventario) {
+        var categoria = categoriaObjetoService.crear(new CategoriaObjetoRequestDTO("Categoria " + numeroInventario, null));
         return objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
                 numeroInventario,
                 "Objeto archivos " + numeroInventario,
-                null,
-                null, null, null, null, null,
+                "Descripcion",
+                "Descripcion tecnica", "Material", "10 cm", EstadoConservacion.BUENO, Set.of(categoria.id()),
                 null,
                 1L,
                 CaracterRecepcionObjeto.DONACION,
                 null
         )).id();
+    }
+
+    private byte[] imagenPng(int width, int height) throws Exception {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = image.createGraphics();
+        graphics.setColor(Color.WHITE);
+        graphics.fillRect(0, 0, width, height);
+        graphics.dispose();
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", output);
+        return output.toByteArray();
     }
 }

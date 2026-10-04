@@ -27,16 +27,20 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -332,9 +336,26 @@ public class ObjetoMuseoController {
     @GetMapping("/{id}/fotos/{fotoId}")
     public ResponseEntity<Resource> descargarFoto(@PathVariable Long id, @PathVariable Long fotoId) {
         FotoObjetoMuseoService.FotoArchivo foto = fotoObjetoMuseoService.descargar(id, fotoId);
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(foto.metadata().contentType()))
+        ResponseEntity.BodyBuilder response = ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(foto.contentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + foto.metadata().nombreArchivo() + "\"")
+                .cacheControl(foto.original()
+                        ? CacheControl.noStore().cachePrivate()
+                        : CacheControl.maxAge(foto.cacheMaxAgeSeconds(), TimeUnit.SECONDS).cachePrivate());
+        return response.body(foto.resource());
+    }
+
+    @Operation(summary = "Descargar la fotografia original protegida")
+    @GetMapping("/{id}/fotos/{fotoId}/original")
+    public ResponseEntity<Resource> descargarFotoOriginal(@PathVariable Long id, @PathVariable Long fotoId) {
+        FotoObjetoMuseoService.FotoArchivo foto = fotoObjetoMuseoService.descargarOriginal(id, fotoId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(foto.contentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(foto.metadata().nombreArchivo(), StandardCharsets.UTF_8)
+                        .build()
+                        .toString())
+                .cacheControl(CacheControl.noStore().cachePrivate())
                 .body(foto.resource());
     }
 

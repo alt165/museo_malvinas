@@ -1,8 +1,10 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { canWrite, hasRole } from "@/lib/auth";
 import { useAuth } from "@/lib/auth/auth-provider";
+import { requiresEditMode, routes } from "@/lib/routes";
 import type { UserRole } from "@/models/session";
 import { setEditingModeEnabled } from "./store";
 
@@ -23,6 +25,8 @@ type EditingModeStateProps = {
 const EditingModeContext = createContext<EditingModeContextValue | null>(null);
 
 function EditingModeState({ authenticated, children, roles }: EditingModeStateProps) {
+  const pathname = usePathname();
+  const router = useRouter();
   const [permitirEdicion, setPermitirEdicionState] = useState(false);
   const canEnableEditing = authenticated && canWrite(roles);
   const canEdit = canEnableEditing && permitirEdicion;
@@ -39,6 +43,14 @@ function EditingModeState({ authenticated, children, roles }: EditingModeStatePr
     []
   );
 
+  const currentRouteRequiresEditing = requiresEditMode(pathname);
+
+  useEffect(() => {
+    if (!canEdit && currentRouteRequiresEditing) {
+      router.replace(routes.dashboard);
+    }
+  }, [canEdit, currentRouteRequiresEditing, router]);
+
   const setPermitirEdicion = useCallback(
     (enabled: boolean) => {
       setPermitirEdicionState(canEnableEditing ? enabled : false);
@@ -51,7 +63,11 @@ function EditingModeState({ authenticated, children, roles }: EditingModeStatePr
     [canAdminEdit, canEdit, canEnableEditing, setPermitirEdicion]
   );
 
-  return <EditingModeContext.Provider value={value}>{children}</EditingModeContext.Provider>;
+  return (
+    <EditingModeContext.Provider value={value}>
+      {!canEdit && currentRouteRequiresEditing ? null : children}
+    </EditingModeContext.Provider>
+  );
 }
 
 export function EditingModeProvider({ children }: { children: React.ReactNode }) {
