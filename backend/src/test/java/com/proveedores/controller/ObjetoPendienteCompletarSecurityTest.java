@@ -15,6 +15,8 @@ import com.proveedores.service.ObjetoMuseoService;
 import com.proveedores.service.ReciboEscaneadoObjetoMuseoService;
 import com.proveedores.service.ReciboIngresoObjetoService;
 import com.proveedores.service.RelacionObjetoService;
+import com.proveedores.dto.FotoObjetoMuseoResponseDTO;
+import com.proveedores.entity.VisibilidadCampo;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +28,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.core.io.ByteArrayResource;
 
 @WebMvcTest(ObjetoMuseoController.class)
 @AutoConfigureMockMvc
@@ -106,6 +109,25 @@ class ObjetoPendienteCompletarSecurityTest {
     void viewerNoPuedeExportarPendientes() throws Exception {
         mockMvc.perform(get("/api/objetos/pendientes-completar/export/pdf").with(user("viewer").roles("VIEWER")))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void viewerNoPuedeObtenerFotoOriginal() throws Exception {
+        mockMvc.perform(get("/api/objetos/1/fotos/2/original").with(user("viewer").roles("VIEWER")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminYMuseologoPuedenObtenerFotoOriginal() throws Exception {
+        var metadata = new FotoObjetoMuseoResponseDTO(2L, 1L, "foto.png", null, "image/png", 3L, null,
+                VisibilidadCampo.PUBLICO, java.time.LocalDateTime.now(), "tester");
+        when(fotoObjetoMuseoService.descargarOriginal(1L, 2L))
+                .thenReturn(new FotoObjetoMuseoService.FotoArchivo(metadata, new ByteArrayResource(new byte[]{1}), "image/png", true, 0));
+
+        mockMvc.perform(get("/api/objetos/1/fotos/2/original").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/objetos/1/fotos/2/original").with(user("museologo").roles("MUSEOLOGO")))
+                .andExpect(status().isOk());
     }
 
     @Test

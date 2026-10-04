@@ -12,10 +12,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.proveedores.dto.HistorialObjetoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoEliminadoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
+import com.proveedores.dto.RegeneracionFotosPublicasResponseDTO;
 import com.proveedores.exception.GlobalExceptionHandler;
 import com.proveedores.security.KeycloakJwtAuthenticationConverter;
 import com.proveedores.service.AuditoriaObjetoService;
 import com.proveedores.service.ObjetoMuseoService;
+import com.proveedores.service.FotoObjetoMuseoService;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -39,6 +41,9 @@ class AdminObjetoMuseoControllerTest {
 
     @MockBean
     private ObjetoMuseoService objetoMuseoService;
+
+    @MockBean
+    private FotoObjetoMuseoService fotoObjetoMuseoService;
 
     @MockBean
     private AuditoriaObjetoService auditoriaObjetoService;
@@ -101,5 +106,16 @@ class AdminObjetoMuseoControllerTest {
                 .andExpect(jsonPath("$.id").value(1L));
 
         verify(objetoMuseoService).restaurar(1L, "admin-id");
+    }
+
+    @Test
+    void regenerarFotosPublicasDevuelveResumen() throws Exception {
+        when(fotoObjetoMuseoService.regenerarPublicasFaltantes())
+                .thenReturn(new RegeneracionFotosPublicasResponseDTO(5, 3, 2, 0));
+
+        mockMvc.perform(post("/api/admin/objetos/fotos/regenerar-publicas"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.procesadas").value(5))
+                .andExpect(jsonPath("$.generadas").value(3));
     }
 }

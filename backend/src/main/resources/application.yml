@@ -43,6 +43,16 @@ app:
     max-photo-size-mb: ${APP_UPLOAD_MAX_PHOTO_SIZE_MB:5}
     max-receipt-size-mb: ${APP_UPLOAD_MAX_RECEIPT_SIZE_MB:10}
     max-signed-receipt-size-mb: ${APP_UPLOAD_MAX_SIGNED_RECEIPT_SIZE_MB:10}
+  images:
+    public-version:
+      max-size: ${APP_IMAGES_PUBLIC_MAX_SIZE:1600}
+      cache-max-age-seconds: ${APP_IMAGES_PUBLIC_CACHE_MAX_AGE_SECONDS:86400}
+    watermark:
+      opacity: ${APP_IMAGES_WATERMARK_OPACITY:0.22}
+      relative-width: ${APP_IMAGES_WATERMARK_RELATIVE_WIDTH:0.18}
+      horizontal-gap: ${APP_IMAGES_WATERMARK_HORIZONTAL_GAP:0.35}
+      vertical-gap: ${APP_IMAGES_WATERMARK_VERTICAL_GAP:0.45}
+      resource: ${APP_IMAGES_WATERMARK_RESOURCE:classpath:/watermark/logo-header.png}
 
 server:
   port: ${SERVER_PORT:8080}

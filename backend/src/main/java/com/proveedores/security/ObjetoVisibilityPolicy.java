@@ -20,7 +20,9 @@ public final class ObjetoVisibilityPolicy {
         }
         return authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
-                .anyMatch(authority -> "ROLE_ADMIN".equals(authority) || "ROLE_OPERATOR".equals(authority));
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority)
+                        || "ROLE_OPERATOR".equals(authority)
+                        || "ROLE_MUSEOLOGO".equals(authority));
     }
 
     public static boolean campoVisible(ObjetoMuseo objeto, String campo) {

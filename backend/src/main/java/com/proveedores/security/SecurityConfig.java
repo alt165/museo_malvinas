@@ -59,6 +59,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/objetos/*/recibos").hasAnyRole("ADMIN", "OPERATOR")
                         .requestMatchers(HttpMethod.GET, "/api/objetos/*/recibo-escaneado").hasAnyRole("ADMIN", "OPERATOR")
                         .requestMatchers(HttpMethod.GET, "/api/objetos/*/recibo-escaneado/**").hasAnyRole("ADMIN", "OPERATOR")
+                        .requestMatchers(HttpMethod.GET, "/api/objetos/*/fotos/*/original").hasAnyRole("ADMIN", "OPERATOR", "MUSEOLOGO")
+                        .requestMatchers(HttpMethod.GET, "/api/objetos/*/fotos", "/api/objetos/*/fotos/*").hasAnyRole("ADMIN", "OPERATOR", "MUSEOLOGO", "VIEWER")
                         .requestMatchers(HttpMethod.GET, "/api/recibos/**").hasAnyRole("ADMIN", "OPERATOR")
                         .requestMatchers(HttpMethod.DELETE, "/api/colecciones/*").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/ubicaciones/**").hasAnyRole("ADMIN", "OPERATOR")

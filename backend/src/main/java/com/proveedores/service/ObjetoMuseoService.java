@@ -950,7 +950,7 @@ public class ObjetoMuseoService {
                         foto.getId(),
                         foto.getObjetoMuseo().getId(),
                         foto.getNombreArchivo(),
-                        foto.getNombreArchivoAlmacenado(),
+                        null,
                         foto.getContentType(),
                         foto.getTamanioBytes(),
                         foto.getDescripcion(),
