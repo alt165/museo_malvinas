@@ -6,6 +6,8 @@ import {
   actualizarVisibilidadFotoObjeto,
   bajaLogicaObjeto,
   buscarObjetos,
+  buscarComodatosPrestamos,
+  buscarEmbargosObjetos,
   buscarObjetosDisponiblesParaColeccion,
   crearEmbargoObjeto,
   cargaRapidaObjeto,
@@ -29,17 +31,20 @@ import {
   restaurarObjeto
 } from "./api";
 import type { BuscarObjetosDisponiblesColeccionParams, BuscarObjetosParams, CargaRapidaObjetoRequestDTO, EmbargoObjetoRequestDTO, MoverObjetoRequestDTO, ObjetoMuseoRequestDTO } from "./types";
+import type { BuscarComodatosPrestamosParams, BuscarEmbargosObjetosParams, ListarObjetosEliminadosParams } from "./api/objetos-api";
 
 export const objetosQueryKeys = {
   all: ["objetos"] as const,
   lists: () => [...objetosQueryKeys.all, "list"] as const,
   search: (params: BuscarObjetosParams) => [...objetosQueryKeys.all, "search", params] as const,
   collectionAvailableSearch: (params: BuscarObjetosDisponiblesColeccionParams) => [...objetosQueryKeys.all, "collection-available-search", params] as const,
-  deleted: (params: { page?: number; size?: number; sort?: string }) => [...objetosQueryKeys.all, "deleted", params] as const,
+  deleted: (params: ListarObjetosEliminadosParams) => [...objetosQueryKeys.all, "deleted", params] as const,
   pending: (params: { page?: number; size?: number; sort?: string }) => [...objetosQueryKeys.all, "pending", params] as const,
   vencimientosProximos: (dias?: number) => [...objetosQueryKeys.all, "vencimientos-proximos", dias ?? "config"] as const,
   comodatosPrestamos: () => [...objetosQueryKeys.all, "comodatos-prestamos"] as const,
+  comodatosPrestamosSearch: (params: BuscarComodatosPrestamosParams) => [...objetosQueryKeys.comodatosPrestamos(), "search", params] as const,
   embargos: (incluirHistoricos: boolean) => [...objetosQueryKeys.all, "embargos", incluirHistoricos] as const,
+  embargosSearch: (params: BuscarEmbargosObjetosParams) => [...objetosQueryKeys.all, "embargos-search", params] as const,
   configAlertasComodatosPrestamos: () => [...objetosQueryKeys.all, "comodatos-prestamos", "config-alertas"] as const,
   detail: (id: number) => [...objetosQueryKeys.all, "detail", id] as const,
   fotos: (id: number) => [...objetosQueryKeys.all, "detail", id, "fotos"] as const,
@@ -72,7 +77,7 @@ export function useBuscarObjetosDisponiblesParaColeccionQuery(params: BuscarObje
   });
 }
 
-export function useObjetosEliminadosQuery(params: { page?: number; size?: number; sort?: string }) {
+export function useObjetosEliminadosQuery(params: ListarObjetosEliminadosParams) {
   return useQuery({
     queryKey: objetosQueryKeys.deleted(params),
     queryFn: () => listarObjetosEliminados(params)
@@ -91,6 +96,13 @@ export function useEmbargosObjetosQuery(incluirHistoricos = false) {
   return useQuery({
     queryKey: objetosQueryKeys.embargos(incluirHistoricos),
     queryFn: () => listarEmbargosObjetos(incluirHistoricos)
+  });
+}
+
+export function useBuscarEmbargosObjetosQuery(params: BuscarEmbargosObjetosParams) {
+  return useQuery({
+    queryKey: objetosQueryKeys.embargosSearch(params),
+    queryFn: () => buscarEmbargosObjetos(params)
   });
 }
 
@@ -120,6 +132,13 @@ export function useComodatosPrestamosQuery() {
   return useQuery({
     queryKey: objetosQueryKeys.comodatosPrestamos(),
     queryFn: listarComodatosPrestamos
+  });
+}
+
+export function useBuscarComodatosPrestamosQuery(params: BuscarComodatosPrestamosParams) {
+  return useQuery({
+    queryKey: objetosQueryKeys.comodatosPrestamosSearch(params),
+    queryFn: () => buscarComodatosPrestamos(params)
   });
 }
 

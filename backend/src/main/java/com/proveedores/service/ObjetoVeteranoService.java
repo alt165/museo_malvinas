@@ -13,6 +13,7 @@ import com.proveedores.repository.ObjetoVeteranoRepository;
 import com.proveedores.repository.VeteranoRepository;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +36,21 @@ public class ObjetoVeteranoService {
 
     @Transactional
     public ObjetoVeteranoResponseDTO crear(ObjetoVeteranoRequestDTO dto) {
+        Optional<ObjetoVeterano> existente = objetoVeteranoRepository.findByObjetoMuseoIdAndVeteranoIdAndTipoRelacion(
+                dto.objetoMuseoId(),
+                dto.veteranoId(),
+                dto.tipoRelacion()
+        );
+        if (existente.isPresent() && existente.get().getEliminado()) {
+            buscarObjeto(dto.objetoMuseoId());
+            buscarVeterano(dto.veteranoId());
+            ObjetoVeterano relacion = existente.get();
+            relacion.setActivo(true);
+            relacion.setEliminado(false);
+            relacion.setFechaEliminacion(null);
+            relacion.setDescripcion(dto.descripcion());
+            return ObjetoVeteranoMapper.toResponse(objetoVeteranoRepository.save(relacion));
+        }
         validarRelacionDisponible(dto);
         ObjetoMuseo objeto = buscarObjeto(dto.objetoMuseoId());
         Veterano veterano = buscarVeterano(dto.veteranoId());

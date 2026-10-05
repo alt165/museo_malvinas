@@ -76,7 +76,11 @@ function buildBuscarObjetosSearchParams(params: BuscarObjetosParams, includePagi
 }
 
 export function buscarObjetos(params: BuscarObjetosParams) {
-  return apiRequest<PageResponse<ObjetoMuseoResponseDTO>>(`${basePath}/buscar?${buildBuscarObjetosSearchParams(params, true).toString()}`);
+  const searchParams = buildBuscarObjetosSearchParams(params, true);
+  if (params.veteranoId !== undefined) {
+    searchParams.set("veteranoId", String(params.veteranoId));
+  }
+  return apiRequest<PageResponse<ObjetoMuseoResponseDTO>>(`${basePath}/buscar?${searchParams.toString()}`);
 }
 
 export function buscarObjetosDisponiblesParaColeccion(params: BuscarObjetosDisponiblesColeccionParams) {
@@ -104,6 +108,22 @@ export function listarEmbargosObjetos(incluirHistoricos = false) {
   return apiRequest<EmbargoObjetoResponseDTO[]>(`${adminEmbargosPath}?incluirHistoricos=${incluirHistoricos}`);
 }
 
+export type BuscarEmbargosObjetosParams = {
+  texto?: string;
+  incluirHistoricos?: boolean;
+  page?: number;
+  size?: number;
+};
+
+export function buscarEmbargosObjetos(params: BuscarEmbargosObjetosParams) {
+  const searchParams = new URLSearchParams();
+  if (params.texto?.trim()) searchParams.set("texto", params.texto.trim());
+  searchParams.set("incluirHistoricos", String(params.incluirHistoricos ?? false));
+  searchParams.set("page", String(params.page ?? 0));
+  searchParams.set("size", String(params.size ?? 20));
+  return apiRequest<PageResponse<EmbargoObjetoResponseDTO>>(`${adminEmbargosPath}/buscar?${searchParams.toString()}`);
+}
+
 export function crearEmbargoObjeto(payload: EmbargoObjetoRequestDTO) {
   return apiRequest<EmbargoObjetoResponseDTO>(adminEmbargosPath, {
     method: "POST",
@@ -123,6 +143,20 @@ export function exportarEmbargosObjetosPdf() {
 
 export function listarComodatosPrestamos() {
   return apiRequest<ComodatoPrestamoResponseDTO[]>(adminComodatosPrestamosPath);
+}
+
+export type BuscarComodatosPrestamosParams = {
+  texto?: string;
+  page?: number;
+  size?: number;
+};
+
+export function buscarComodatosPrestamos(params: BuscarComodatosPrestamosParams) {
+  const searchParams = new URLSearchParams();
+  if (params.texto?.trim()) searchParams.set("texto", params.texto.trim());
+  searchParams.set("page", String(params.page ?? 0));
+  searchParams.set("size", String(params.size ?? 20));
+  return apiRequest<PageResponse<ComodatoPrestamoResponseDTO>>(`${adminComodatosPrestamosPath}/buscar?${searchParams.toString()}`);
 }
 
 export function exportarComodatosPrestamosPdf() {
@@ -189,10 +223,15 @@ export function listarHistorialObjeto(id: number) {
   return apiRequest<HistorialObjetoResponseDTO[]>(`/api/admin/objetos/${id}/historial`);
 }
 
-export function listarObjetosEliminados(params: { page?: number; size?: number; sort?: string }) {
+export type ListarObjetosEliminadosParams = { texto?: string; page?: number; size?: number; sort?: string };
+
+export function listarObjetosEliminados(params: ListarObjetosEliminadosParams) {
   const searchParams = new URLSearchParams();
   searchParams.set("page", String(params.page ?? 0));
   searchParams.set("size", String(params.size ?? 20));
+  if (params.texto?.trim()) {
+    searchParams.set("texto", params.texto.trim());
+  }
   if (params.sort) {
     searchParams.set("sort", params.sort);
   }

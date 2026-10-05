@@ -10,6 +10,10 @@ import jakarta.validation.Valid;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -42,6 +46,17 @@ public class EmbargoObjetoController {
     @GetMapping
     public ResponseEntity<List<EmbargoObjetoResponseDTO>> listar(@RequestParam(defaultValue = "false") boolean incluirHistoricos) {
         return ResponseEntity.ok(embargoObjetoService.listar(incluirHistoricos));
+    }
+
+    @Operation(summary = "Buscar embargos con paginacion")
+    @ApiResponse(responseCode = "200", description = "Embargos obtenidos")
+    @GetMapping("/buscar")
+    public ResponseEntity<Page<EmbargoObjetoResponseDTO>> buscar(
+            @RequestParam(required = false) String texto,
+            @RequestParam(defaultValue = "false") boolean incluirHistoricos,
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable
+    ) {
+        return ResponseEntity.ok(embargoObjetoService.buscar(texto, incluirHistoricos, pageable));
     }
 
     @Operation(summary = "Registrar embargo")

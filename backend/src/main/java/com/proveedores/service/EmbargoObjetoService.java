@@ -14,13 +14,24 @@ import com.proveedores.report.ReportFilter;
 import com.proveedores.report.ReportMetadata;
 import com.proveedores.report.TabularReport;
 import com.proveedores.repository.EmbargoObjetoRepository;
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Function;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 public class EmbargoObjetoService {
@@ -80,6 +91,39 @@ public class EmbargoObjetoService {
                 ? embargoObjetoRepository.findByEliminadoFalseOrderByFechaFinalizacionAscFechaInicioDescIdDesc()
                 : embargoObjetoRepository.findByFechaFinalizacionIsNullAndEliminadoFalseOrderByFechaInicioDescIdDesc();
         return embargos.stream().map(EmbargoObjetoMapper::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<EmbargoObjetoResponseDTO> buscar(String texto, boolean incluirHistoricos, Pageable pageable) {
+        String filtro = StringUtils.hasText(texto) ? texto.trim() : null;
+        int size = Math.min(Math.max(pageable.getPageSize(), 1), 50);
+        Sort orden = incluirHistoricos
+                ? Sort.by(Sort.Order.asc("fechaFinalizacion"), Sort.Order.desc("fechaInicio"), Sort.Order.desc("id"))
+                : Sort.by(Sort.Order.desc("fechaInicio"), Sort.Order.desc("id"));
+        Pageable pageRequest = PageRequest.of(pageable.getPageNumber(), size, orden);
+        Specification<EmbargoObjeto> specification = (root, query, criteriaBuilder) -> {
+            Predicate filtrosEstado = criteriaBuilder.isFalse(root.get("eliminado"));
+            if (!incluirHistoricos) {
+                filtrosEstado = criteriaBuilder.and(filtrosEstado, criteriaBuilder.isNull(root.get("fechaFinalizacion")));
+            }
+            if (filtro == null) {
+                return filtrosEstado;
+            }
+
+            Join<EmbargoObjeto, ObjetoMuseo> objeto = root.join("objetoMuseo", JoinType.INNER);
+            String textoEscapado = escaparPatronLike(filtro).toLowerCase(Locale.ROOT);
+            Expression<String> patron = criteriaBuilder.literal("%" + textoEscapado + "%");
+            Predicate coincide = criteriaBuilder.or(
+                    criteriaBuilder.like(criteriaBuilder.lower(objeto.get("numeroInventario")), patron, '\\'),
+                    criteriaBuilder.like(criteriaBuilder.lower(objeto.get("denominacionObjeto")), patron, '\\')
+            );
+            return criteriaBuilder.and(filtrosEstado, coincide);
+        };
+        return embargoObjetoRepository.findAll(specification, pageRequest).map(EmbargoObjetoMapper::toResponse);
+    }
+
+    private String escaparPatronLike(String texto) {
+        return texto.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     @Transactional

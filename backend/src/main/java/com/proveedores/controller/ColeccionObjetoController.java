@@ -13,6 +13,10 @@ import jakarta.validation.Valid;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -26,6 +30,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -53,6 +58,15 @@ public class ColeccionObjetoController {
     @GetMapping
     public ResponseEntity<List<ColeccionObjetoResponseDTO>> listar() {
         return ResponseEntity.ok(coleccionObjetoService.listar());
+    }
+
+    @Operation(summary = "Buscar colecciones con paginacion")
+    @GetMapping("/buscar")
+    public ResponseEntity<Page<ColeccionObjetoResponseDTO>> buscar(
+            @RequestParam(required = false) String nombre,
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable
+    ) {
+        return ResponseEntity.ok(coleccionObjetoService.buscar(nombre, pageable));
     }
 
     @Operation(summary = "Obtener coleccion por id")

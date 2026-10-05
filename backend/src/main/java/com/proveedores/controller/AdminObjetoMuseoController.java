@@ -21,6 +21,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -42,9 +43,10 @@ public class AdminObjetoMuseoController {
     @ApiResponse(responseCode = "200", description = "Listado obtenido")
     @GetMapping("/eliminados")
     public ResponseEntity<Page<ObjetoMuseoEliminadoResponseDTO>> listarEliminados(
+            @RequestParam(required = false) String texto,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable
     ) {
-        return ResponseEntity.ok(objetoMuseoService.listarEliminados(pageable));
+        return ResponseEntity.ok(objetoMuseoService.listarEliminados(texto, pageable));
     }
 
 

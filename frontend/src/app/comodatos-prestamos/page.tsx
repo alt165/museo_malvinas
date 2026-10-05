@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Download } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Download, X } from "lucide-react";
 import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
@@ -11,7 +11,7 @@ import { exportarComodatosPrestamosPdf } from "@/features/objetos/api";
 import {
   useActualizarConfigAlertasComodatosPrestamosMutation,
   useActualizarFechaVencimientoComodatoPrestamoMutation,
-  useComodatosPrestamosQuery,
+  useBuscarComodatosPrestamosQuery,
   useConfigAlertasComodatosPrestamosQuery
 } from "@/features/objetos/queries";
 import type { CaracterRecepcionObjeto, ComodatoPrestamoResponseDTO, EstadoVencimientoComodatoPrestamo } from "@/features/objetos/types";
@@ -77,17 +77,27 @@ function estadoBadge(objeto: ComodatoPrestamoResponseDTO) {
 
 export default function ComodatosPrestamosPage() {
   const { canAdminEdit } = useEditingMode();
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(20);
+  const [texto, setTexto] = useState("");
+  const [textoAplicado, setTextoAplicado] = useState("");
   const [fechasEditadas, setFechasEditadas] = useState<Record<number, string>>({});
   const [diasAnticipacionInput, setDiasAnticipacionInput] = useState("");
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [descargandoPdf, setDescargandoPdf] = useState(false);
   const [descargaPdfError, setDescargaPdfError] = useState<string | null>(null);
   const [descargaPdfOk, setDescargaPdfOk] = useState(false);
-  const comodatosQuery = useComodatosPrestamosQuery();
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setTextoAplicado(texto.trim()), 300);
+    return () => window.clearTimeout(timeout);
+  }, [texto]);
+  const buscando = texto.trim() !== textoAplicado;
+  const params = useMemo(() => ({ texto: textoAplicado, page, size }), [textoAplicado, page, size]);
+  const comodatosQuery = useBuscarComodatosPrestamosQuery(params);
   const configQuery = useConfigAlertasComodatosPrestamosQuery();
   const actualizarFecha = useActualizarFechaVencimientoComodatoPrestamoMutation();
   const actualizarConfig = useActualizarConfigAlertasComodatosPrestamosMutation();
-  const objetos = useMemo(() => comodatosQuery.data ?? [], [comodatosQuery.data]);
+  const objetos = useMemo(() => comodatosQuery.data?.content ?? [], [comodatosQuery.data?.content]);
   const diasConfigurados = configQuery.data?.diasAnticipacion;
   const diasFormulario = diasAnticipacionInput || (diasConfigurados == null ? "" : String(diasConfigurados));
 
@@ -226,12 +236,39 @@ export default function ComodatosPrestamosPage() {
             <p className="text-sm text-muted-foreground">Los objetos sin fecha de vencimiento se muestran al final.</p>
           </div>
 
-          {comodatosQuery.isLoading ? <LoadingState label="Cargando comodatos y préstamos..." /> : null}
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row">
+            <input
+              className="h-10 min-w-0 flex-1 rounded-md border bg-white px-3 text-sm outline-none focus:border-primary"
+              aria-label="Buscar por inventario, objeto o depositante"
+              onChange={(event) => {
+                setPage(0);
+                setTexto(event.target.value);
+              }}
+              placeholder="Buscar por inventario, objeto o depositante"
+              value={texto}
+            />
+            {texto ? (
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-sm font-medium hover:bg-muted"
+                onClick={() => {
+                  setPage(0);
+                  setTexto("");
+                }}
+                onMouseDown={(event) => event.preventDefault()}
+                type="button"
+              >
+                <X className="h-4 w-4" />
+                Limpiar
+              </button>
+            ) : null}
+          </div>
+
+          {comodatosQuery.isLoading || comodatosQuery.isFetching || buscando ? <LoadingState label="Cargando comodatos y préstamos..." /> : null}
           {comodatosQuery.isError ? <ErrorState message={getApiErrorMessage(comodatosQuery.error)} /> : null}
-          {comodatosQuery.isSuccess && objetos.length === 0 ? (
+          {!comodatosQuery.isLoading && !comodatosQuery.isError && !buscando && comodatosQuery.isSuccess && objetos.length === 0 ? (
             <EmptyState description="No hay objetos activos recibidos como préstamo o comodato." title="Sin resultados" />
           ) : null}
-          {comodatosQuery.isSuccess && objetos.length > 0 ? (
+          {!comodatosQuery.isLoading && !comodatosQuery.isError && !buscando && comodatosQuery.isSuccess && objetos.length > 0 ? (
             <div className="overflow-x-auto rounded-md border bg-white">
               <table className="w-full min-w-[1040px] border-collapse text-left text-sm">
                 <thead className="bg-muted/60 text-primary">
@@ -286,6 +323,43 @@ export default function ComodatosPrestamosPage() {
                   })}
                 </tbody>
               </table>
+            </div>
+          ) : null}
+          {!comodatosQuery.isLoading && !comodatosQuery.isError && !buscando && comodatosQuery.data ? (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-background px-4 py-3 text-sm">
+              <div className="text-muted-foreground">
+                {comodatosQuery.isFetching ? "Actualizando..." : `${comodatosQuery.data.totalElements} elementos encontrados`}
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-2">
+                  <span>Cantidad por página</span>
+                  <select
+                    className="h-9 rounded-md border bg-white px-2"
+                    onChange={(event) => {
+                      setPage(0);
+                      setSize(Number(event.target.value));
+                    }}
+                    value={size}
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                </label>
+                <button
+                  className="h-9 rounded-md border px-3 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={comodatosQuery.data.first}
+                  onClick={() => setPage((current) => Math.max(0, current - 1))}
+                  type="button"
+                >Anterior</button>
+                <span>Página {comodatosQuery.data.number + 1} de {Math.max(comodatosQuery.data.totalPages, 1)}</span>
+                <button
+                  className="h-9 rounded-md border px-3 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={comodatosQuery.data.last}
+                  onClick={() => setPage((current) => current + 1)}
+                  type="button"
+                >Siguiente</button>
+              </div>
             </div>
           ) : null}
         </section>

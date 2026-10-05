@@ -1,8 +1,8 @@
 "use client";
 
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Search, X } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
@@ -19,8 +19,15 @@ import { getApiErrorMessage, resumenDescripcion } from "@/features/objetos/utils
 export default function ObjetosEliminadosPage() {
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(20);
+  const [texto, setTexto] = useState("");
+  const [textoAplicado, setTextoAplicado] = useState("");
   const [mensaje, setMensaje] = useState<string | null>(null);
-  const params = useMemo(() => ({ page, size, sort: "fechaEliminacion,desc" }), [page, size]);
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setTextoAplicado(texto.trim()), 300);
+    return () => window.clearTimeout(timeout);
+  }, [texto]);
+  const buscando = texto.trim() !== textoAplicado;
+  const params = useMemo(() => ({ texto: textoAplicado, page, size, sort: "fechaEliminacion,desc" }), [textoAplicado, page, size]);
   const eliminadosQuery = useObjetosEliminadosQuery(params);
   const restaurar = useRestaurarObjetoMutation();
   const objetos = eliminadosQuery.data?.content ?? [];
@@ -57,6 +64,42 @@ export default function ObjetosEliminadosPage() {
             requestId={restaurar.error instanceof ApiClientError ? restaurar.error.requestId : undefined}
           />
         ) : null}
+        <div className="max-w-2xl">
+          <label className="text-sm font-medium" htmlFor="buscar-objetos-eliminados">
+            Buscar objetos eliminados
+          </label>
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                className="h-10 w-full rounded-md border bg-background py-2 pl-9 pr-3 text-sm outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20"
+                id="buscar-objetos-eliminados"
+                onChange={(event) => {
+                  setTexto(event.target.value);
+                  setPage(0);
+                }}
+                placeholder="Número, denominación, descripción o usuario"
+                type="search"
+                value={texto}
+              />
+            </div>
+            {texto ? (
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-md border px-4 text-sm font-medium hover:bg-muted"
+                onClick={() => {
+                  setTexto("");
+                  setTextoAplicado("");
+                  setPage(0);
+                }}
+                onMouseDown={(event) => event.preventDefault()}
+                type="button"
+              >
+                <X className="h-4 w-4" />
+                Limpiar
+              </button>
+            ) : null}
+          </div>
+        </div>
         {eliminadosQuery.isLoading ? <LoadingState label="Cargando objetos eliminados..." /> : null}
         {eliminadosQuery.isError ? (
           <ErrorState
@@ -65,11 +108,11 @@ export default function ObjetosEliminadosPage() {
           />
         ) : null}
 
-        {!eliminadosQuery.isLoading && !eliminadosQuery.isError && objetos.length === 0 ? (
+        {!eliminadosQuery.isLoading && !eliminadosQuery.isError && !buscando && objetos.length === 0 ? (
           <EmptyState description="No hay objetos eliminados para restaurar." title="Sin objetos eliminados" />
         ) : null}
 
-        {!eliminadosQuery.isLoading && !eliminadosQuery.isError && objetos.length > 0 ? (
+        {!eliminadosQuery.isLoading && !eliminadosQuery.isError && !buscando && objetos.length > 0 ? (
           <div className="space-y-3">
             <div className="overflow-hidden rounded-lg border">
               <table className="w-full border-collapse text-sm">

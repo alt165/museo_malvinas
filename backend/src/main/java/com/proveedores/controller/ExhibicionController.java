@@ -71,7 +71,7 @@ public class ExhibicionController {
     @GetMapping("/finalizadas/buscar")
     public ResponseEntity<Page<ExhibicionResponseDTO>> buscarFinalizadas(
             @RequestParam(required = false) String texto,
-            @ParameterObject @PageableDefault(size = 10) Pageable pageable
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable
     ) {
         return ResponseEntity.ok(exhibicionService.buscarFinalizadas(texto, pageable));
     }
@@ -99,6 +99,16 @@ public class ExhibicionController {
     @GetMapping
     public ResponseEntity<List<ExhibicionResponseDTO>> listar() {
         return ResponseEntity.ok(exhibicionService.listar());
+    }
+
+    @Operation(summary = "Buscar exhibiciones con paginacion")
+    @ApiResponse(responseCode = "200", description = "Busqueda obtenida")
+    @GetMapping("/buscar")
+    public ResponseEntity<Page<ExhibicionResponseDTO>> buscar(
+            @RequestParam(required = false) String texto,
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable
+    ) {
+        return ResponseEntity.ok(exhibicionService.buscar(texto, pageable));
     }
 
     @Operation(summary = "Actualizar recurso")

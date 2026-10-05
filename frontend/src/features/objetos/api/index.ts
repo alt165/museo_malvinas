@@ -4,6 +4,8 @@ export {
   actualizarObjeto,
   actualizarVisibilidadFotoObjeto,
   bajaLogicaObjeto,
+  buscarComodatosPrestamos,
+  buscarEmbargosObjetos,
   buscarObjetos,
   buscarObjetosDisponiblesParaColeccion,
   crearEmbargoObjeto,

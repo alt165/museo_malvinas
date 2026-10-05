@@ -1,5 +1,6 @@
 export {
   actualizarExhibicion,
+  buscarExhibiciones,
   buscarExhibicionesFinalizadas,
   buscarObjetosDisponibilidadExhibicion,
   cancelarExhibicion,

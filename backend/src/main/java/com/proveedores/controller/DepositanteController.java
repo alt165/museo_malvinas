@@ -12,6 +12,10 @@ import jakarta.validation.Valid;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -61,6 +65,15 @@ public class DepositanteController {
     @GetMapping
     public ResponseEntity<List<DepositanteResponseDTO>> listar() {
         return ResponseEntity.ok(depositanteService.listar());
+    }
+
+    @Operation(summary = "Buscar depositantes con paginacion")
+    @GetMapping("/buscar")
+    public ResponseEntity<Page<DepositanteResponseDTO>> buscar(
+            @RequestParam(required = false) String texto,
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable
+    ) {
+        return ResponseEntity.ok(depositanteService.buscar(texto, pageable));
     }
 
     @Operation(summary = "Buscar depositante por DNI o CUIT")

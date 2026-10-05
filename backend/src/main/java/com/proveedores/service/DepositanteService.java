@@ -13,6 +13,12 @@ import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +52,52 @@ public class DepositanteService {
     @Transactional(readOnly = true)
     public List<DepositanteResponseDTO> listar() {
         return depositanteRepository.findAll().stream().filter(e -> !e.getEliminado()).map(DepositanteMapper::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<DepositanteResponseDTO> buscar(String texto, Pageable pageable) {
+        String filtro = texto == null || texto.isBlank() ? null : normalizarTextoBusqueda(texto.trim());
+        int size = Math.min(Math.max(pageable.getPageSize(), 1), 50);
+        Pageable pageRequest = PageRequest.of(
+                pageable.getPageNumber(),
+                size,
+                Sort.by(Sort.Direction.ASC, "nombre").and(Sort.by(Sort.Direction.ASC, "id"))
+        );
+        Specification<Depositante> specification = (root, query, criteriaBuilder) -> {
+            var noEliminado = criteriaBuilder.isFalse(root.get("eliminado"));
+            if (filtro == null) {
+                return noEliminado;
+            }
+
+            String patronNombre = "%" + escaparPatronLike(filtro) + "%";
+            var patronNombreNormalizado = criteriaBuilder.function(
+                    "unaccent",
+                    String.class,
+                    criteriaBuilder.lower(criteriaBuilder.literal(patronNombre))
+            );
+            var coincideNombre = criteriaBuilder.like(
+                    criteriaBuilder.function("unaccent", String.class, criteriaBuilder.lower(root.get("nombre"))),
+                    patronNombreNormalizado,
+                    '\\'
+            );
+
+            String identificacion = filtro.replaceAll("[.\\-\\s]", "");
+            var coincideIdentificacion = criteriaBuilder.disjunction();
+            if (!identificacion.isEmpty()) {
+                String patronIdentificacion = "%" + escaparPatronLike(identificacion) + "%";
+                var patronIdentificacionNormalizado = criteriaBuilder.literal(patronIdentificacion);
+                var dniNormalizado = normalizarIdentificacionSql(root.get("dni"), criteriaBuilder);
+                var cuitNormalizado = normalizarIdentificacionSql(root.get("cuit"), criteriaBuilder);
+                coincideIdentificacion = criteriaBuilder.or(
+                        criteriaBuilder.like(dniNormalizado, patronIdentificacionNormalizado, '\\'),
+                        criteriaBuilder.like(cuitNormalizado, patronIdentificacionNormalizado, '\\')
+                );
+            }
+
+            return criteriaBuilder.and(noEliminado, criteriaBuilder.or(coincideNombre, coincideIdentificacion));
+        };
+
+        return depositanteRepository.findAll(specification, pageRequest).map(DepositanteMapper::toResponse);
     }
 
     @Transactional
@@ -133,5 +185,29 @@ public class DepositanteService {
         String sinAcentos = Normalizer.normalize(valor == null ? "" : valor, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}+", "");
         return sinAcentos.toLowerCase();
+    }
+
+    private String normalizarTextoBusqueda(String valor) {
+        String sinAcentos = Normalizer.normalize(valor == null ? "" : valor, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "");
+        return sinAcentos.toLowerCase(Locale.forLanguageTag("es"));
+    }
+
+    private String escaparPatronLike(String texto) {
+        return texto.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+    }
+
+    private jakarta.persistence.criteria.Expression<String> normalizarIdentificacionSql(
+            jakarta.persistence.criteria.Expression<String> identificacion,
+            jakarta.persistence.criteria.CriteriaBuilder criteriaBuilder
+    ) {
+        return criteriaBuilder.function(
+                "regexp_replace",
+                String.class,
+                criteriaBuilder.coalesce(identificacion, ""),
+                criteriaBuilder.literal("[.\\s-]"),
+                criteriaBuilder.literal(""),
+                criteriaBuilder.literal("g")
+        );
     }
 }

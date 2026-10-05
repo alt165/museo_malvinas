@@ -16,6 +16,12 @@ import com.proveedores.repository.UnidadMilitarRepository;
 import com.proveedores.repository.VeteranoRepository;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,6 +62,65 @@ public class ActuacionVeteranoService {
     @Transactional(readOnly = true)
     public List<ActuacionVeteranoResponseDTO> listar() {
         return actuacionVeteranoRepository.findAll().stream().filter(e -> !e.getEliminado()).map(ActuacionVeteranoMapper::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ActuacionVeteranoResponseDTO> buscar(String texto, Pageable pageable) {
+        String filtro = texto == null || texto.isBlank() ? null : texto.trim();
+        int size = Math.min(Math.max(pageable.getPageSize(), 1), 50);
+        Pageable pageRequest = PageRequest.of(pageable.getPageNumber(), size, Sort.by(Sort.Direction.ASC, "id"));
+        Specification<ActuacionVeterano> specification = (root, query, criteriaBuilder) -> {
+            var noEliminada = criteriaBuilder.isFalse(root.get("eliminado"));
+            if (filtro == null) {
+                return noEliminada;
+            }
+
+            String patron = "%" + escaparPatronLike(filtro.toLowerCase(Locale.ROOT)) + "%";
+            var patronNormalizado = criteriaBuilder.function(
+                    "unaccent", String.class, criteriaBuilder.lower(criteriaBuilder.literal(patron))
+            );
+            var veterano = root.join("veterano", jakarta.persistence.criteria.JoinType.INNER);
+            var unidadMilitar = root.join("unidadMilitar", jakarta.persistence.criteria.JoinType.LEFT);
+            var nombreVeterano = criteriaBuilder.like(
+                    criteriaBuilder.function("unaccent", String.class, criteriaBuilder.lower(veterano.get("nombre"))),
+                    patronNormalizado,
+                    '\\'
+            );
+            var apellidoVeterano = criteriaBuilder.like(
+                    criteriaBuilder.function("unaccent", String.class, criteriaBuilder.lower(veterano.get("apellido"))),
+                    patronNormalizado,
+                    '\\'
+            );
+            var nombreCompletoVeterano = criteriaBuilder.like(
+                    criteriaBuilder.function("unaccent", String.class, criteriaBuilder.lower(
+                            criteriaBuilder.concat(criteriaBuilder.concat(veterano.<String>get("nombre"), " "), veterano.<String>get("apellido")))),
+                    patronNormalizado,
+                    '\\'
+            );
+            var nombreUnidad = criteriaBuilder.like(
+                    criteriaBuilder.function("unaccent", String.class, criteriaBuilder.lower(unidadMilitar.get("nombre"))),
+                    patronNormalizado,
+                    '\\'
+            );
+            var siglaUnidad = criteriaBuilder.like(
+                    criteriaBuilder.function("unaccent", String.class, criteriaBuilder.lower(unidadMilitar.get("sigla"))),
+                    patronNormalizado,
+                    '\\'
+            );
+            var unidadHistorica = criteriaBuilder.like(
+                    criteriaBuilder.function("unaccent", String.class, criteriaBuilder.lower(root.get("unidad"))),
+                    patronNormalizado,
+                    '\\'
+            );
+            return criteriaBuilder.and(noEliminada,
+                    criteriaBuilder.or(nombreVeterano, apellidoVeterano, nombreCompletoVeterano, nombreUnidad, siglaUnidad, unidadHistorica));
+        };
+
+        return actuacionVeteranoRepository.findAll(specification, pageRequest).map(ActuacionVeteranoMapper::toResponse);
+    }
+
+    private String escaparPatronLike(String texto) {
+        return texto.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     @Transactional

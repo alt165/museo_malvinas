@@ -9,6 +9,21 @@ export function listarExhibiciones() {
   return apiRequest<ExhibicionResponseDTO[]>(exhibicionesPath);
 }
 
+export type BuscarExhibicionesParams = {
+  texto?: string;
+  page?: number;
+  size?: number;
+};
+
+export function buscarExhibiciones(params: BuscarExhibicionesParams) {
+  const searchParams = new URLSearchParams();
+  if (params.texto?.trim()) searchParams.set("texto", params.texto.trim());
+  searchParams.set("page", String(params.page ?? 0));
+  searchParams.set("size", String(params.size ?? 20));
+  searchParams.set("sort", "nombre,asc");
+  return apiRequest<PageResponse<ExhibicionResponseDTO>>(`${exhibicionesPath}/buscar?${searchParams.toString()}`);
+}
+
 export function obtenerExhibicionPorId(id: number) {
   return apiRequest<ExhibicionResponseDTO>(`${exhibicionesPath}/${id}`);
 }
@@ -62,7 +77,7 @@ export function buscarExhibicionesFinalizadas(params: BuscarExhibicionesFinaliza
   const searchParams = new URLSearchParams();
   if (params.texto?.trim()) searchParams.set("texto", params.texto.trim());
   searchParams.set("page", String(params.page ?? 0));
-  searchParams.set("size", String(params.size ?? 10));
+  searchParams.set("size", String(params.size ?? 20));
   searchParams.set("sort", "nombre,asc");
   return apiRequest<PageResponse<ExhibicionResponseDTO>>(`${exhibicionesPath}/finalizadas/buscar?${searchParams.toString()}`);
 }

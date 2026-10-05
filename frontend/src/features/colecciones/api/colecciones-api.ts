@@ -1,5 +1,5 @@
 import { apiBlobRequest, apiRequest } from "@/lib/api";
-import type { ObjetoMuseoResponseDTO } from "@/features/objetos/types";
+import type { ObjetoMuseoResponseDTO, PageResponse } from "@/features/objetos/types";
 import type {
   AgregarObjetosColeccionRequestDTO,
   ColeccionObjetoRequestDTO,
@@ -8,8 +8,23 @@ import type {
 
 const basePath = "/api/colecciones";
 
+export type BuscarColeccionesParams = {
+  nombre?: string;
+  page?: number;
+  size?: number;
+};
+
 export function listarColecciones() {
   return apiRequest<ColeccionObjetoResponseDTO[]>(basePath);
+}
+
+export function buscarColecciones(params: BuscarColeccionesParams) {
+  const searchParams = new URLSearchParams();
+  if (params.nombre?.trim()) searchParams.set("nombre", params.nombre.trim());
+  searchParams.set("page", String(params.page ?? 0));
+  searchParams.set("size", String(params.size ?? 20));
+  searchParams.set("sort", "nombre,asc");
+  return apiRequest<PageResponse<ColeccionObjetoResponseDTO>>(`${basePath}/buscar?${searchParams.toString()}`);
 }
 
 export function obtenerColeccionPorId(id: number) {

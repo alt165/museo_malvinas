@@ -1,5 +1,6 @@
 package com.proveedores.controller;
 
+import com.proveedores.dto.VeteranoConsultaResponseDTO;
 import com.proveedores.dto.VeteranoImagenResponseDTO;
 import com.proveedores.dto.VeteranoRequestDTO;
 import com.proveedores.dto.VeteranoResponseDTO;
@@ -14,7 +15,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -71,6 +76,15 @@ public class VeteranoController {
     @GetMapping
     public ResponseEntity<List<VeteranoResponseDTO>> listar() {
         return ResponseEntity.ok(veteranoService.listar());
+    }
+
+    @Operation(summary = "Buscar personas con paginacion")
+    @GetMapping("/buscar")
+    public ResponseEntity<Page<VeteranoConsultaResponseDTO>> buscar(
+            @RequestParam(required = false) String texto,
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable
+    ) {
+        return ResponseEntity.ok(veteranoService.buscar(texto, pageable));
     }
 
     @Operation(summary = "Actualizar recurso")
@@ -176,4 +190,3 @@ public class VeteranoController {
     }
 
 }
-

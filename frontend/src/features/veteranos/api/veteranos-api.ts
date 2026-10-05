@@ -1,4 +1,5 @@
 import { apiBlobRequest, apiRequest } from "@/lib/api";
+import type { PageResponse } from "@/features/objetos/types";
 import type {
   ActuacionVeteranoRequestDTO,
   ActuacionVeteranoResponseDTO,
@@ -9,6 +10,7 @@ import type {
   UnidadMilitarResponseDTO,
   VeteranoImagenResponseDTO,
   VeteranoRequestDTO,
+  VeteranoConsultaResponseDTO,
   VeteranoResponseDTO,
   VeteranoVideoRequestDTO,
   VeteranoVideoResponseDTO
@@ -22,6 +24,21 @@ const unidadesMilitaresPath = "/api/unidades-militares";
 
 export function listarVeteranos() {
   return apiRequest<VeteranoResponseDTO[]>(veteranosPath);
+}
+
+export type BuscarVeteranosParams = {
+  texto?: string;
+  page?: number;
+  size?: number;
+};
+
+export function buscarVeteranos(params: BuscarVeteranosParams) {
+  const searchParams = new URLSearchParams();
+  if (params.texto?.trim()) searchParams.set("texto", params.texto.trim());
+  searchParams.set("page", String(params.page ?? 0));
+  searchParams.set("size", String(params.size ?? 20));
+  searchParams.set("sort", "nombre,asc");
+  return apiRequest<PageResponse<VeteranoConsultaResponseDTO>>(veteranosPath + "/buscar?" + searchParams.toString());
 }
 
 export function obtenerVeteranoPorId(id: number) {
@@ -82,6 +99,21 @@ export function eliminarVideoVeterano(id: number, videoId: number) {
 
 export function listarActuacionesVeteranos() {
   return apiRequest<ActuacionVeteranoResponseDTO[]>(actuacionesPath);
+}
+
+export type BuscarActuacionesVeteranosParams = {
+  texto?: string;
+  page?: number;
+  size?: number;
+};
+
+export function buscarActuacionesVeteranos(params: BuscarActuacionesVeteranosParams) {
+  const searchParams = new URLSearchParams();
+  if (params.texto?.trim()) searchParams.set("texto", params.texto.trim());
+  searchParams.set("page", String(params.page ?? 0));
+  searchParams.set("size", String(params.size ?? 20));
+  searchParams.set("sort", "id,asc");
+  return apiRequest<PageResponse<ActuacionVeteranoResponseDTO>>(`${actuacionesPath}/buscar?${searchParams.toString()}`);
 }
 
 export function obtenerActuacionVeteranoPorId(id: number) {

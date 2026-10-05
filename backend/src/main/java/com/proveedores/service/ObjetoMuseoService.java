@@ -24,6 +24,7 @@ import com.proveedores.entity.MovimientoInventario;
 import com.proveedores.entity.ObjetoMuseo;
 import com.proveedores.entity.ObjetoCategoria;
 import com.proveedores.entity.ObjetoDepositante;
+import com.proveedores.entity.ObjetoVeterano;
 import com.proveedores.entity.OrigenCargaObjeto;
 import com.proveedores.entity.ReciboIngresoObjeto;
 import com.proveedores.entity.TipoMovimientoInventario;
@@ -72,6 +73,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 public class ObjetoMuseoService {
@@ -224,6 +226,31 @@ public class ObjetoMuseoService {
             ModoBusquedaTexto descripcionTecnicaModo,
             Pageable pageable
     ) {
+        return buscar(
+                nombre,
+                numeroInventario,
+                categoriaIds,
+                descripcionBreve,
+                descripcionBreveModo,
+                descripcionTecnica,
+                descripcionTecnicaModo,
+                null,
+                pageable
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ObjetoMuseoResponseDTO> buscar(
+            String nombre,
+            String numeroInventario,
+            List<Long> categoriaIds,
+            String descripcionBreve,
+            ModoBusquedaTexto descripcionBreveModo,
+            String descripcionTecnica,
+            ModoBusquedaTexto descripcionTecnicaModo,
+            Long veteranoId,
+            Pageable pageable
+    ) {
         return objetoMuseoRepository.findAll(busquedaSpecification(
                         normalizarFiltro(nombre),
                         normalizarFiltro(numeroInventario),
@@ -231,8 +258,9 @@ public class ObjetoMuseoService {
                         normalizarTextoBusqueda(descripcionBreve),
                         descripcionBreveModo,
                         normalizarTextoBusqueda(descripcionTecnica),
-                        descripcionTecnicaModo
-                ), normalizarPageableBusqueda(pageable)).map(this::toResponse);
+                        descripcionTecnicaModo,
+                        veteranoId
+                ), veteranoId == null ? normalizarPageableBusqueda(pageable) : normalizarPageableBusquedaVeterano(pageable)).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
@@ -474,9 +502,42 @@ public class ObjetoMuseoService {
 
     @Transactional(readOnly = true)
     public Page<ObjetoMuseoEliminadoResponseDTO> listarEliminados(Pageable pageable) {
-        return objetoMuseoRepository.findAll((root, query, criteriaBuilder) ->
-                criteriaBuilder.isTrue(root.get("eliminado")), pageable
-        ).map(this::toEliminadoResponse);
+        return listarEliminados(null, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ObjetoMuseoEliminadoResponseDTO> listarEliminados(String texto, Pageable pageable) {
+        String filtro = StringUtils.hasText(texto) ? texto.trim() : null;
+        int size = Math.min(Math.max(pageable.getPageSize(), 1), 50);
+        Sort orden = pageable.getSort().isSorted()
+                ? pageable.getSort().and(Sort.by(Sort.Order.desc("id")))
+                : Sort.by(Sort.Order.desc("fechaEliminacion"), Sort.Order.desc("id"));
+        Pageable pageableNormalizado = PageRequest.of(
+                pageable.getPageNumber(),
+                size,
+                orden
+        );
+        Specification<ObjetoMuseo> specification = (root, query, criteriaBuilder) -> {
+            Predicate eliminado = criteriaBuilder.isTrue(root.get("eliminado"));
+            if (filtro == null) {
+                return eliminado;
+            }
+
+            String textoEscapado = escaparPatronLike(filtro).toLowerCase(Locale.ROOT);
+            Expression<String> patron = criteriaBuilder.literal("%" + textoEscapado + "%");
+            Predicate coincide = criteriaBuilder.or(
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("numeroInventario")), patron, '\\'),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("denominacionObjeto")), patron, '\\'),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("descripcion")), patron, '\\'),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("eliminadoPor")), patron, '\\')
+            );
+            return criteriaBuilder.and(eliminado, coincide);
+        };
+        return objetoMuseoRepository.findAll(specification, pageableNormalizado).map(this::toEliminadoResponse);
+    }
+
+    private String escaparPatronLike(String texto) {
+        return texto.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     @Transactional
@@ -574,9 +635,43 @@ public class ObjetoMuseoService {
             String descripcionTecnica,
             ModoBusquedaTexto descripcionTecnicaModo
     ) {
+        return busquedaSpecification(
+                nombre,
+                numeroInventario,
+                categoriaIds,
+                descripcionBreve,
+                descripcionBreveModo,
+                descripcionTecnica,
+                descripcionTecnicaModo,
+                null
+        );
+    }
+
+    private Specification<ObjetoMuseo> busquedaSpecification(
+            String nombre,
+            String numeroInventario,
+            List<Long> categoriaIds,
+            String descripcionBreve,
+            ModoBusquedaTexto descripcionBreveModo,
+            String descripcionTecnica,
+            ModoBusquedaTexto descripcionTecnicaModo,
+            Long veteranoId
+    ) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(criteriaBuilder.isFalse(root.get("eliminado")));
+            if (veteranoId != null) {
+                predicates.add(criteriaBuilder.isTrue(root.get("activo")));
+                Subquery<Long> relacionesVeterano = query.subquery(Long.class);
+                Root<ObjetoVeterano> relacion = relacionesVeterano.from(ObjetoVeterano.class);
+                relacionesVeterano.select(criteriaBuilder.literal(1L));
+                relacionesVeterano.where(
+                        criteriaBuilder.equal(relacion.get("objetoMuseo"), root),
+                        criteriaBuilder.equal(relacion.get("veterano").get("id"), veteranoId),
+                        criteriaBuilder.isFalse(relacion.get("eliminado"))
+                );
+                predicates.add(criteriaBuilder.not(criteriaBuilder.exists(relacionesVeterano)));
+            }
             agregarFiltroEmbargoSiCorresponde(root, query, criteriaBuilder, predicates);
 
             if (nombre != null) {
@@ -690,6 +785,18 @@ public class ObjetoMuseoService {
 
     private Pageable normalizarPageableBusqueda(Pageable pageable) {
         return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), normalizarSortBusqueda(pageable.getSort()));
+    }
+
+    private Pageable normalizarPageableBusquedaVeterano(Pageable pageable) {
+        int size = Math.min(Math.max(pageable.getPageSize(), 1), 50);
+        Sort sort = normalizarSortBusqueda(pageable.getSort());
+        if (sort.isUnsorted()) {
+            sort = Sort.by(Sort.Order.asc("numeroInventario"));
+        }
+        if (sort.getOrderFor("id") == null) {
+            sort = sort.and(Sort.by(Sort.Order.asc("id")));
+        }
+        return PageRequest.of(pageable.getPageNumber(), size, sort);
     }
 
     private Sort normalizarSortBusqueda(Sort sort) {

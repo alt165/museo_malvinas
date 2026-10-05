@@ -1,4 +1,6 @@
 export {
+  buscarActuacionesVeteranos,
+  buscarVeteranos,
   buscarUnidadesMilitares,
   listarRangosMilitares,
   actualizarActuacionVeterano,
@@ -26,3 +28,5 @@ export {
   obtenerRelacionObjetoVeteranoPorId,
   obtenerVeteranoPorId
 } from "./veteranos-api";
+
+export type { BuscarActuacionesVeteranosParams, BuscarVeteranosParams } from "./veteranos-api";

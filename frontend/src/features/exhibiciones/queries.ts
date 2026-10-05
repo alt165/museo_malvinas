@@ -3,6 +3,7 @@ import {
   actualizarExhibicion,
   agregarObjetoAExhibicion,
   buscarExhibicionesFinalizadas,
+  buscarExhibiciones,
   buscarObjetosDisponibilidadExhibicion,
   cancelarExhibicion,
   crearExhibicion,
@@ -16,11 +17,12 @@ import {
   verificarDevolucionObjeto
 } from "./api";
 import type { ExhibicionObjetoRequestDTO, ExhibicionRequestDTO } from "./types";
-import type { BuscarDisponibilidadExhibicionParams, BuscarExhibicionesFinalizadasParams, ObjetosParaRepetirParams } from "./api/exhibiciones-api";
+import type { BuscarDisponibilidadExhibicionParams, BuscarExhibicionesFinalizadasParams, BuscarExhibicionesParams, ObjetosParaRepetirParams } from "./api/exhibiciones-api";
 
 export const exhibicionesQueryKeys = {
   all: ["exhibiciones"] as const,
   lists: () => [...exhibicionesQueryKeys.all, "list"] as const,
+  search: (params: BuscarExhibicionesParams) => [...exhibicionesQueryKeys.lists(), params] as const,
   detail: (id: number) => [...exhibicionesQueryKeys.all, "detail", id] as const,
   objetos: (id: number) => [...exhibicionesQueryKeys.all, "objetos", id] as const,
   disponibilidad: (params: BuscarDisponibilidadExhibicionParams) => [...exhibicionesQueryKeys.all, "disponibilidad", params] as const,
@@ -33,6 +35,13 @@ export function useExhibicionesQuery() {
   return useQuery({
     queryKey: exhibicionesQueryKeys.lists(),
     queryFn: listarExhibiciones
+  });
+}
+
+export function useBuscarExhibicionesQuery(params: BuscarExhibicionesParams) {
+  return useQuery({
+    queryKey: exhibicionesQueryKeys.search(params),
+    queryFn: () => buscarExhibiciones(params)
   });
 }
 

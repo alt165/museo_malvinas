@@ -21,6 +21,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -138,7 +140,7 @@ class ExhibicionServiceTest {
     void buscarFinalizadasDevuelveSoloResultadosDelRepositorio() {
         Exhibicion finalizada = exhibicion();
         finalizada.setEstado(EstadoExhibicion.FINALIZADA);
-        when(exhibicionRepository.buscarFinalizadasPorTexto("muestra", PageRequest.of(0, 10, org.springframework.data.domain.Sort.by("nombre"))))
+        when(exhibicionRepository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(finalizada)));
         when(exhibicionObjetoRepository.findByExhibicionIdAndEliminadoFalse(1L)).thenReturn(List.of());
 
@@ -152,7 +154,7 @@ class ExhibicionServiceTest {
     void buscarFinalizadasSinTextoUsaConsultaSinFiltro() {
         Exhibicion finalizada = exhibicion();
         finalizada.setEstado(EstadoExhibicion.FINALIZADA);
-        when(exhibicionRepository.findByEstadoAndEliminadoFalse(EstadoExhibicion.FINALIZADA, PageRequest.of(0, 10, org.springframework.data.domain.Sort.by("nombre"))))
+        when(exhibicionRepository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(finalizada)));
         when(exhibicionObjetoRepository.findByExhibicionIdAndEliminadoFalse(1L)).thenReturn(List.of());
 

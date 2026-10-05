@@ -3,17 +3,20 @@ import {
   actualizarDepositante,
   bajaLogicaDepositante,
   buscarDepositantePorIdentificacion,
+  buscarDepositantes,
   buscarDepositantesPorNombre,
   crearDepositante,
   listarDepositantes,
   listarObjetosDepositante,
-  obtenerDepositantePorId
+  obtenerDepositantePorId,
+  type BuscarDepositantesParams
 } from "./api";
 import type { DepositanteRequestDTO } from "./types";
 
 export const depositantesQueryKeys = {
   all: ["depositantes"] as const,
   lists: () => [...depositantesQueryKeys.all, "list"] as const,
+  search: (params: BuscarDepositantesParams) => [...depositantesQueryKeys.lists(), "search", params] as const,
   identificacion: (valor: string) => [...depositantesQueryKeys.all, "identificacion", valor] as const,
   nombre: (valor: string) => [...depositantesQueryKeys.all, "nombre", valor] as const,
   detail: (id: number) => [...depositantesQueryKeys.all, "detail", id] as const,
@@ -24,6 +27,13 @@ export function useDepositantesQuery() {
   return useQuery({
     queryKey: depositantesQueryKeys.lists(),
     queryFn: listarDepositantes
+  });
+}
+
+export function useBuscarDepositantesQuery(params: BuscarDepositantesParams) {
+  return useQuery({
+    queryKey: depositantesQueryKeys.search(params),
+    queryFn: () => buscarDepositantes(params)
   });
 }
 

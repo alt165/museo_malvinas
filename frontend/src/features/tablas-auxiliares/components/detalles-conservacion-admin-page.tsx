@@ -1,8 +1,8 @@
 "use client";
 import { FormLabel } from "@/components/common/form-label";
 
-import { Pencil, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { Pencil, Search, Trash2, X } from "lucide-react";
+import { useMemo, useState } from "react";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
@@ -24,8 +24,28 @@ export function DetallesConservacionAdminPage() {
   const baja = useBajaLogicaDetalleConservacionMutation();
   const [editing, setEditing] = useState<DetalleConservacionResponseDTO | null>(null);
   const [form, setForm] = useState<DetalleConservacionRequestDTO>({ nombre: "", codigo: "", descripcion: "" });
+  const [textoBusqueda, setTextoBusqueda] = useState("");
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(20);
   const error = crear.error || actualizar.error || baja.error || query.error;
   const isSubmitting = crear.isPending || actualizar.isPending;
+  const detallesFiltrados = useMemo(() => {
+    const filtro = normalizarTextoBusqueda(textoBusqueda);
+    const detalles = query.data ?? [];
+    if (!filtro) {
+      return detalles;
+    }
+    return detalles.filter((detalle) =>
+      [detalle.codigo, detalle.nombre, detalle.descripcion]
+        .some((valor) => normalizarTextoBusqueda(valor ?? "").includes(filtro))
+    );
+  }, [query.data, textoBusqueda]);
+  const totalPaginas = Math.max(Math.ceil(detallesFiltrados.length / size), 1);
+  const paginaActual = Math.min(page, totalPaginas - 1);
+  const detallesPaginados = useMemo(() => {
+    const inicio = paginaActual * size;
+    return detallesFiltrados.slice(inicio, inicio + size);
+  }, [detallesFiltrados, paginaActual, size]);
 
   function resetForm() {
     setEditing(null);
@@ -69,15 +89,96 @@ export function DetallesConservacionAdminPage() {
           <div className="flex gap-2"><button className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60" disabled={isSubmitting} type="submit">{isSubmitting ? "Guardando..." : editing ? "Guardar cambios" : "Crear"}</button>{editing ? <button className="h-10 rounded-md border px-4 text-sm hover:bg-muted" onClick={resetForm} type="button">Cancelar</button> : null}</div>
         </form>
         {query.isLoading ? <LoadingState label="Cargando detalles..." /> : null}
+        <div className="max-w-2xl">
+          <label className="text-sm font-medium" htmlFor="buscar-detalles-conservacion">
+            Buscar detalles de conservación
+          </label>
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                className="h-10 w-full rounded-md border bg-background py-2 pl-9 pr-3 text-sm outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20"
+                id="buscar-detalles-conservacion"
+                onChange={(event) => {
+                  setTextoBusqueda(event.target.value);
+                  setPage(0);
+                }}
+                placeholder="Buscar por código, nombre o descripción"
+                type="search"
+                value={textoBusqueda}
+              />
+            </div>
+            {textoBusqueda ? (
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-md border px-4 text-sm font-medium hover:bg-muted"
+                onClick={() => {
+                  setTextoBusqueda("");
+                  setPage(0);
+                }}
+                onMouseDown={(event) => event.preventDefault()}
+                type="button"
+              >
+                <X className="h-4 w-4" />
+                Limpiar
+              </button>
+            ) : null}
+          </div>
+        </div>
         <div className="overflow-hidden rounded-lg border bg-white">
           <table className="w-full border-collapse text-sm">
             <thead className="bg-primary text-primary-foreground"><tr><Th>Nombre</Th><Th>Código</Th><Th>Descripción</Th><Th align="right">Acciones</Th></tr></thead>
-            <tbody>{(query.data ?? []).map((detalle) => <tr className="border-t" key={detalle.id}><Td>{detalle.nombre}</Td><Td>{detalle.codigo}</Td><Td>{detalle.descripcion || "-"}</Td><Td align="right"><RowActions><RowActionButton icon={Pencil} label="Editar" onClick={() => startEditing(detalle)} /><RowActionButton icon={Trash2} label="Baja" onClick={() => confirmarBaja(detalle)} variant="destructive" /></RowActions></Td></tr>)}</tbody>
+            <tbody>
+              {detallesPaginados.map((detalle) => <tr className="border-t" key={detalle.id}><Td>{detalle.nombre}</Td><Td>{detalle.codigo}</Td><Td>{detalle.descripcion || "-"}</Td><Td align="right"><RowActions><RowActionButton icon={Pencil} label="Editar" onClick={() => startEditing(detalle)} /><RowActionButton icon={Trash2} label="Baja" onClick={() => confirmarBaja(detalle)} variant="destructive" /></RowActions></Td></tr>)}
+              {!query.isLoading && !query.isError && detallesFiltrados.length === 0 ? (
+                <tr className="border-t"><td className="px-4 py-3 text-center text-muted-foreground" colSpan={4}>No se encontraron detalles.</td></tr>
+              ) : null}
+            </tbody>
           </table>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-surface px-4 py-3 text-sm">
+          <div className="text-muted-foreground">{detallesFiltrados.length} elementos encontrados</div>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2">
+              <span>Cantidad de elementos por página</span>
+              <select
+                className="h-9 rounded-md border bg-white px-2"
+                onChange={(event) => {
+                  setPage(0);
+                  setSize(Number(event.target.value));
+                }}
+                value={size}
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </label>
+            <button
+              className="h-9 rounded-md border px-3 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={paginaActual === 0}
+              onClick={() => setPage((current) => Math.max(0, current - 1))}
+              type="button"
+            >
+              Anterior
+            </button>
+            <span>Página {paginaActual + 1} de {totalPaginas}</span>
+            <button
+              className="h-9 rounded-md border px-3 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={paginaActual >= totalPaginas - 1}
+              onClick={() => setPage((current) => current + 1)}
+              type="button"
+            >
+              Siguiente
+            </button>
+          </div>
         </div>
       </div>
     </AppShell>
   );
+}
+
+function normalizarTextoBusqueda(texto: string) {
+  return texto.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase("es").trim();
 }
 
 function Field({ children, label, required = false }: { children: React.ReactNode; label: string; required?: boolean }) {

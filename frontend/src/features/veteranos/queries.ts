@@ -1,11 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { objetosQueryKeys } from "@/features/objetos/queries";
 import {
   actualizarActuacionVeterano,
   actualizarVeterano,
   asociarObjetoAVeterano,
   bajaLogicaActuacionVeterano,
   bajaLogicaVeterano,
+  buscarActuacionesVeteranos,
   buscarUnidadesMilitares,
+  buscarVeteranos,
   crearActuacionVeterano,
   crearVeterano,
   crearVideoVeterano,
@@ -23,13 +26,16 @@ import {
   obtenerActuacionVeteranoPorId,
   obtenerVeteranoPorId,
   subirImagenesVeterano,
-  actualizarVideoVeterano
+  actualizarVideoVeterano,
+  type BuscarActuacionesVeteranosParams,
+  type BuscarVeteranosParams
 } from "./api";
 import type { ActuacionVeteranoRequestDTO, Fuerza, ObjetoVeteranoRequestDTO, VeteranoRequestDTO, VeteranoVideoRequestDTO } from "./types";
 
 export const veteranosQueryKeys = {
   all: ["veteranos"] as const,
   lists: () => [...veteranosQueryKeys.all, "list"] as const,
+  search: (params: BuscarVeteranosParams) => [...veteranosQueryKeys.lists(), "search", params] as const,
   detail: (id: number) => [...veteranosQueryKeys.all, "detail", id] as const,
   actuaciones: (id: number) => [...veteranosQueryKeys.all, "actuaciones", id] as const,
   objetos: (id: number) => [...veteranosQueryKeys.all, "objetos", id] as const,
@@ -40,6 +46,7 @@ export const veteranosQueryKeys = {
 export const actuacionesVeteranosQueryKeys = {
   all: ["actuaciones-veteranos"] as const,
   lists: () => [...actuacionesVeteranosQueryKeys.all, "list"] as const,
+  search: (params: BuscarActuacionesVeteranosParams) => [...actuacionesVeteranosQueryKeys.lists(), "search", params] as const,
   detail: (id: number) => [...actuacionesVeteranosQueryKeys.all, "detail", id] as const
 };
 
@@ -56,6 +63,10 @@ export const catalogosMilitaresQueryKeys = {
 
 export function useVeteranosQuery() {
   return useQuery({ queryKey: veteranosQueryKeys.lists(), queryFn: listarVeteranos });
+}
+
+export function useBuscarVeteranosQuery(params: BuscarVeteranosParams) {
+  return useQuery({ queryKey: veteranosQueryKeys.search(params), queryFn: () => buscarVeteranos(params) });
 }
 
 export function useRangosMilitaresQuery(fuerza?: Fuerza) {
@@ -80,6 +91,13 @@ export function useVeteranoQuery(id: number) {
 
 export function useActuacionesVeteranosQuery() {
   return useQuery({ queryKey: actuacionesVeteranosQueryKeys.lists(), queryFn: listarActuacionesVeteranos });
+}
+
+export function useBuscarActuacionesVeteranosQuery(params: BuscarActuacionesVeteranosParams) {
+  return useQuery({
+    queryKey: actuacionesVeteranosQueryKeys.search(params),
+    queryFn: () => buscarActuacionesVeteranos(params)
+  });
 }
 
 export function useActuacionVeteranoQuery(id: number) {
@@ -188,6 +206,7 @@ export function useAsociarObjetoVeteranoMutation(veteranoId: number) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.objetos(veteranoId) });
       void queryClient.invalidateQueries({ queryKey: objetosVeteranosQueryKeys.all });
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.all });
     }
   });
 }
@@ -199,6 +218,7 @@ export function useEliminarRelacionObjetoVeteranoMutation(veteranoId: number) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: veteranosQueryKeys.objetos(veteranoId) });
       void queryClient.invalidateQueries({ queryKey: objetosVeteranosQueryKeys.all });
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.all });
     }
   });
 }

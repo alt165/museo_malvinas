@@ -19,6 +19,17 @@ import com.proveedores.repository.ObjetoDepositanteRepository;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Locale;
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.util.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,6 +67,49 @@ public class ComodatoPrestamoService {
         return objetoDepositanteRepository.findComodatosPrestamosActivosOrdenados(CARACTERES_GESTIONADOS).stream()
                 .map(relacion -> toComodatoPrestamoResponse(relacion, hoy, diasAlerta))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ComodatoPrestamoResponseDTO> buscar(String texto, Pageable pageable) {
+        String filtro = StringUtils.hasText(texto) ? texto.trim() : null;
+        int size = Math.min(Math.max(pageable.getPageSize(), 1), 50);
+        Sort orden = Sort.by(
+                Sort.Order.asc("fechaVencimiento").nullsLast(),
+                Sort.Order.asc("objetoMuseo.numeroInventario"),
+                Sort.Order.asc("id")
+        );
+        Pageable pageRequest = PageRequest.of(pageable.getPageNumber(), size, orden);
+        Specification<ObjetoDepositante> specification = (root, query, criteriaBuilder) -> {
+            Join<ObjetoDepositante, ObjetoMuseo> objeto = root.join("objetoMuseo", JoinType.INNER);
+            Join<ObjetoDepositante, Depositante> depositante = root.join("depositante", JoinType.INNER);
+            Predicate filtrosActivos = criteriaBuilder.and(
+                    root.get("tipoDeposito").in(CARACTERES_GESTIONADOS),
+                    criteriaBuilder.isTrue(root.get("activo")),
+                    criteriaBuilder.isFalse(root.get("eliminado")),
+                    criteriaBuilder.isTrue(objeto.get("activo")),
+                    criteriaBuilder.isFalse(objeto.get("eliminado"))
+            );
+            if (filtro == null) {
+                return filtrosActivos;
+            }
+
+            String textoEscapado = escaparPatronLike(filtro).toLowerCase(Locale.ROOT);
+            Expression<String> patron = criteriaBuilder.literal("%" + textoEscapado + "%");
+            Predicate coincide = criteriaBuilder.or(
+                    criteriaBuilder.like(criteriaBuilder.lower(objeto.get("numeroInventario")), patron, '\\'),
+                    criteriaBuilder.like(criteriaBuilder.lower(objeto.get("denominacionObjeto")), patron, '\\'),
+                    criteriaBuilder.like(criteriaBuilder.lower(depositante.get("nombre")), patron, '\\')
+            );
+            return criteriaBuilder.and(filtrosActivos, coincide);
+        };
+        int diasAlerta = obtenerDiasAlerta();
+        LocalDate hoy = com.proveedores.time.MuseoTime.today();
+        return objetoDepositanteRepository.findAll(specification, pageRequest)
+                .map(relacion -> toComodatoPrestamoResponse(relacion, hoy, diasAlerta));
+    }
+
+    private String escaparPatronLike(String texto) {
+        return texto.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     @Transactional(readOnly = true)

@@ -4,8 +4,9 @@ import com.proveedores.entity.EmbargoObjeto;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-public interface EmbargoObjetoRepository extends JpaRepository<EmbargoObjeto, Long> {
+public interface EmbargoObjetoRepository extends JpaRepository<EmbargoObjeto, Long>, JpaSpecificationExecutor<EmbargoObjeto> {
 
     boolean existsByObjetoMuseoIdAndFechaFinalizacionIsNullAndEliminadoFalse(Long objetoMuseoId);
 

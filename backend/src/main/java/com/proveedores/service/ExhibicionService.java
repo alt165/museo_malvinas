@@ -1,5 +1,7 @@
 package com.proveedores.service;
 
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Predicate;
 import com.proveedores.dto.ExhibicionObjetoResponseDTO;
 import com.proveedores.dto.ExhibicionProximaInicioResponseDTO;
 import com.proveedores.dto.ExhibicionRequestDTO;
@@ -38,6 +40,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -85,6 +88,44 @@ public class ExhibicionService {
     }
 
     @Transactional(readOnly = true)
+    public Page<ExhibicionResponseDTO> buscar(String texto, Pageable pageable) {
+        String filtro = StringUtils.hasText(texto) ? texto.trim() : null;
+        int size = Math.min(Math.max(pageable.getPageSize(), 1), 50);
+        Pageable pageRequest = PageRequest.of(
+                pageable.getPageNumber(),
+                size,
+                Sort.by(Sort.Direction.ASC, "nombre").and(Sort.by(Sort.Direction.ASC, "id"))
+        );
+        Specification<Exhibicion> specification = (root, query, criteriaBuilder) -> {
+            Predicate noEliminada = criteriaBuilder.isFalse(root.get("eliminado"));
+            if (filtro == null) {
+                return noEliminada;
+            }
+
+            String patron = "%" + escaparPatronLike(filtro) + "%";
+            Expression<String> nombre = criteriaBuilder.function(
+                    "unaccent", String.class, criteriaBuilder.lower(root.get("nombre"))
+            );
+            Expression<String> descripcion = criteriaBuilder.function(
+                    "unaccent", String.class, criteriaBuilder.lower(root.get("descripcion"))
+            );
+            Expression<String> patronNormalizado = criteriaBuilder.function(
+                    "unaccent", String.class, criteriaBuilder.lower(criteriaBuilder.literal(patron))
+            );
+            Predicate coincide = criteriaBuilder.or(
+                    criteriaBuilder.like(nombre, patronNormalizado, '\\'),
+                    criteriaBuilder.like(descripcion, patronNormalizado, '\\')
+            );
+            return criteriaBuilder.and(noEliminada, coincide);
+        };
+        return exhibicionRepository.findAll(specification, pageRequest).map(this::toResponse);
+    }
+
+    private String escaparPatronLike(String texto) {
+        return texto.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+    }
+
+    @Transactional(readOnly = true)
     public List<ExhibicionProximaInicioResponseDTO> listarProximasAIniciar() {
         LocalDate hoy = com.proveedores.time.MuseoTime.today();
         return exhibicionRepository.buscarProximasAIniciar(hoy, hoy.plusDays(15)).stream()
@@ -110,11 +151,35 @@ public class ExhibicionService {
 
     @Transactional(readOnly = true)
     public Page<ExhibicionResponseDTO> buscarFinalizadas(String texto, Pageable pageable) {
-        Pageable pageRequest = PageRequest.of(pageable.getPageNumber(), Math.min(Math.max(pageable.getPageSize(), 1), 20), pageable.getSort().isSorted() ? pageable.getSort() : Sort.by("nombre"));
-        if (!StringUtils.hasText(texto)) {
-            return exhibicionRepository.findByEstadoAndEliminadoFalse(EstadoExhibicion.FINALIZADA, pageRequest).map(this::toResponse);
-        }
-        return exhibicionRepository.buscarFinalizadasPorTexto(texto.trim(), pageRequest).map(this::toResponse);
+        String filtro = StringUtils.hasText(texto) ? texto.trim() : null;
+        int size = Math.min(Math.max(pageable.getPageSize(), 1), 50);
+        Pageable pageRequest = PageRequest.of(
+                pageable.getPageNumber(),
+                size,
+                Sort.by(Sort.Direction.ASC, "nombre").and(Sort.by(Sort.Direction.ASC, "id"))
+        );
+        Specification<Exhibicion> specification = (root, query, criteriaBuilder) -> {
+            Predicate finalizadaYActiva = criteriaBuilder.and(
+                    criteriaBuilder.equal(root.get("estado"), EstadoExhibicion.FINALIZADA),
+                    criteriaBuilder.isFalse(root.get("eliminado"))
+            );
+            if (filtro == null) {
+                return finalizadaYActiva;
+            }
+
+            String patron = "%" + escaparPatronLike(filtro) + "%";
+            Expression<String> patronNormalizado = criteriaBuilder.lower(criteriaBuilder.literal(patron));
+            Predicate coincide = criteriaBuilder.or(
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("nombre")), patronNormalizado, '\\'),
+                    criteriaBuilder.like(
+                            criteriaBuilder.lower(criteriaBuilder.coalesce(root.get("descripcion"), "")),
+                            patronNormalizado,
+                            '\\'
+                    )
+            );
+            return criteriaBuilder.and(finalizadaYActiva, coincide);
+        };
+        return exhibicionRepository.findAll(specification, pageRequest).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)

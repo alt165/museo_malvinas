@@ -14,6 +14,10 @@ export type VeteranoResponseDTO = VeteranoRequestDTO & {
   nombreCompleto: string;
 };
 
+export type VeteranoConsultaResponseDTO = VeteranoResponseDTO & {
+  cantidadObjetos: number;
+};
+
 export type VeteranoImagenResponseDTO = {
   id: number;
   veteranoId: number;

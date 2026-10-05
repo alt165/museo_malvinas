@@ -1,11 +1,26 @@
 import { apiBlobRequest, apiRequest } from "@/lib/api";
-import type { ObjetoMuseoResponseDTO } from "@/features/objetos/types";
+import type { ObjetoMuseoResponseDTO, PageResponse } from "@/features/objetos/types";
 import type { DepositanteRequestDTO, DepositanteResponseDTO } from "../types";
 
 const basePath = "/api/depositantes";
 
 export function listarDepositantes() {
   return apiRequest<DepositanteResponseDTO[]>(basePath);
+}
+
+export type BuscarDepositantesParams = {
+  texto?: string;
+  page?: number;
+  size?: number;
+};
+
+export function buscarDepositantes(params: BuscarDepositantesParams) {
+  const searchParams = new URLSearchParams();
+  if (params.texto?.trim()) searchParams.set("texto", params.texto.trim());
+  searchParams.set("page", String(params.page ?? 0));
+  searchParams.set("size", String(params.size ?? 20));
+  searchParams.set("sort", "nombre,asc");
+  return apiRequest<PageResponse<DepositanteResponseDTO>>(basePath + "/buscar?" + searchParams.toString());
 }
 
 export function obtenerDepositantePorId(id: number) {

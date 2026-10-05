@@ -11,6 +11,10 @@ import jakarta.validation.Valid;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
@@ -23,6 +27,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Comodatos y prestamos", description = "Administracion de objetos recibidos como comodato o prestamo")
@@ -42,6 +47,15 @@ public class ComodatoPrestamoAdminController {
     @GetMapping
     public ResponseEntity<List<ComodatoPrestamoResponseDTO>> listar() {
         return ResponseEntity.ok(comodatoPrestamoService.listar());
+    }
+
+    @Operation(summary = "Buscar comodatos y prestamos con paginacion")
+    @GetMapping("/buscar")
+    public ResponseEntity<Page<ComodatoPrestamoResponseDTO>> buscar(
+            @RequestParam(required = false) String texto,
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable
+    ) {
+        return ResponseEntity.ok(comodatoPrestamoService.buscar(texto, pageable));
     }
 
     @Operation(summary = "Exportar comodatos y prestamos en PDF")

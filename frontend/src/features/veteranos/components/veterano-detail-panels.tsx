@@ -2,14 +2,15 @@
 import { FormLabel } from "@/components/common/form-label";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link2, Medal, Network, Pencil, Search, Trash2, UserRound, type LucideIcon } from "lucide-react";
-import { useRef, useState, type KeyboardEvent } from "react";
+import { Link2, Medal, Network, Pencil, Search, Trash2, UserRound, X, type LucideIcon } from "lucide-react";
+import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useForm } from "react-hook-form";
 import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { RowActionButton, RowActionLink, RowActions } from "@/components/common/row-actions";
-import { useObjetosQuery } from "@/features/objetos/queries";
+import { useBuscarObjetosQuery } from "@/features/objetos/queries";
+import type { ObjetoMuseoResponseDTO } from "@/features/objetos/types";
 import { ApiClientError } from "@/lib/errors/api-error";
 import { ObjetoRelacionesGraph } from "@/features/relaciones-objetos/components/ObjetoRelacionesGraph";
 import { RelacionesTable } from "@/features/relaciones-objetos/components/RelacionesTable";
@@ -41,7 +42,6 @@ export function VeteranoDetailPanels({ canWrite, veterano }: { canWrite: boolean
   const actuacionesQuery = useActuacionesVeteranoQuery(veteranoId);
   const objetosQuery = useObjetosVeteranoQuery(veteranoId);
   const relacionesQuery = useRelacionesPorPersonaQuery(veteranoId);
-  const objetosMuseoQuery = useObjetosQuery();
   const crearActuacion = useCrearActuacionVeteranoMutation(veteranoId);
   const asociarObjeto = useAsociarObjetoVeteranoMutation(veteranoId);
   const eliminarRelacion = useEliminarRelacionObjetoVeteranoMutation(veteranoId);
@@ -49,6 +49,23 @@ export function VeteranoDetailPanels({ canWrite, veterano }: { canWrite: boolean
   const unidadesQuery = useUnidadesMilitaresQuery(veterano.fuerza);
   const actuacionForm = useForm<ActuacionVeteranoFormValues>({ resolver: zodResolver(actuacionVeteranoSchema), defaultValues: { rango: "", unidad: "", rangoId: null, unidadId: null, rol: "", fechaInicio: "", fechaFin: "", descripcion: "" } });
   const objetoForm = useForm<ObjetoVeteranoFormValues>({ resolver: zodResolver(objetoVeteranoSchema), defaultValues: { objetoMuseoId: 0, tipoRelacion: "", descripcion: "" } });
+  const [filtrosObjeto, setFiltrosObjeto] = useState({ nombre: "", numeroInventario: "" });
+  const [filtrosObjetoAplicados, setFiltrosObjetoAplicados] = useState({ nombre: "", numeroInventario: "" });
+  const [objetosPage, setObjetosPage] = useState(0);
+  const [objetosSize, setObjetosSize] = useState(20);
+  const [objetoSeleccionado, setObjetoSeleccionado] = useState<ObjetoMuseoResponseDTO | null>(null);
+  const objetosDisponiblesParams = useMemo(() => ({
+    ...filtrosObjetoAplicados,
+    categoriaIds: [],
+    page: objetosPage,
+    size: objetosSize,
+    sort: "numeroInventario,asc",
+    veteranoId
+  }), [filtrosObjetoAplicados, objetosPage, objetosSize, veteranoId]);
+  const objetosDisponiblesQuery = useBuscarObjetosQuery(objetosDisponiblesParams, canWrite);
+  const objetosDisponibles = objetosDisponiblesQuery.data?.content ?? [];
+  const objetosTotalPaginas = Math.max(objetosDisponiblesQuery.data?.totalPages ?? 0, 1);
+  const objetosPaginaActual = Math.min(objetosPage, objetosTotalPaginas - 1);
   const [activeTab, setActiveTab] = useState<DetailTab>("datos-personales");
   const [vistaRelaciones, setVistaRelaciones] = useState<"tabla" | "grafo">("tabla");
   const [profundidadRelaciones, setProfundidadRelaciones] = useState(1);
@@ -65,6 +82,31 @@ export function VeteranoDetailPanels({ canWrite, veterano }: { canWrite: boolean
     const nextTab = detailTabs[nextIndex];
     setActiveTab(nextTab.id);
     tabRefs.current[nextIndex]?.focus();
+  }
+
+  function aplicarFiltrosObjeto(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setObjetosPage(0);
+    setFiltrosObjetoAplicados({
+      nombre: filtrosObjeto.nombre.trim(),
+      numeroInventario: filtrosObjeto.numeroInventario.trim()
+    });
+  }
+
+  function limpiarFiltrosObjeto() {
+    setObjetosPage(0);
+    setFiltrosObjeto({ nombre: "", numeroInventario: "" });
+    setFiltrosObjetoAplicados({ nombre: "", numeroInventario: "" });
+  }
+
+  function seleccionarObjeto(objeto: ObjetoMuseoResponseDTO) {
+    setObjetoSeleccionado(objeto);
+    objetoForm.setValue("objetoMuseoId", objeto.id, { shouldValidate: true, shouldDirty: true });
+  }
+
+  function limpiarObjetoSeleccionado() {
+    setObjetoSeleccionado(null);
+    objetoForm.setValue("objetoMuseoId", 0, { shouldValidate: true, shouldDirty: true });
   }
 
   return (
@@ -153,13 +195,82 @@ export function VeteranoDetailPanels({ canWrite, veterano }: { canWrite: boolean
         <PanelHeader icon={Link2} title="Objetos vinculados" />
         <div className="space-y-4 p-5 sm:p-6">
         {canWrite ? (
+          <div className="space-y-4 rounded-lg border p-4">
+            <h3 className="text-sm font-semibold">Buscar objetos disponibles</h3>
+            <form className="space-y-3" onSubmit={aplicarFiltrosObjeto}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block text-sm font-medium">
+                  Nombre del objeto
+                  <input className="mt-1 h-10 w-full rounded-md border bg-background px-3 text-sm font-normal outline-none focus:border-ring focus:ring-2 focus:ring-ring/20" onChange={(event) => setFiltrosObjeto((actual) => ({ ...actual, nombre: event.target.value }))} placeholder="Nombre del objeto" value={filtrosObjeto.nombre} />
+                </label>
+                <label className="block text-sm font-medium">
+                  Número de inventario
+                  <input className="mt-1 h-10 w-full rounded-md border bg-background px-3 text-sm font-normal outline-none focus:border-ring focus:ring-2 focus:ring-ring/20" onChange={(event) => setFiltrosObjeto((actual) => ({ ...actual, numeroInventario: event.target.value }))} placeholder="Número de inventario" value={filtrosObjeto.numeroInventario} />
+                </label>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90" type="submit"><Search aria-hidden="true" className="h-4 w-4" />Buscar</button>
+                {filtrosObjeto.nombre || filtrosObjeto.numeroInventario || filtrosObjetoAplicados.nombre || filtrosObjetoAplicados.numeroInventario ? (
+                  <button className="inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm font-medium hover:bg-muted" onClick={limpiarFiltrosObjeto} type="button"><X aria-hidden="true" className="h-4 w-4" />Limpiar</button>
+                ) : null}
+              </div>
+            </form>
+            {objetosDisponiblesQuery.isError ? <ErrorState message={getApiErrorMessage(objetosDisponiblesQuery.error)} requestId={objetosDisponiblesQuery.error instanceof ApiClientError ? objetosDisponiblesQuery.error.requestId : undefined} /> : null}
+            {objetosDisponiblesQuery.isLoading ? <LoadingState label="Buscando objetos disponibles..." /> : null}
+            {!objetosDisponiblesQuery.isLoading && !objetosDisponiblesQuery.isError && objetosDisponibles.length === 0 ? <EmptyState description="No hay objetos disponibles que coincidan con los filtros aplicados." title="Sin resultados" /> : null}
+            {objetosDisponiblesQuery.data ? (
+              <div className="space-y-2">
+                {objetosDisponibles.length > 0 ? (
+                  <>
+                    <h4 className="text-sm font-semibold">Resultados</h4>
+                    <div className="divide-y rounded-md border">
+                      {objetosDisponibles.map((objeto) => {
+                        const seleccionado = objetoSeleccionado?.id === objeto.id;
+                        return (
+                          <div className="flex flex-wrap items-center justify-between gap-3 p-3 text-sm" key={objeto.id}>
+                            <p className="min-w-0 flex-1 break-words"><span className="font-medium">{objeto.numeroInventario}</span> - {objeto.denominacionObjeto}</p>
+                            <button className="h-9 rounded-md border px-3 text-sm font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60" disabled={seleccionado} onClick={() => seleccionarObjeto(objeto)} type="button">{seleccionado ? "Seleccionado" : "Seleccionar"}</button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : null}
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-surface px-3 py-2 text-sm">
+                    <span className="text-muted-foreground">{objetosDisponiblesQuery.data.totalElements} objetos encontrados</span>
+                    <div className="flex items-center gap-2">
+                      <label className="flex items-center gap-2">
+                        <span>Cantidad por página</span>
+                        <select className="h-9 rounded-md border bg-white px-2" onChange={(event) => { setObjetosPage(0); setObjetosSize(Number(event.target.value)); }} value={objetosSize}>
+                          <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option>
+                        </select>
+                      </label>
+                      <button className="h-9 rounded-md border px-3 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60" disabled={objetosPaginaActual === 0} onClick={() => setObjetosPage(Math.max(objetosPaginaActual - 1, 0))} type="button">Anterior</button>
+                      <span>Página {objetosPaginaActual + 1} de {objetosTotalPaginas}</span>
+                      <button className="h-9 rounded-md border px-3 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60" disabled={objetosPaginaActual >= objetosTotalPaginas - 1} onClick={() => setObjetosPage(Math.min(objetosPaginaActual + 1, objetosTotalPaginas - 1))} type="button">Siguiente</button>
+                    </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+        {canWrite ? (
           <form className="grid gap-3 rounded-lg border p-4 md:grid-cols-[1fr_180px_1fr_auto]" onSubmit={objetoForm.handleSubmit((values) => asociarObjeto.mutate({
             veteranoId,
             objetoMuseoId: values.objetoMuseoId,
             tipoRelacion: values.tipoRelacion,
             descripcion: values.descripcion || null
-          }, { onSuccess: () => objetoForm.reset({ objetoMuseoId: 0, tipoRelacion: "", descripcion: "" }) }))}>
-            <Input required label="Objeto" error={objetoForm.formState.errors.objetoMuseoId?.message}><select className="h-10 w-full rounded-md border bg-background px-3 text-sm" {...objetoForm.register("objetoMuseoId", { valueAsNumber: true })}><option value={0}>Seleccionar objeto</option>{(objetosMuseoQuery.data ?? []).map((objeto) => <option key={objeto.id} value={objeto.id}>{objeto.numeroInventario} - {objeto.denominacionObjeto}</option>)}</select></Input>
+          }, { onSuccess: () => {
+            objetoForm.reset({ objetoMuseoId: 0, tipoRelacion: "", descripcion: "" });
+            setObjetoSeleccionado(null);
+          } }))}>
+            <input type="hidden" {...objetoForm.register("objetoMuseoId", { valueAsNumber: true })} />
+            <Input required label="Objeto" error={objetoForm.formState.errors.objetoMuseoId?.message}>
+              <div className="flex gap-2">
+                <input className="h-10 min-w-0 flex-1 rounded-md border bg-muted px-3 text-sm" readOnly value={objetoSeleccionado ? `${objetoSeleccionado.numeroInventario} - ${objetoSeleccionado.denominacionObjeto}` : "Seleccione un objeto de los resultados"} />
+                {objetoSeleccionado ? <button className="h-10 rounded-md border px-3 text-sm hover:bg-muted" onClick={limpiarObjetoSeleccionado} type="button">Cambiar</button> : null}
+              </div>
+            </Input>
             <Input required label="Tipo relación" error={objetoForm.formState.errors.tipoRelacion?.message}><input className="h-10 w-full rounded-md border bg-background px-3 text-sm" {...objetoForm.register("tipoRelacion")} /></Input>
             <Input label="Descripción" error={objetoForm.formState.errors.descripcion?.message}><input className="h-10 w-full rounded-md border bg-background px-3 text-sm" {...objetoForm.register("descripcion")} /></Input>
             <div className="flex items-end"><button className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground" disabled={asociarObjeto.isPending} type="submit">Asociar</button></div>

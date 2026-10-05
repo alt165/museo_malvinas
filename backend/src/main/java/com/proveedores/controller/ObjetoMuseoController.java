@@ -121,8 +121,21 @@ public class ObjetoMuseoController {
             @RequestParam(required = false) ModoBusquedaTexto descripcionBreveModo,
             @RequestParam(required = false) String descripcionTecnica,
             @RequestParam(required = false) ModoBusquedaTexto descripcionTecnicaModo,
+            @RequestParam(required = false) Long veteranoId,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable
     ) {
+        if (veteranoId == null) {
+            return ResponseEntity.ok(objetoMuseoService.buscar(
+                    nombre,
+                    numeroInventario,
+                    categoriaIds,
+                    descripcionBreve,
+                    descripcionBreveModo,
+                    descripcionTecnica,
+                    descripcionTecnicaModo,
+                    pageable
+            ));
+        }
         return ResponseEntity.ok(objetoMuseoService.buscar(
                 nombre,
                 numeroInventario,
@@ -131,6 +144,7 @@ public class ObjetoMuseoController {
                 descripcionBreveModo,
                 descripcionTecnica,
                 descripcionTecnicaModo,
+                veteranoId,
                 pageable
         ));
     }

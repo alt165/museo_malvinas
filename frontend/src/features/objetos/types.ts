@@ -165,6 +165,7 @@ export type PageResponse<T> = {
 export type BuscarObjetosParams = {
   nombre?: string;
   numeroInventario?: string;
+  veteranoId?: number;
   categoriaIds?: number[];
   descripcionBreve?: string;
   descripcionBreveModo?: ModoBusquedaTexto;

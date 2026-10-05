@@ -4,17 +4,20 @@ import {
   actualizarColeccion,
   agregarObjetosColeccion,
   bajaLogicaColeccion,
+  buscarColecciones,
   crearColeccion,
   listarColecciones,
   listarObjetosColeccion,
   obtenerColeccionPorId,
   quitarObjetoColeccion
 } from "./api";
+import type { BuscarColeccionesParams } from "./api";
 import type { AgregarObjetosColeccionRequestDTO, ColeccionObjetoRequestDTO } from "./types";
 
 export const coleccionesQueryKeys = {
   all: ["colecciones"] as const,
   lists: () => [...coleccionesQueryKeys.all, "list"] as const,
+  search: (params: BuscarColeccionesParams) => [...coleccionesQueryKeys.lists(), params] as const,
   detail: (id: number) => [...coleccionesQueryKeys.all, "detail", id] as const,
   objetos: (id: number) => [...coleccionesQueryKeys.all, "detail", id, "objetos"] as const,
   objetosDisponibles: () => [...coleccionesQueryKeys.all, "objetos-disponibles"] as const
@@ -24,6 +27,13 @@ export function useColeccionesQuery() {
   return useQuery({
     queryKey: coleccionesQueryKeys.lists(),
     queryFn: listarColecciones
+  });
+}
+
+export function useBuscarColeccionesQuery(params: BuscarColeccionesParams) {
+  return useQuery({
+    queryKey: coleccionesQueryKeys.search(params),
+    queryFn: () => buscarColecciones(params)
   });
 }
 

@@ -1,4 +1,5 @@
 export {
+  buscarDepositantes,
   actualizarDepositante,
   bajaLogicaDepositante,
   buscarDepositantePorIdentificacion,
@@ -9,3 +10,5 @@ export {
   listarObjetosDepositante,
   obtenerDepositantePorId
 } from "./depositantes-api";
+
+export type { BuscarDepositantesParams } from "./depositantes-api";

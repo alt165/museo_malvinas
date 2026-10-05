@@ -1,9 +1,9 @@
 "use client";
 import { RequiredAsterisk } from "@/components/common/form-label";
 
-import { CheckCircle, Download, Gavel, Search, Unlock } from "lucide-react";
+import { CheckCircle, Download, Gavel, Search, Unlock, X } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
@@ -13,8 +13,8 @@ import { AppShell } from "@/components/layout/app-shell";
 import { exportarEmbargosObjetosPdf } from "@/features/objetos/api";
 import {
   useBuscarObjetosQuery,
+  useBuscarEmbargosObjetosQuery,
   useCrearEmbargoObjetoMutation,
-  useEmbargosObjetosQuery,
   useLevantarEmbargoObjetoMutation
 } from "@/features/objetos/queries";
 import type { EmbargoObjetoResponseDTO, ObjetoMuseoResponseDTO } from "@/features/objetos/types";
@@ -42,6 +42,10 @@ function nombreArchivoEmbargosPdf() {
 
 export default function EmbargosObjetosPage() {
   const [incluirHistoricos, setIncluirHistoricos] = useState(false);
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(20);
+  const [texto, setTexto] = useState("");
+  const [textoAplicado, setTextoAplicado] = useState("");
   const [busqueda, setBusqueda] = useState({ nombre: "", numeroInventario: "" });
   const [busquedaAplicada, setBusquedaAplicada] = useState({ nombre: "", numeroInventario: "" });
   const [objetoSeleccionado, setObjetoSeleccionado] = useState<ObjetoMuseoResponseDTO | null>(null);
@@ -60,12 +64,18 @@ export default function EmbargosObjetosPage() {
   }), [busquedaAplicada]);
   const buscarHabilitado = Boolean(busquedaAplicada.nombre || busquedaAplicada.numeroInventario);
   const objetosQuery = useBuscarObjetosQuery(buscarParams, buscarHabilitado);
-  const embargosQuery = useEmbargosObjetosQuery(incluirHistoricos);
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setTextoAplicado(texto.trim()), 300);
+    return () => window.clearTimeout(timeout);
+  }, [texto]);
+  const buscando = texto.trim() !== textoAplicado;
+  const embargosParams = useMemo(() => ({ texto: textoAplicado, incluirHistoricos, page, size }), [textoAplicado, incluirHistoricos, page, size]);
+  const embargosQuery = useBuscarEmbargosObjetosQuery(embargosParams);
   const crearEmbargo = useCrearEmbargoObjetoMutation();
   const levantarEmbargo = useLevantarEmbargoObjetoMutation();
 
   const objetos = objetosQuery.data?.content ?? [];
-  const embargos = embargosQuery.data ?? [];
+  const embargos = embargosQuery.data?.content ?? [];
 
   function handleBuscar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -247,14 +257,40 @@ export default function EmbargosObjetosPage() {
               <p className="mt-1 text-sm text-muted-foreground">Se muestran principalmente embargos vigentes.</p>
             </div>
             <label className="flex items-center gap-2 text-sm">
-              <input checked={incluirHistoricos} className="h-4 w-4 accent-primary" onChange={(event) => setIncluirHistoricos(event.target.checked)} type="checkbox" />
+              <input checked={incluirHistoricos} className="h-4 w-4 accent-primary" onChange={(event) => { setPage(0); setIncluirHistoricos(event.target.checked); }} type="checkbox" />
               Ver históricos
             </label>
           </div>
-          {embargosQuery.isLoading ? <LoadingState label="Cargando embargos..." /> : null}
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              aria-label="Buscar embargos por número de inventario o denominación"
+              className="h-10 min-w-0 flex-1 rounded-md border bg-white px-3 text-sm outline-none focus:border-primary"
+              onChange={(event) => {
+                setPage(0);
+                setTexto(event.target.value);
+              }}
+              placeholder="Buscar por número de inventario o denominación"
+              value={texto}
+            />
+            {texto ? (
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-sm font-medium hover:bg-muted"
+                onClick={() => {
+                  setPage(0);
+                  setTexto("");
+                }}
+                onMouseDown={(event) => event.preventDefault()}
+                type="button"
+              >
+                <X className="h-4 w-4" />
+                Limpiar
+              </button>
+            ) : null}
+          </div>
+          {embargosQuery.isLoading || embargosQuery.isFetching || buscando ? <LoadingState label="Cargando embargos..." /> : null}
           {embargosQuery.isError ? <ErrorState message={getApiErrorMessage(embargosQuery.error)} /> : null}
-          {embargosQuery.isSuccess && embargos.length === 0 ? <EmptyState title="Sin embargos" description="No hay embargos vigentes registrados." /> : null}
-          {embargos.length > 0 ? (
+          {!embargosQuery.isLoading && !embargosQuery.isError && !buscando && embargosQuery.isSuccess && embargos.length === 0 ? <EmptyState title="Sin embargos" description={incluirHistoricos ? "No hay embargos para los filtros seleccionados." : "No hay embargos vigentes registrados."} /> : null}
+          {!embargosQuery.isLoading && !embargosQuery.isError && !buscando && embargos.length > 0 ? (
             <div className="overflow-hidden rounded-lg border">
               <table className="w-full border-collapse text-sm">
                 <thead className="bg-primary text-primary-foreground">
@@ -287,6 +323,43 @@ export default function EmbargosObjetosPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          ) : null}
+          {!embargosQuery.isLoading && !embargosQuery.isError && !buscando && embargosQuery.data ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-background px-4 py-3 text-sm">
+              <div className="text-muted-foreground">
+                {embargosQuery.isFetching ? "Actualizando..." : `${embargosQuery.data.totalElements} embargos encontrados`}
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-2">
+                  <span>Cantidad por página</span>
+                  <select
+                    className="h-9 rounded-md border bg-white px-2"
+                    onChange={(event) => {
+                      setPage(0);
+                      setSize(Number(event.target.value));
+                    }}
+                    value={size}
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                </label>
+                <button
+                  className="h-9 rounded-md border px-3 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={embargosQuery.data.first}
+                  onClick={() => setPage((current) => Math.max(0, current - 1))}
+                  type="button"
+                >Anterior</button>
+                <span>Página {embargosQuery.data.number + 1} de {Math.max(embargosQuery.data.totalPages, 1)}</span>
+                <button
+                  className="h-9 rounded-md border px-3 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={embargosQuery.data.last}
+                  onClick={() => setPage((current) => current + 1)}
+                  type="button"
+                >Siguiente</button>
+              </div>
             </div>
           ) : null}
         </section>

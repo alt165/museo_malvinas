@@ -19,6 +19,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -62,6 +67,49 @@ public class ColeccionObjetoService {
                 .filter(coleccion -> !coleccion.getEliminado())
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ColeccionObjetoResponseDTO> buscar(String nombre, Pageable pageable) {
+        String filtro = nombre == null || nombre.isBlank() ? null : nombre.trim();
+        int size = Math.min(Math.max(pageable.getPageSize(), 1), 50);
+        Pageable pageRequest = PageRequest.of(
+                pageable.getPageNumber(),
+                size,
+                Sort.by(Sort.Direction.ASC, "nombre").and(Sort.by(Sort.Direction.ASC, "id"))
+        );
+        Specification<ColeccionObjeto> specification = (root, query, criteriaBuilder) -> {
+            var noEliminada = criteriaBuilder.isFalse(root.get("eliminado"));
+            if (filtro == null) {
+                return noEliminada;
+            }
+
+            String patron = "%" + escaparPatronLike(filtro) + "%";
+            var coincideNombre = criteriaBuilder.like(
+                    criteriaBuilder.lower(root.get("nombre")),
+                    criteriaBuilder.lower(criteriaBuilder.literal(patron)),
+                    '\\'
+            );
+            return criteriaBuilder.and(noEliminada, coincideNombre);
+        };
+
+        Page<ColeccionObjeto> pagina = coleccionObjetoRepository.findAll(specification, pageRequest);
+        List<Long> coleccionIds = pagina.getContent().stream().map(ColeccionObjeto::getId).toList();
+        Map<Long, Long> conteos = coleccionIds.isEmpty()
+                ? Map.of()
+                : coleccionObjetoRepository.contarObjetosNoEliminadosPorColeccionIds(coleccionIds).stream()
+                        .collect(java.util.stream.Collectors.toMap(
+                                fila -> (Long) fila[0],
+                                fila -> (Long) fila[1]
+                        ));
+        return pagina.map(coleccion -> ColeccionObjetoMapper.toResponse(
+                coleccion,
+                conteos.getOrDefault(coleccion.getId(), 0L)
+        ));
+    }
+
+    private String escaparPatronLike(String texto) {
+        return texto.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     @Transactional(readOnly = true)
