@@ -3,8 +3,10 @@ package com.proveedores.controller;
 import com.proveedores.dto.HistorialObjetoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoEliminadoResponseDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
+import com.proveedores.dto.RegeneracionFotosPublicasResponseDTO;
 import com.proveedores.service.AuditoriaObjetoService;
 import com.proveedores.service.ObjetoMuseoService;
+import com.proveedores.service.FotoObjetoMuseoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,10 +35,12 @@ public class AdminObjetoMuseoController {
 
     private final ObjetoMuseoService objetoMuseoService;
     private final AuditoriaObjetoService auditoriaObjetoService;
+    private final FotoObjetoMuseoService fotoObjetoMuseoService;
 
-    public AdminObjetoMuseoController(ObjetoMuseoService objetoMuseoService, AuditoriaObjetoService auditoriaObjetoService) {
+    public AdminObjetoMuseoController(ObjetoMuseoService objetoMuseoService, AuditoriaObjetoService auditoriaObjetoService, FotoObjetoMuseoService fotoObjetoMuseoService) {
         this.objetoMuseoService = objetoMuseoService;
         this.auditoriaObjetoService = auditoriaObjetoService;
+        this.fotoObjetoMuseoService = fotoObjetoMuseoService;
     }
 
     @Operation(summary = "Listar objetos eliminados logicamente")
@@ -63,6 +67,12 @@ public class AdminObjetoMuseoController {
     @PostMapping("/{id}/restaurar")
     public ResponseEntity<ObjetoMuseoResponseDTO> restaurar(@PathVariable Long id, Authentication authentication) {
         return ResponseEntity.ok(objetoMuseoService.restaurar(id, usuario(authentication)));
+    }
+
+    @Operation(summary = "Generar las versiones publicas faltantes de fotografias")
+    @PostMapping("/fotos/regenerar-publicas")
+    public ResponseEntity<RegeneracionFotosPublicasResponseDTO> regenerarFotosPublicas() {
+        return ResponseEntity.ok(fotoObjetoMuseoService.regenerarPublicasFaltantes());
     }
 
     private String usuario(Authentication authentication) {

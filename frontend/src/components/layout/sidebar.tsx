@@ -7,7 +7,7 @@ import { ChevronDown, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { hasAnyRole, useAuth } from "@/lib/auth";
 import { useEditingMode } from "@/lib/editing-mode";
-import { navigationGroups, type NavigationGroup, type NavigationItem } from "@/lib/routes";
+import { navigationGroups, requiresEditMode, type NavigationGroup, type NavigationItem } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/models/session";
 
@@ -34,7 +34,7 @@ function groupHasRoute(pathname: string, group: NavigationGroup, groups: Navigat
 }
 
 function visibleItems(items: NavigationItem[], roles: UserRole[], permitirEdicion: boolean) {
-  return items.filter((item) => hasAnyRole(roles, item.roles) && (!item.requiresEditing || permitirEdicion));
+  return items.filter((item) => hasAnyRole(roles, item.roles) && (!requiresEditMode(item.href) || permitirEdicion));
 }
 
 export function Sidebar({ open, onClose }: SidebarProps) {

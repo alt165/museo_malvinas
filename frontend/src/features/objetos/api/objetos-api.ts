@@ -302,6 +302,10 @@ export function descargarFotoObjeto(id: number, fotoId: number) {
   return apiBlobRequest(`${basePath}/${id}/fotos/${fotoId}`);
 }
 
+export function descargarFotoOriginalObjeto(id: number, fotoId: number) {
+  return apiBlobRequest(`${basePath}/${id}/fotos/${fotoId}/original`);
+}
+
 export function obtenerReciboEscaneadoObjeto(id: number) {
   return apiRequest<ReciboEscaneadoObjetoMuseoResponseDTO>(`${basePath}/${id}/recibo-escaneado`);
 }

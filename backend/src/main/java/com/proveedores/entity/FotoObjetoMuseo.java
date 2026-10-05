@@ -54,6 +54,15 @@ public class FotoObjetoMuseo extends EntidadBase {
     @Column(name = "ruta_relativa", length = 500)
     private String rutaRelativa;
 
+    @Column(name = "ruta_publica", length = 500)
+    private String rutaPublica;
+
+    @Column(name = "content_type_publico", length = 120)
+    private String contentTypePublico;
+
+    @Column(name = "tamanio_bytes_publico")
+    private Long tamanioBytesPublico;
+
     @Column(columnDefinition = "TEXT")
     private String descripcion;
 
