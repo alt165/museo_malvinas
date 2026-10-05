@@ -369,6 +369,12 @@ public class ObjetoMuseoService {
 
     @Transactional
     public CargaRapidaObjetoResponseDTO cargaRapida(CargaRapidaObjetoRequestDTO dto, String operador) {
+        return cargaRapida(dto, operador, null);
+    }
+
+    @Transactional
+    public CargaRapidaObjetoResponseDTO cargaRapida(CargaRapidaObjetoRequestDTO dto, String operador, String nombreResponsable) {
+        validarRecepcionObligatoria(dto.depositanteId(), dto.caracterRecepcion(), dto.fechaVencimiento());
         Depositante depositante = buscarDepositanteActivo(dto.depositanteId());
         LocalDateTime fechaCargaRapida = com.proveedores.time.MuseoTime.now();
 
@@ -384,16 +390,22 @@ public class ObjetoMuseoService {
         objeto.getVisibilidades().put("ubicacion", VisibilidadCampo.PRIVADO);
         ObjetoMuseo saved = objetoMuseoRepository.save(objeto);
         crearInventarioInicial(saved, buscarUbicacionPreIngreso(), "Alta rapida", operador);
+        LocalDate fechaIngreso = inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(saved.getId())
+                .map(Inventario::getFechaIngreso)
+                .orElse(com.proveedores.time.MuseoTime.today());
+        validarFechaVencimiento(dto.caracterRecepcion(), dto.fechaVencimiento(), fechaIngreso);
 
         ObjetoDepositante relacion = new ObjetoDepositante();
         relacion.setObjetoMuseo(saved);
         relacion.setDepositante(depositante);
         relacion.setFechaDeposito(com.proveedores.time.MuseoTime.today());
-        relacion.setTipoDeposito(CaracterRecepcionObjeto.RECEPCION);
+        relacion.setTipoDeposito(dto.caracterRecepcion());
+        relacion.setFechaVencimiento(requiereFechaVencimiento(dto.caracterRecepcion()) ? dto.fechaVencimiento() : null);
         relacion.setObservaciones("Carga rapida");
         objetoDepositanteRepository.save(relacion);
 
         ReciboIngresoObjeto recibo = crearRecibo(saved, depositante, dto.descripcionBreve(), operador);
+        recibo.setOperador(nombreResponsable);
         ReciboIngresoObjeto reciboSaved = reciboIngresoObjetoRepository.save(recibo);
         auditoriaObjetoService.registrar(
                 saved,
@@ -862,23 +874,31 @@ public class ObjetoMuseoService {
     }
 
     private void validarRecepcionObligatoria(ObjetoMuseoRequestDTO dto) {
-        if (dto.depositanteId() == null) {
+        validarRecepcionObligatoria(dto.depositanteId(), dto.caracterRecepcion(), dto.fechaVencimiento());
+    }
+
+    private void validarRecepcionObligatoria(Long depositanteId, CaracterRecepcionObjeto caracterRecepcion, LocalDate fechaVencimiento) {
+        if (depositanteId == null) {
             throw new BusinessException("El depositante es obligatorio");
         }
-        if (dto.caracterRecepcion() == null || dto.caracterRecepcion() == CaracterRecepcionObjeto.RECEPCION) {
+        if (caracterRecepcion == null || caracterRecepcion == CaracterRecepcionObjeto.RECEPCION) {
             throw new BusinessException("El caracter de recepcion es obligatorio");
         }
-        validarFechaVencimiento(dto, null);
+        validarFechaVencimiento(caracterRecepcion, fechaVencimiento, null);
     }
 
     private void validarFechaVencimiento(ObjetoMuseoRequestDTO dto, LocalDate fechaIngreso) {
-        boolean requiereVencimiento = requiereFechaVencimiento(dto.caracterRecepcion());
-        if (requiereVencimiento && dto.fechaVencimiento() == null) {
+        validarFechaVencimiento(dto.caracterRecepcion(), dto.fechaVencimiento(), fechaIngreso);
+    }
+
+    private void validarFechaVencimiento(CaracterRecepcionObjeto caracterRecepcion, LocalDate fechaVencimiento, LocalDate fechaIngreso) {
+        boolean requiereVencimiento = requiereFechaVencimiento(caracterRecepcion);
+        if (requiereVencimiento && fechaVencimiento == null) {
             throw new BusinessException("La fecha de vencimiento es obligatoria para prestamo o comodato");
         }
-        if (dto.fechaVencimiento() != null) {
+        if (fechaVencimiento != null) {
             LocalDate fechaBase = fechaIngreso == null ? com.proveedores.time.MuseoTime.today() : fechaIngreso;
-            if (dto.fechaVencimiento().isBefore(fechaBase)) {
+            if (fechaVencimiento.isBefore(fechaBase)) {
                 throw new BusinessException("La fecha de vencimiento no puede ser anterior a la fecha de ingreso");
             }
         }

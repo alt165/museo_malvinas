@@ -41,13 +41,20 @@ export const objetoMuseoSchema = z.object({
   caracterRecepcion: z.enum(["", "PRESTAMO", "COMODATO", "DONACION", "COMPRA", "ESTUDIO", "OTRO"]),
   fechaVencimiento: z.string().optional().or(z.literal(""))
 }).superRefine((values, ctx) => {
+  validarRecepcion(values, ctx);
+});
+
+function validarRecepcion(
+  values: { caracterRecepcion: string; fechaVencimiento?: string },
+  ctx: z.RefinementCtx
+) {
   if (!values.caracterRecepcion) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "El caracter de recepcion es obligatorio", path: ["caracterRecepcion"] });
   }
   if (caracteresConVencimiento.has(values.caracterRecepcion) && !values.fechaVencimiento) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "La fecha de vencimiento es obligatoria", path: ["fechaVencimiento"] });
   }
-});
+}
 
 export const objetoMuseoFichaCompletaSchema = objetoMuseoSchema.superRefine((values, ctx) => {
   if (!values.descripcionTecnica?.trim()) {
@@ -76,7 +83,9 @@ export const cargaRapidaObjetoSchema = z.object({
     .trim()
     .min(1, "La denominacion es obligatoria")
     .max(160, "La denominacion no puede superar 160 caracteres"),
-  descripcionBreve: z.string().trim().min(5, "La descripcion breve debe tener al menos 5 caracteres")
-});
+  descripcionBreve: z.string().trim().min(5, "La descripcion breve debe tener al menos 5 caracteres"),
+  caracterRecepcion: z.enum(["", "PRESTAMO", "COMODATO", "DONACION", "COMPRA", "ESTUDIO", "OTRO"]),
+  fechaVencimiento: z.string().optional().or(z.literal(""))
+}).superRefine(validarRecepcion);
 
 export type CargaRapidaObjetoFormValues = z.infer<typeof cargaRapidaObjetoSchema>;

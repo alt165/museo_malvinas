@@ -1,8 +1,10 @@
 package com.proveedores.dto;
 
+import com.proveedores.entity.CaracterRecepcionObjeto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.time.LocalDate;
 
 public record CargaRapidaObjetoRequestDTO(
         @NotNull(message = "El depositante es obligatorio")
@@ -15,9 +17,11 @@ public record CargaRapidaObjetoRequestDTO(
 
         @NotBlank(message = "La descripcion breve es obligatoria")
         @Size(min = 5, message = "La descripcion breve debe tener al menos 5 caracteres")
-        String descripcionBreve
+        String descripcionBreve,
+
+        @NotNull(message = "El caracter de recepcion es obligatorio")
+        CaracterRecepcionObjeto caracterRecepcion,
+
+        LocalDate fechaVencimiento
 ) {
-    public CargaRapidaObjetoRequestDTO(Long depositanteId, String denominacionObjeto, String numeroInventario, String descripcionBreve) {
-        this(depositanteId, denominacionObjeto, descripcionBreve);
-    }
 }

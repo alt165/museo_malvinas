@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { RequiredAsterisk } from "@/components/common/form-label";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { ErrorState } from "@/components/common/error-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
@@ -13,9 +13,10 @@ import type { DepositanteResponseDTO } from "@/features/depositantes/types";
 import { identificacionVisible, telefonoVisible } from "@/features/depositantes/utils";
 import { descargarTicketRecepcionPdf } from "@/features/objetos/recibos";
 import { cargaRapidaObjetoSchema, type CargaRapidaObjetoFormValues } from "@/features/objetos/schemas";
-import type { CargaRapidaObjetoResponseDTO } from "@/features/objetos/types";
+import type { CargaRapidaObjetoResponseDTO, CaracterRecepcionObjeto } from "@/features/objetos/types";
 import { getApiErrorMessage, getValidationErrors } from "@/features/objetos/utils";
 import { ApiClientError } from "@/lib/errors/api-error";
+import { todayInArgentina } from "@/lib/date-time";
 import { routePermissions } from "@/lib/routes";
 import { useCargaRapidaObjetoMutation } from "@/features/objetos/queries";
 import { useEffect, useState } from "react";
@@ -23,6 +24,16 @@ import { useEffect, useState } from "react";
 function tipoDepositanteLabel(depositante: DepositanteResponseDTO) {
   return depositante.tipo === "PERSONA" ? "Persona" : "Institucion";
 }
+
+const caracteresConVencimiento = new Set(["PRESTAMO", "COMODATO"]);
+const caracteresRecepcion = [
+  ["PRESTAMO", "Préstamo"],
+  ["COMODATO", "Comodato"],
+  ["DONACION", "Donación"],
+  ["COMPRA", "Compra"],
+  ["ESTUDIO", "Estudio"],
+  ["OTRO", "Otro"]
+] as const;
 
 export default function CargaRapidaObjetoPage() {
   const [resultado, setResultado] = useState<CargaRapidaObjetoResponseDTO | null>(null);
@@ -37,6 +48,7 @@ export default function CargaRapidaObjetoPage() {
   const crearDepositanteMutation = useCrearDepositanteMutation();
   const mutation = useCargaRapidaObjetoMutation();
   const {
+    control,
     formState: { errors },
     handleSubmit,
     register,
@@ -48,18 +60,28 @@ export default function CargaRapidaObjetoPage() {
     defaultValues: {
       depositanteId: 0,
       denominacionObjeto: "",
-      descripcionBreve: ""
+      descripcionBreve: "",
+      caracterRecepcion: "",
+      fechaVencimiento: ""
     }
   });
+  const caracterRecepcion = useWatch({ control, name: "caracterRecepcion" });
+  const mostrarFechaVencimiento = caracteresConVencimiento.has(caracterRecepcion);
 
   useEffect(() => {
     const validationErrors = getValidationErrors(mutation.error);
     Object.entries(validationErrors).forEach(([field, message]) => {
-      if (field === "depositanteId" || field === "denominacionObjeto" || field === "descripcionBreve") {
+      if (field === "depositanteId" || field === "denominacionObjeto" || field === "descripcionBreve" || field === "caracterRecepcion" || field === "fechaVencimiento") {
         setError(field, { message });
       }
     });
   }, [mutation.error, setError]);
+
+  useEffect(() => {
+    if (!mostrarFechaVencimiento) {
+      setValue("fechaVencimiento", "", { shouldDirty: true, shouldValidate: true });
+    }
+  }, [mostrarFechaVencimiento, setValue]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -134,7 +156,11 @@ export default function CargaRapidaObjetoPage() {
               {
                 depositanteId: values.depositanteId,
                 denominacionObjeto: values.denominacionObjeto.trim(),
-                descripcionBreve: values.descripcionBreve.trim()
+                descripcionBreve: values.descripcionBreve.trim(),
+                caracterRecepcion: values.caracterRecepcion as Exclude<CaracterRecepcionObjeto, "RECEPCION">,
+                ...(caracteresConVencimiento.has(values.caracterRecepcion)
+                  ? { fechaVencimiento: values.fechaVencimiento }
+                  : {})
               },
               { onSuccess: (data) => {
                 setDownloadError(null);
@@ -142,7 +168,9 @@ export default function CargaRapidaObjetoPage() {
                 reset({
                   depositanteId: 0,
                   denominacionObjeto: "",
-                              descripcionBreve: ""
+                  descripcionBreve: "",
+                  caracterRecepcion: "",
+                  fechaVencimiento: ""
                 });
                 setIdentificacion("");
                 setNombreDepositante("");
@@ -280,6 +308,23 @@ export default function CargaRapidaObjetoPage() {
             <label className="text-sm font-medium" htmlFor="descripcionBreve">Descripcion breve<RequiredAsterisk /></label>
             <textarea className="min-h-28 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" id="descripcionBreve" {...register("descripcionBreve")} />
             {errors.descripcionBreve ? <p className="text-sm text-destructive">{errors.descripcionBreve.message}</p> : null}
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="caracterRecepcion">Carácter de recepción<RequiredAsterisk /></label>
+              <select className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id="caracterRecepcion" {...register("caracterRecepcion")}>
+                <option value="">Seleccionar carácter</option>
+                {caracteresRecepcion.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+              {errors.caracterRecepcion ? <p className="text-sm text-destructive">{errors.caracterRecepcion.message}</p> : null}
+            </div>
+            {mostrarFechaVencimiento ? (
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="fechaVencimiento">Fecha de vencimiento<RequiredAsterisk /></label>
+                <input className="h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" id="fechaVencimiento" type="date" min={todayInArgentina()} {...register("fechaVencimiento")} />
+                {errors.fechaVencimiento ? <p className="text-sm text-destructive">{errors.fechaVencimiento.message}</p> : null}
+              </div>
+            ) : null}
           </div>
           <button className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60" disabled={mutation.isPending} type="submit">
             {mutation.isPending ? "Generando..." : "Crear y generar ticket"}

@@ -433,7 +433,7 @@ public class ObjetoMuseoController {
             Authentication authentication
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(objetoMuseoService.cargaRapida(dto, usuario(authentication)));
+                .body(objetoMuseoService.cargaRapida(dto, usuario(authentication), nombreCompleto(authentication)));
     }
 
     private VisibilidadCampo visibilidadFoto(int index, List<VisibilidadCampo> visibilidades, VisibilidadCampo visibilidad) {
@@ -462,5 +462,13 @@ public class ObjetoMuseoController {
             }
         }
         return authentication.getName();
+    }
+
+    private String nombreCompleto(Authentication authentication) {
+        if (authentication instanceof JwtAuthenticationToken jwtAuthentication) {
+            String nombre = jwtAuthentication.getToken().getClaimAsString("name");
+            return StringUtils.hasText(nombre) ? nombre.trim() : null;
+        }
+        return null;
     }
 }

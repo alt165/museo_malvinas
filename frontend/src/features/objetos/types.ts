@@ -237,6 +237,8 @@ export type CargaRapidaObjetoRequestDTO = {
   depositanteId: number;
   denominacionObjeto: string;
   descripcionBreve: string;
+  caracterRecepcion: Exclude<CaracterRecepcionObjeto, "RECEPCION">;
+  fechaVencimiento?: string | null;
 };
 
 export type ReciboIngresoObjetoResponseDTO = {

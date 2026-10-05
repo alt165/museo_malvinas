@@ -19,6 +19,7 @@ import com.proveedores.entity.Depositante;
 import com.proveedores.entity.EstadoConservacion;
 import com.proveedores.entity.Inventario;
 import com.proveedores.entity.MovimientoInventario;
+import com.proveedores.entity.ObjetoDepositante;
 import com.proveedores.entity.ObjetoMuseo;
 import com.proveedores.entity.OrigenCargaObjeto;
 import com.proveedores.entity.ReciboIngresoObjeto;
@@ -43,6 +44,7 @@ import com.proveedores.repository.ReciboIngresoObjetoRepository;
 import com.proveedores.repository.UbicacionRepository;
 import com.proveedores.time.MuseoTime;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -225,7 +227,7 @@ class ObjetoMuseoServiceTest {
         when(ubicacionRepository.findByNombreAndEliminadoFalse("Pre ingreso")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.cargaRapida(
-                new CargaRapidaObjetoRequestDTO(4L, "Objeto rapido", "Descripcion breve"),
+                new CargaRapidaObjetoRequestDTO(4L, "Objeto rapido", "Descripcion breve", CaracterRecepcionObjeto.DONACION, null),
                 "operador-test"
         )).isInstanceOf(ResourceNotFoundException.class);
 
@@ -268,8 +270,9 @@ class ObjetoMuseoServiceTest {
         when(objetoDepositanteRepository.findFirstByObjetoMuseoIdAndEliminadoFalseOrderByIdAsc(12L)).thenReturn(Optional.empty());
 
         LocalDateTime antes = MuseoTime.now();
+        LocalDate fechaVencimiento = MuseoTime.today().plusDays(30);
         service.cargaRapida(
-                new CargaRapidaObjetoRequestDTO(4L, "Objeto rapido", "Descripcion breve"),
+                new CargaRapidaObjetoRequestDTO(4L, "Objeto rapido", "Descripcion breve", CaracterRecepcionObjeto.PRESTAMO, fechaVencimiento),
                 "operador-test"
         );
         LocalDateTime despues = MuseoTime.now();
@@ -289,6 +292,29 @@ class ObjetoMuseoServiceTest {
         assertThat(captor.getValue().getTipo()).isEqualTo(TipoMovimientoInventario.INGRESO);
         assertThat(captor.getValue().getUsuario()).isSameAs(operador);
         assertThat(captor.getValue().getFecha()).isBetween(antes, despues);
+
+        ArgumentCaptor<ObjetoDepositante> relacionCaptor = ArgumentCaptor.forClass(ObjetoDepositante.class);
+        verify(objetoDepositanteRepository).save(relacionCaptor.capture());
+        assertThat(relacionCaptor.getValue().getTipoDeposito()).isEqualTo(CaracterRecepcionObjeto.PRESTAMO);
+        assertThat(relacionCaptor.getValue().getFechaVencimiento()).isEqualTo(fechaVencimiento);
+    }
+
+    @Test
+    void cargaRapidaRechazaPrestamoSinFechaVencimiento() {
+        assertThatThrownBy(() -> service.cargaRapida(new CargaRapidaObjetoRequestDTO(
+                4L, "Objeto rapido", "Descripcion breve", CaracterRecepcionObjeto.PRESTAMO, null
+        ), "operador-test")).isInstanceOf(BusinessException.class)
+                .hasMessageContaining("fecha de vencimiento es obligatoria");
+        verify(objetoMuseoRepository, never()).save(any());
+    }
+
+    @Test
+    void cargaRapidaRechazaFechaVencimientoAnteriorAlIngreso() {
+        assertThatThrownBy(() -> service.cargaRapida(new CargaRapidaObjetoRequestDTO(
+                4L, "Objeto rapido", "Descripcion breve", CaracterRecepcionObjeto.COMODATO, MuseoTime.today().minusDays(1)
+        ), "operador-test")).isInstanceOf(BusinessException.class)
+                .hasMessageContaining("no puede ser anterior a la fecha de ingreso");
+        verify(objetoMuseoRepository, never()).save(any());
     }
 
     @Test

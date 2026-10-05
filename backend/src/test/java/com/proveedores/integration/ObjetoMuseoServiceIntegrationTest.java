@@ -509,8 +509,9 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
         var response = objetoMuseoService.cargaRapida(new CargaRapidaObjetoRequestDTO(
                 depositante.getId(),
                 "Objeto pendiente",
-                "IT-PEND-001",
-                "Descripcion breve pendiente"
+                "Descripcion breve pendiente",
+                CaracterRecepcionObjeto.DONACION,
+                null
         ), "operador-test");
 
         assertThat(objetoMuseoRepository.findById(response.objeto().id())).get().satisfies(objeto -> {
@@ -527,8 +528,29 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
                 .get()
                 .satisfies(relacion -> {
                     assertThat(relacion.getDepositante().getId()).isEqualTo(depositante.getId());
-                    assertThat(relacion.getTipoDeposito()).isEqualTo(CaracterRecepcionObjeto.RECEPCION);
+                    assertThat(relacion.getTipoDeposito()).isEqualTo(CaracterRecepcionObjeto.DONACION);
                     assertThat(relacion.getFechaVencimiento()).isNull();
+                });
+    }
+
+    @Test
+    void altaRapidaPersistePrestamoYFechaDeVencimiento() {
+        Depositante depositante = crearDepositante("IT Depositante prestamo rapido");
+        LocalDate fechaVencimiento = com.proveedores.time.MuseoTime.today().plusDays(30);
+
+        var response = objetoMuseoService.cargaRapida(new CargaRapidaObjetoRequestDTO(
+                depositante.getId(),
+                "Objeto en préstamo",
+                "Descripción breve de préstamo",
+                CaracterRecepcionObjeto.PRESTAMO,
+                fechaVencimiento
+        ), "operador-test");
+
+        assertThat(objetoDepositanteRepository.findFirstByObjetoMuseoIdAndEliminadoFalseOrderByIdAsc(response.objeto().id()))
+                .get()
+                .satisfies(relacion -> {
+                    assertThat(relacion.getTipoDeposito()).isEqualTo(CaracterRecepcionObjeto.PRESTAMO);
+                    assertThat(relacion.getFechaVencimiento()).isEqualTo(fechaVencimiento);
                 });
     }
 
@@ -539,8 +561,9 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
         var response = objetoMuseoService.cargaRapida(new CargaRapidaObjetoRequestDTO(
                 depositante.getId(),
                 "Objeto a completar",
-                "IT-PEND-002",
-                "Descripcion breve completar"
+                "Descripcion breve completar",
+                CaracterRecepcionObjeto.DONACION,
+                null
         ), "operador-test");
         Inventario inventarioInicial = inventarioRepository
                 .findByObjetoMuseoIdAndEliminadoFalse(response.objeto().id())
@@ -589,8 +612,9 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
         var response = objetoMuseoService.cargaRapida(new CargaRapidaObjetoRequestDTO(
                 depositante.getId(),
                 "Objeto a ubicar",
-                "IT-PEND-UBI-001",
-                "Descripcion breve"
+                "Descripcion breve",
+                CaracterRecepcionObjeto.DONACION,
+                null
         ), "operador-test");
 
         objetoMuseoService.actualizar(response.objeto().id(), new ObjetoMuseoRequestDTO(
@@ -632,14 +656,16 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
         var pendiente = objetoMuseoService.cargaRapida(new CargaRapidaObjetoRequestDTO(
                 depositante.getId(),
                 "Objeto pendiente visible",
-                "IT-PEND-003",
-                "Descripcion breve visible"
+                "Descripcion breve visible",
+                CaracterRecepcionObjeto.DONACION,
+                null
         ), "operador-test");
         var eliminado = objetoMuseoService.cargaRapida(new CargaRapidaObjetoRequestDTO(
                 depositante.getId(),
                 "Objeto pendiente eliminado",
-                "IT-PEND-004",
-                "Descripcion breve eliminado"
+                "Descripcion breve eliminado",
+                CaracterRecepcionObjeto.DONACION,
+                null
         ), "operador-test");
         objetoMuseoService.bajaLogica(eliminado.objeto().id(), "admin-test");
 
@@ -664,8 +690,9 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
         var response = objetoMuseoService.cargaRapida(new CargaRapidaObjetoRequestDTO(
                 depositante.getId(),
                 "Objeto pre ingreso",
-                "IT-MOV-PRE-001",
-                "Descripcion breve pre ingreso"
+                "Descripcion breve pre ingreso",
+                CaracterRecepcionObjeto.DONACION,
+                null
         ), "operador-test");
 
         assertThat(inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(response.objeto().id()))
