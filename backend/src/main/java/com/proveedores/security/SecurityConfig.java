@@ -127,6 +127,9 @@ public class SecurityConfig {
                 status.getReasonPhrase(),
                 message,
                 path,
+                null,
+                null,
+                null,
                 null
         ));
     }

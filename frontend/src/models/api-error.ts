@@ -6,4 +6,7 @@ export type ApiErrorResponse = {
   path?: string;
   requestId?: string;
   validationErrors?: Record<string, string>;
+  code?: string;
+  depositanteId?: number;
+  tipoIdentificacion?: "DNI" | "CUIT";
 };

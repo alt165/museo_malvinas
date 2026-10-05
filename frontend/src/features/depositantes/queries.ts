@@ -6,6 +6,7 @@ import {
   buscarDepositantes,
   buscarDepositantesPorNombre,
   crearDepositante,
+  restaurarDepositante,
   listarDepositantes,
   listarObjetosDepositante,
   obtenerDepositantePorId,
@@ -75,6 +76,18 @@ export function useCrearDepositanteMutation() {
   return useMutation({
     mutationFn: crearDepositante,
     onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: depositantesQueryKeys.all });
+    }
+  });
+}
+
+export function useRestaurarDepositanteMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: restaurarDepositante,
+    onSuccess: (depositante) => {
+      queryClient.setQueryData(depositantesQueryKeys.detail(depositante.id), depositante);
       void queryClient.invalidateQueries({ queryKey: depositantesQueryKeys.all });
     }
   });

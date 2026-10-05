@@ -4,7 +4,9 @@ import com.proveedores.dto.DepositanteRequestDTO;
 import com.proveedores.dto.DepositanteResponseDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
 import com.proveedores.entity.Depositante;
+import com.proveedores.entity.TipoDepositante;
 import com.proveedores.exception.BusinessException;
+import com.proveedores.exception.ConflictException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.mapper.DepositanteMapper;
 import com.proveedores.repository.DepositanteRepository;
@@ -41,7 +43,36 @@ public class DepositanteService {
 
     @Transactional
     public DepositanteResponseDTO crear(DepositanteRequestDTO dto) {
+        String identificacion = normalizarIdentificacionParaAlta(dto);
+        if (identificacion != null) {
+            var existente = dto.tipo() == TipoDepositante.PERSONA
+                    ? depositanteRepository.findPrimeroPorDniNormalizado(identificacion)
+                    : depositanteRepository.findPrimeroPorCuitNormalizado(identificacion);
+            if (existente.isPresent()) {
+                Depositante depositante = existente.get();
+                String tipoIdentificacion = dto.tipo() == TipoDepositante.PERSONA ? "DNI" : "CUIT";
+                if (Boolean.TRUE.equals(depositante.getEliminado())) {
+                    throw new ConflictException(
+                            "Existe un depositante dado de baja con este " + tipoIdentificacion,
+                            "DEPOSITANTE_ELIMINADO",
+                            depositante.getId(),
+                            tipoIdentificacion
+                    );
+                }
+                throw new ConflictException("Ya existe un depositante activo con este " + tipoIdentificacion);
+            }
+        }
         return DepositanteMapper.toResponse(depositanteRepository.save(DepositanteMapper.toEntity(dto)));
+    }
+
+    @Transactional
+    public DepositanteResponseDTO restaurar(Long id) {
+        Depositante entity = depositanteRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Depositante no encontrado"));
+        entity.setActivo(true);
+        entity.setEliminado(false);
+        entity.setFechaEliminacion(null);
+        return DepositanteMapper.toResponse(depositanteRepository.save(entity));
     }
 
     @Transactional(readOnly = true)
@@ -171,6 +202,15 @@ public class DepositanteService {
             throw new BusinessException("La identificacion es obligatoria");
         }
         return normalizado;
+    }
+
+    private String normalizarIdentificacionParaAlta(DepositanteRequestDTO dto) {
+        String valor = dto.tipo() == TipoDepositante.PERSONA ? dto.dni() : dto.cuit();
+        if (valor == null || valor.isBlank()) {
+            return null;
+        }
+        String normalizado = valor.replaceAll("[^0-9]", "");
+        return normalizado.isBlank() ? null : normalizado;
     }
 
     private String normalizarBusquedaNombre(String valor) {

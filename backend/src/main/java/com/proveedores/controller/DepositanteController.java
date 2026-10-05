@@ -116,6 +116,13 @@ public class DepositanteController {
         return ResponseEntity.ok(depositanteService.actualizar(id, dto));
     }
 
+    @Operation(summary = "Restaurar depositante dado de baja")
+    @ApiResponse(responseCode = "200", description = "Depositante restaurado")
+    @PostMapping("/{id}/restaurar")
+    public ResponseEntity<DepositanteResponseDTO> restaurar(@PathVariable Long id) {
+        return ResponseEntity.ok(depositanteService.restaurar(id));
+    }
+
     @Operation(summary = "Dar de baja recurso")
     @ApiResponse(responseCode = "204", description = "Recurso dado de baja")
     @DeleteMapping("/{id}")

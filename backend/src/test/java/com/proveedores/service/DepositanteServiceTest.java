@@ -3,16 +3,21 @@ package com.proveedores.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.any;
 
 import com.proveedores.dto.DepositanteResponseDTO;
+import com.proveedores.dto.DepositanteRequestDTO;
 import com.proveedores.entity.Depositante;
 import com.proveedores.entity.TipoDepositante;
+import com.proveedores.exception.ConflictException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.DepositanteRepository;
 import com.proveedores.repository.ObjetoDepositanteRepository;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -33,6 +38,113 @@ class DepositanteServiceTest {
 
     @InjectMocks
     private DepositanteService service;
+
+    @Test
+    void altaPersonaConDniNuevoCreaRegistro() {
+        when(depositanteRepository.findPrimeroPorDniNormalizado("12345678")).thenReturn(Optional.empty());
+        when(depositanteRepository.save(any(Depositante.class))).thenAnswer(invocation -> {
+            Depositante saved = invocation.getArgument(0);
+            saved.setId(10L);
+            return saved;
+        });
+
+        DepositanteResponseDTO response = service.crear(request(TipoDepositante.PERSONA, "12.345.678", null, "Actual"));
+
+        assertThat(response.id()).isEqualTo(10L);
+        assertThat(response.dni()).isEqualTo("12.345.678");
+    }
+
+    @Test
+    void altaInstitucionConCuitNuevoCreaRegistro() {
+        when(depositanteRepository.findPrimeroPorCuitNormalizado("30123456789")).thenReturn(Optional.empty());
+        when(depositanteRepository.save(any(Depositante.class))).thenAnswer(invocation -> {
+            Depositante saved = invocation.getArgument(0);
+            saved.setId(11L);
+            return saved;
+        });
+
+        DepositanteResponseDTO response = service.crear(request(TipoDepositante.INSTITUCION, null, "30-12345678-9", "Actual"));
+
+        assertThat(response.id()).isEqualTo(11L);
+        assertThat(response.cuit()).isEqualTo("30-12345678-9");
+    }
+
+    @Test
+    void altaConDniActivoDevuelveDuplicado() {
+        Depositante actual = depositante(12L, "Existente", TipoDepositante.PERSONA);
+        when(depositanteRepository.findPrimeroPorDniNormalizado("12345678")).thenReturn(Optional.of(actual));
+
+        assertThatThrownBy(() -> service.crear(request(TipoDepositante.PERSONA, "12345678", null, "Otro")))
+                .isInstanceOf(ConflictException.class)
+                .hasMessage("Ya existe un depositante activo con este DNI");
+    }
+
+    @Test
+    void altaConCuitActivoDevuelveDuplicado() {
+        Depositante actual = depositante(13L, "Institucion actual", TipoDepositante.INSTITUCION);
+        when(depositanteRepository.findPrimeroPorCuitNormalizado("30123456789")).thenReturn(Optional.of(actual));
+
+        assertThatThrownBy(() -> service.crear(request(TipoDepositante.INSTITUCION, null, "30-12345678-9", "Otro")))
+                .isInstanceOf(ConflictException.class)
+                .hasMessage("Ya existe un depositante activo con este CUIT");
+    }
+
+    @Test
+    void altaConDniEliminadoDevuelveConflictoIdentificable() {
+        Depositante eliminado = depositante(14L, "Anterior", TipoDepositante.PERSONA);
+        eliminado.setEliminado(true);
+        when(depositanteRepository.findPrimeroPorDniNormalizado("12345678")).thenReturn(Optional.of(eliminado));
+
+        assertThatThrownBy(() -> service.crear(request(TipoDepositante.PERSONA, "12345678", null, "Nuevo")))
+                .isInstanceOfSatisfying(ConflictException.class, conflict -> {
+                    assertThat(conflict.getCode()).isEqualTo("DEPOSITANTE_ELIMINADO");
+                    assertThat(conflict.getDepositanteId()).isEqualTo(14L);
+                    assertThat(conflict.getTipoIdentificacion()).isEqualTo("DNI");
+                });
+    }
+
+    @Test
+    void altaConCuitEliminadoDevuelveConflictoIdentificable() {
+        Depositante eliminado = depositante(15L, "Institucion anterior", TipoDepositante.INSTITUCION);
+        eliminado.setEliminado(true);
+        when(depositanteRepository.findPrimeroPorCuitNormalizado("30123456789")).thenReturn(Optional.of(eliminado));
+
+        assertThatThrownBy(() -> service.crear(request(TipoDepositante.INSTITUCION, null, "30-12345678-9", "Nuevo")))
+                .isInstanceOfSatisfying(ConflictException.class, conflict -> {
+                    assertThat(conflict.getCode()).isEqualTo("DEPOSITANTE_ELIMINADO");
+                    assertThat(conflict.getDepositanteId()).isEqualTo(15L);
+                    assertThat(conflict.getTipoIdentificacion()).isEqualTo("CUIT");
+                });
+    }
+
+    @Test
+    void restaurarConservaIdDatosYNoCreaOtroRegistro() {
+        Depositante eliminado = depositante(16L, "Nombre histórico", TipoDepositante.PERSONA);
+        eliminado.setDni("12.345.678");
+        eliminado.setContacto("historico@example.com");
+        eliminado.setObservaciones("Teléfono anterior y relaciones preservadas");
+        eliminado.setActivo(false);
+        eliminado.setEliminado(true);
+        eliminado.setFechaEliminacion(LocalDateTime.now());
+        when(depositanteRepository.findById(16L)).thenReturn(Optional.of(eliminado));
+        when(depositanteRepository.save(eliminado)).thenReturn(eliminado);
+
+        DepositanteResponseDTO response = service.restaurar(16L);
+
+        assertThat(response.id()).isEqualTo(16L);
+        assertThat(response.nombre()).isEqualTo("Nombre histórico");
+        assertThat(response.dni()).isEqualTo("12.345.678");
+        assertThat(response.contacto()).isEqualTo("historico@example.com");
+        assertThat(response.observaciones()).isEqualTo("Teléfono anterior y relaciones preservadas");
+        assertThat(eliminado.getActivo()).isTrue();
+        assertThat(eliminado.getEliminado()).isFalse();
+        assertThat(eliminado.getFechaEliminacion()).isNull();
+        verify(depositanteRepository).save(eliminado);
+    }
+
+    private DepositanteRequestDTO request(TipoDepositante tipo, String dni, String cuit, String nombre) {
+        return new DepositanteRequestDTO(nombre, tipo, null, dni, cuit, "Formulario actual");
+    }
 
     @Test
     void buscarPorDniExistenteDevuelveDepositante() {

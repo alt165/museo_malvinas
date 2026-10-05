@@ -6,7 +6,7 @@ import { ErrorState } from "@/components/common/error-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
 import { DepositanteForm } from "@/features/depositantes/components/depositante-form";
-import { useCrearDepositanteMutation } from "@/features/depositantes/queries";
+import { useCrearDepositanteMutation, useRestaurarDepositanteMutation } from "@/features/depositantes/queries";
 import { getApiErrorMessage } from "@/features/depositantes/utils";
 import { ApiClientError } from "@/lib/errors/api-error";
 import { routePermissions } from "@/lib/routes";
@@ -23,6 +23,7 @@ function NuevoDepositanteContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const mutation = useCrearDepositanteMutation();
+  const restaurarMutation = useRestaurarDepositanteMutation();
   const identificacion = searchParams.get("identificacion") ?? undefined;
 
   return (
@@ -37,8 +38,22 @@ function NuevoDepositanteContent() {
         ) : null}
         <DepositanteForm
           initialIdentification={identificacion}
-          isSubmitting={mutation.isPending}
-          onSubmit={(payload) => mutation.mutate(payload, { onSuccess: (depositante) => router.push(`/depositantes/${depositante.id}`) })}
+          isSubmitting={mutation.isPending || restaurarMutation.isPending}
+          onSubmit={(payload) => mutation.mutate(payload, {
+            onSuccess: (depositante) => router.push(`/depositantes/${depositante.id}`),
+            onError: (error) => {
+              if (!(error instanceof ApiClientError) || error.payload?.code !== "DEPOSITANTE_ELIMINADO") return;
+              const id = error.payload.depositanteId;
+              const identificacionTipo = error.payload.tipoIdentificacion ?? "DNI/CUIT";
+              if (typeof id !== "number" || !window.confirm(`Existe un depositante dado de baja con este ${identificacionTipo}. ¿Desea restaurarlo?`)) return;
+              restaurarMutation.mutate(id, {
+                onSuccess: (depositante) => {
+                  window.alert("Depositante restaurado.");
+                  router.push(`/depositantes/${depositante.id}`);
+                }
+              });
+            }
+          })}
           submitError={mutation.error}
           submitLabel="Crear depositante"
         />

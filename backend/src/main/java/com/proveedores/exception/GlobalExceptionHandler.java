@@ -53,7 +53,11 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         log.warn("event=exception.conflict status={} path={} exception={}", HttpStatus.CONFLICT.value(), request.getRequestURI(), exception.getClass().getSimpleName());
-        return buildResponse(HttpStatus.CONFLICT, exception.getMessage(), request);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiErrorResponse(
+                com.proveedores.time.MuseoTime.now(), HttpStatus.CONFLICT.value(), HttpStatus.CONFLICT.getReasonPhrase(),
+                exception.getMessage(), request.getRequestURI(), null, exception.getCode(),
+                exception.getDepositanteId(), exception.getTipoIdentificacion()
+        ));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -201,7 +205,10 @@ public class GlobalExceptionHandler {
                 status.getReasonPhrase(),
                 message,
                 request.getRequestURI(),
-                validationErrors
+                validationErrors,
+                null,
+                null,
+                null
         ));
     }
 

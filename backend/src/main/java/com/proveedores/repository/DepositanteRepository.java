@@ -22,4 +22,10 @@ public interface DepositanteRepository extends JpaRepository<Depositante, Long>,
               )
             """)
     Optional<Depositante> findActivoByIdentificacionNormalizada(@Param("identificacion") String identificacion);
+
+    @Query(value = "select * from depositantes d where regexp_replace(d.dni, '[^0-9]', '', 'g') = :identificacion order by d.id limit 1", nativeQuery = true)
+    Optional<Depositante> findPrimeroPorDniNormalizado(@Param("identificacion") String identificacion);
+
+    @Query(value = "select * from depositantes d where regexp_replace(d.cuit, '[^0-9]', '', 'g') = :identificacion order by d.id limit 1", nativeQuery = true)
+    Optional<Depositante> findPrimeroPorCuitNormalizado(@Param("identificacion") String identificacion);
 }

@@ -50,6 +50,12 @@ export function crearDepositante(payload: DepositanteRequestDTO) {
   });
 }
 
+export function restaurarDepositante(id: number) {
+  return apiRequest<DepositanteResponseDTO>(`${basePath}/${id}/restaurar`, {
+    method: "POST"
+  });
+}
+
 export function actualizarDepositante(id: number, payload: DepositanteRequestDTO) {
   return apiRequest<DepositanteResponseDTO>(`${basePath}/${id}`, {
     method: "PUT",

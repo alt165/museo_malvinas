@@ -8,7 +8,8 @@ export {
   exportarObjetosDepositantePdf,
   listarDepositantes,
   listarObjetosDepositante,
-  obtenerDepositantePorId
+  obtenerDepositantePorId,
+  restaurarDepositante
 } from "./depositantes-api";
 
 export type { BuscarDepositantesParams } from "./depositantes-api";

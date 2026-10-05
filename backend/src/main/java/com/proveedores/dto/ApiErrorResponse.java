@@ -11,6 +11,9 @@ public record ApiErrorResponse(
         String error,
         String message,
         String path,
-        Map<String, String> validationErrors
+        Map<String, String> validationErrors,
+        String code,
+        Long depositanteId,
+        String tipoIdentificacion
 ) {
 }

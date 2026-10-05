@@ -2,6 +2,7 @@ package com.proveedores.controller;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -10,6 +11,7 @@ import com.proveedores.dto.DepositanteResponseDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
 import com.proveedores.entity.TipoDepositante;
 import com.proveedores.exception.GlobalExceptionHandler;
+import com.proveedores.exception.ConflictException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.security.KeycloakJwtAuthenticationConverter;
 import com.proveedores.service.DepositanteExportService;
@@ -61,6 +63,20 @@ class DepositanteControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").value("Depositante no encontrado"));
+    }
+
+    @Test
+    void altaConDepositanteEliminadoDevuelveConflictoIdentificable() throws Exception {
+        when(depositanteService.crear(org.mockito.ArgumentMatchers.any()))
+                .thenThrow(new ConflictException("Existe un depositante dado de baja con este DNI", "DEPOSITANTE_ELIMINADO", 7L, "DNI"));
+
+        mockMvc.perform(post("/api/depositantes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nombre\":\"Nueva Persona\",\"tipo\":\"PERSONA\",\"dni\":\"12345678\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("DEPOSITANTE_ELIMINADO"))
+                .andExpect(jsonPath("$.depositanteId").value(7L))
+                .andExpect(jsonPath("$.tipoIdentificacion").value("DNI"));
     }
 
     @Test
