@@ -3,6 +3,7 @@ package com.proveedores.service;
 import com.proveedores.dto.CategoriaObjetoRequestDTO;
 import com.proveedores.dto.CategoriaObjetoResponseDTO;
 import com.proveedores.entity.CategoriaObjeto;
+import com.proveedores.exception.ConflictException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.mapper.CategoriaObjetoMapper;
 import com.proveedores.repository.CategoriaObjetoRepository;
@@ -23,7 +24,19 @@ public class CategoriaObjetoService {
 
     @Transactional
     public CategoriaObjetoResponseDTO crear(CategoriaObjetoRequestDTO dto) {
-        return CategoriaObjetoMapper.toResponse(categoriaObjetoRepository.save(CategoriaObjetoMapper.toEntity(dto)));
+        CategoriaObjeto categoria = categoriaObjetoRepository.findByNombre(dto.nombre()).orElse(null);
+        if (categoria != null && !categoria.getEliminado()) {
+            throw new ConflictException("Ya existe una categoria activa con ese nombre");
+        }
+        if (categoria == null) {
+            categoria = CategoriaObjetoMapper.toEntity(dto);
+        } else {
+            categoria.setActivo(true);
+            categoria.setEliminado(false);
+            categoria.setFechaEliminacion(null);
+            categoria.setDescripcion(dto.descripcion());
+        }
+        return CategoriaObjetoMapper.toResponse(categoriaObjetoRepository.save(categoria));
     }
 
     @Transactional(readOnly = true)

@@ -134,14 +134,42 @@ class FotoObjetoMuseoServiceTest {
     }
 
     @Test
-    void museologoMantieneAccesoAlOriginalParaVisualizacionNormal() {
+    void museologoVisualizaFotoPrivadaConVersionPublicaDistintaDelOriginal() throws Exception {
+        FotoObjetoMuseo foto = foto(VisibilidadCampo.PRIVADO);
+        when(objetoMuseoService.buscarObjetoActivo(7L)).thenReturn(objeto());
+        when(repository.findByIdAndObjetoMuseoIdAndEliminadoFalse(9L, 7L)).thenReturn(Optional.of(foto));
+        byte[] original = {1, 2, 3};
+        byte[] publica = {4, 5, 6};
+        when(storage.load("public/b.png")).thenReturn(new ByteArrayResource(publica));
+        authenticate("ROLE_MUSEOLOGO");
+
+        var archivo = service.descargar(7L, 9L);
+
+        assertThat(archivo.original()).isFalse();
+        assertThat(archivo.resource().getInputStream().readAllBytes())
+                .containsExactly(publica)
+                .isNotEqualTo(original);
+        verify(storage).load("public/b.png");
+        verify(storage, never()).load("original/a.png");
+        assertThatThrownBy(() -> service.descargarOriginal(7L, 9L)).isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void adminUsaVersionPublicaEnEndpointComunYOriginalSoloEnEndpointExplicito() throws Exception {
         FotoObjetoMuseo foto = foto(VisibilidadCampo.PUBLICO);
         when(objetoMuseoService.buscarObjetoActivo(7L)).thenReturn(objeto());
         when(repository.findByIdAndObjetoMuseoIdAndEliminadoFalse(9L, 7L)).thenReturn(Optional.of(foto));
-        when(storage.load("original/a.png")).thenReturn(new ByteArrayResource(new byte[]{1}));
-        authenticate("ROLE_MUSEOLOGO");
+        when(storage.load("public/b.png")).thenReturn(new ByteArrayResource(new byte[]{4, 5, 6}));
+        when(storage.load("original/a.png")).thenReturn(new ByteArrayResource(new byte[]{1, 2, 3}));
+        authenticate("ROLE_ADMIN");
 
-        assertThat(service.descargar(7L, 9L).original()).isTrue();
+        var visualizacion = service.descargar(7L, 9L);
+        var original = service.descargarOriginal(7L, 9L);
+
+        assertThat(visualizacion.original()).isFalse();
+        assertThat(visualizacion.resource().getInputStream().readAllBytes()).containsExactly(4, 5, 6);
+        assertThat(original.original()).isTrue();
+        assertThat(original.resource().getInputStream().readAllBytes()).containsExactly(1, 2, 3);
     }
 
     @Test

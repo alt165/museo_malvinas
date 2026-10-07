@@ -31,8 +31,8 @@ export type NavigationGroup = {
   items: NavigationItem[];
 };
 
-const readRoles: UserRole[] = ["ADMIN", "OPERATOR", "VIEWER"];
-const writeRoles: UserRole[] = ["ADMIN", "OPERATOR"];
+const readRoles: UserRole[] = ["ADMIN", "MUSEOLOGO", "VIEWER"];
+const writeRoles: UserRole[] = ["ADMIN", "MUSEOLOGO"];
 const adminRoles: UserRole[] = ["ADMIN"];
 
 export const routes = {

@@ -1,23 +1,10 @@
 package com.proveedores.mapper;
 
-import com.proveedores.dto.MovimientoInventarioRequestDTO;
 import com.proveedores.dto.MovimientoInventarioResponseDTO;
 import com.proveedores.entity.MovimientoInventario;
 
 public final class MovimientoInventarioMapper {
     private MovimientoInventarioMapper() {
-    }
-
-    public static MovimientoInventario toEntity(MovimientoInventarioRequestDTO dto) {
-        MovimientoInventario entity = new MovimientoInventario();
-        entity.setObjetoMuseo(MapperReferences.objetoMuseo(dto.objetoMuseoId()));
-        entity.setTipo(dto.tipo());
-        entity.setFecha(dto.fecha());
-        entity.setUbicacionOrigen(MapperReferences.ubicacion(dto.ubicacionOrigenId()));
-        entity.setUbicacionDestino(MapperReferences.ubicacion(dto.ubicacionDestinoId()));
-        entity.setUsuario(MapperReferences.usuario(dto.usuarioId()));
-        entity.setObservaciones(dto.observaciones());
-        return entity;
     }
 
     public static MovimientoInventarioResponseDTO toResponse(MovimientoInventario entity) {

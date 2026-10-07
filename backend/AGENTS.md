@@ -147,7 +147,7 @@ Roles esperados en JWT:
 
 * SUDO
 * ADMIN
-* OPERATOR
+* MUSEOLOGO
 * VIEWER
 
 ---
@@ -274,4 +274,3 @@ El agente debe:
 ## ✅ Resultado esperado
 
 Un backend robusto, seguro y mantenible, alineado con buenas prácticas profesionales y listo para ser desplegado en contenedores Docker.
-

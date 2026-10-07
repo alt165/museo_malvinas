@@ -8,7 +8,7 @@
         "name": "ADMIN"
       },
       {
-        "name": "OPERATOR"
+        "name": "MUSEOLOGO"
       },
       {
         "name": "VIEWER"
@@ -101,23 +101,23 @@
       }
     },
     {
-      "username": "operator",
+      "username": "museologo",
       "enabled": true,
       "emailVerified": true,
       "credentials": [
         {
           "type": "password",
-          "value": "operator",
+          "value": "museologo",
           "temporary": false
         }
       ],
       "realmRoles": [
-        "OPERATOR"
+        "MUSEOLOGO"
       ],
-      "firstName": "Operator",
+      "firstName": "Museologo",
       "lastName": "Local",
       "requiredActions": [],
-      "email": "operator@local.test",
+      "email": "museologo@local.test",
       "attributes": {
         "dni": [
           "10000002"

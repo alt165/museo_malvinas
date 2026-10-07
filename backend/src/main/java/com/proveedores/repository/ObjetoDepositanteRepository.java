@@ -34,6 +34,8 @@ public interface ObjetoDepositanteRepository extends JpaRepository<ObjetoDeposit
 
     boolean existsByObjetoMuseoIdAndDepositanteIdAndEliminadoFalse(Long objetoMuseoId, Long depositanteId);
 
+    Optional<ObjetoDepositante> findByObjetoMuseoIdAndDepositanteId(Long objetoMuseoId, Long depositanteId);
+
     List<ObjetoDepositante> findByTipoDepositoInAndFechaVencimientoBetweenAndActivoTrueAndEliminadoFalseAndObjetoMuseoActivoTrueAndObjetoMuseoEliminadoFalseOrderByFechaVencimientoAsc(
             Collection<CaracterRecepcionObjeto> tiposDeposito,
             LocalDate fechaDesde,

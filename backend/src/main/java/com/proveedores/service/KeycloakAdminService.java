@@ -31,7 +31,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class KeycloakAdminService {
 
-    private static final Set<String> ROLES_GESTIONABLES = Set.of("ADMIN", "OPERATOR", "VIEWER");
+    private static final Set<String> ROLES_GESTIONABLES = Set.of("ADMIN", "MUSEOLOGO", "VIEWER");
     private static final String DNI_ATTRIBUTE = "dni";
     private static final String UPDATE_PASSWORD_REQUIRED_ACTION = "UPDATE_PASSWORD";
 
@@ -230,7 +230,7 @@ public class KeycloakAdminService {
                 .filter(role -> !role.isBlank())
                 .collect(java.util.stream.Collectors.toCollection(HashSet::new));
         if (!ROLES_GESTIONABLES.containsAll(rolesNormalizados)) {
-            throw new BusinessException("Solo se pueden asignar los roles ADMIN, OPERATOR o VIEWER");
+            throw new BusinessException("Solo se pueden asignar los roles ADMIN, MUSEOLOGO o VIEWER");
         }
         return rolesNormalizados;
     }

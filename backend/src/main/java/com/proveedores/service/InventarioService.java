@@ -8,6 +8,7 @@ import com.proveedores.entity.MovimientoInventario;
 import com.proveedores.entity.ObjetoMuseo;
 import com.proveedores.entity.TipoMovimientoInventario;
 import com.proveedores.entity.Ubicacion;
+import com.proveedores.exception.ConflictException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.mapper.InventarioMapper;
 import com.proveedores.repository.InventarioRepository;
@@ -51,7 +52,21 @@ public class InventarioService {
     public InventarioResponseDTO crear(InventarioRequestDTO dto) {
         ObjetoMuseo objeto = buscarObjeto(dto.objetoMuseoId());
         Ubicacion ubicacion = buscarUbicacion(dto.ubicacionId());
-        Inventario entity = InventarioMapper.toEntity(dto);
+        Inventario entity = inventarioRepository.findByObjetoMuseoId(dto.objetoMuseoId()).orElse(null);
+        if (entity != null && !entity.getEliminado()) {
+            throw new ConflictException("El objeto ya tiene un inventario activo");
+        }
+        if (entity == null) entity = InventarioMapper.toEntity(dto);
+        else {
+            entity.setActivo(true);
+            entity.setEliminado(false);
+            entity.setFechaEliminacion(null);
+            entity.setEstado(dto.estado());
+            entity.setEstadoConservacion(dto.estadoConservacion());
+            entity.setFechaIngreso(dto.fechaIngreso());
+            entity.setFechaSalida(dto.fechaSalida());
+            entity.setObservaciones(dto.observaciones());
+        }
         entity.setObjetoMuseo(objeto);
         entity.setUbicacion(ubicacion);
         entity.setFechaUltimoMovimiento(com.proveedores.time.MuseoTime.now());
@@ -74,14 +89,16 @@ public class InventarioService {
     @Transactional
     public InventarioResponseDTO actualizar(Long id, InventarioRequestDTO dto) {
         Inventario entity = buscarActivo(id);
-        ObjetoMuseo objeto = buscarObjeto(dto.objetoMuseoId());
+        if (!Objects.equals(entity.getObjetoMuseo().getId(), dto.objetoMuseoId())) {
+            throw new ConflictException("El objeto asociado al inventario es inmutable");
+        }
+        ObjetoMuseo objeto = entity.getObjetoMuseo();
         Ubicacion nuevaUbicacion = buscarUbicacion(dto.ubicacionId());
         Ubicacion ubicacionAnterior = entity.getUbicacion();
         EstadoInventario estadoAnterior = entity.getEstado();
         boolean cambioUbicacion = !Objects.equals(ubicacionAnterior.getId(), nuevaUbicacion.getId());
         boolean cambioEstado = estadoAnterior != dto.estado();
 
-        entity.setObjetoMuseo(objeto);
         entity.setUbicacion(nuevaUbicacion);
         entity.setEstado(dto.estado());
         entity.setEstadoConservacion(dto.estadoConservacion());

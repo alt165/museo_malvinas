@@ -109,19 +109,18 @@ public class FotoObjetoMuseoService {
     public FotoArchivo descargar(Long objetoId, Long fotoId) {
         FotoObjetoMuseo foto = buscarFoto(objetoId, fotoId);
         validarPuedeVerFoto(foto);
-        boolean original = puedeVerOriginal();
-        if (!original && !StringUtils.hasText(foto.getRutaPublica())) generarVersionPublica(foto);
-        Resource resource = original ? cargarOriginal(foto) : objectFileStorageService.load(foto.getRutaPublica());
+        if (!StringUtils.hasText(foto.getRutaPublica())) generarVersionPublica(foto);
+        Resource resource = objectFileStorageService.load(foto.getRutaPublica());
         if (!resource.exists() || !resource.isReadable()) {
             throw new ResourceNotFoundException("Archivo de foto no encontrado");
         }
-        return new FotoArchivo(toResponse(foto), resource, original ? foto.getContentType() : foto.getContentTypePublico(), original,
-                original ? 0 : imageWatermarkService.publicCacheMaxAgeSeconds());
+        return new FotoArchivo(toResponse(foto), resource, foto.getContentTypePublico(), false,
+                imageWatermarkService.publicCacheMaxAgeSeconds());
     }
 
     @Transactional(readOnly = true)
     public FotoArchivo descargarOriginal(Long objetoId, Long fotoId) {
-        if (!esAdmin()) throw new AccessDeniedException("No tiene permiso para descargar la fotografia original");
+        if (!puedeDescargarOriginal()) throw new AccessDeniedException("No tiene permiso para descargar la fotografia original");
         FotoObjetoMuseo foto = buscarFoto(objetoId, fotoId);
         validarPuedeVerFoto(foto);
         return new FotoArchivo(toResponse(foto), cargarOriginal(foto), foto.getContentType(), true, 0);
@@ -187,7 +186,6 @@ public class FotoObjetoMuseoService {
         return authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .anyMatch(authority -> "ROLE_ADMIN".equals(authority)
-                        || "ROLE_OPERATOR".equals(authority)
                         || "ROLE_MUSEOLOGO".equals(authority));
     }
 
@@ -203,11 +201,7 @@ public class FotoObjetoMuseoService {
         }
     }
 
-    private boolean puedeVerOriginal() {
-        return puedeVerPrivados();
-    }
-
-    private boolean esAdmin() {
+    private boolean puedeDescargarOriginal() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         return authentication != null && authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)

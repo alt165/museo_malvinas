@@ -74,7 +74,7 @@ El `docker-compose.yml` local usa `start-dev` y credenciales de desarrollo. Para
 - Usar una base de datos productiva para Keycloak.
 - Revisar redirect URIs y web origins.
 - Eliminar usuarios locales de ejemplo.
-- Confirmar roles reales requeridos por el backend: `ADMIN`, `OPERATOR`, `VIEWER`.
+- Confirmar roles reales requeridos por el backend: `ADMIN`, `MUSEOLOGO`, `VIEWER`.
 
 ## Swagger
 
@@ -155,11 +155,10 @@ No se deben loguear tokens JWT, passwords, cookies ni headers de autorizacion.
 - Confirmar conectividad con PostgreSQL.
 - Confirmar migraciones Flyway.
 - Confirmar realm, issuer y JWK set de Keycloak.
-- Validar roles `ADMIN`, `OPERATOR`, `VIEWER`.
+- Validar roles `ADMIN`, `MUSEOLOGO`, `VIEWER`.
 - Configurar CORS con origins reales.
 - Confirmar Swagger deshabilitado o protegido.
 - Verificar `/actuator/health/readiness`.
 - Configurar backups y restore.
 - Configurar recoleccion de logs.
 - Ejecutar `mvn test` y pruebas de smoke antes de promover.
-

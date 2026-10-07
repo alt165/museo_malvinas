@@ -3,6 +3,7 @@ package com.proveedores.service;
 import com.proveedores.dto.UbicacionRequestDTO;
 import com.proveedores.dto.UbicacionResponseDTO;
 import com.proveedores.entity.Ubicacion;
+import com.proveedores.exception.ConflictException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.mapper.UbicacionMapper;
 import com.proveedores.repository.UbicacionRepository;
@@ -22,7 +23,19 @@ public class UbicacionService {
 
     @Transactional
     public UbicacionResponseDTO crear(UbicacionRequestDTO dto) {
-        return UbicacionMapper.toResponse(ubicacionRepository.save(UbicacionMapper.toEntity(dto)));
+        Ubicacion ubicacion = ubicacionRepository.findByNombre(dto.nombre()).orElse(null);
+        if (ubicacion != null && !ubicacion.getEliminado()) {
+            throw new ConflictException("Ya existe una ubicacion activa con ese nombre");
+        }
+        if (ubicacion == null) {
+            ubicacion = UbicacionMapper.toEntity(dto);
+        } else {
+            ubicacion.setActivo(true);
+            ubicacion.setEliminado(false);
+            ubicacion.setFechaEliminacion(null);
+            ubicacion.setDescripcion(dto.descripcion());
+        }
+        return UbicacionMapper.toResponse(ubicacionRepository.save(ubicacion));
     }
 
     @Transactional(readOnly = true)

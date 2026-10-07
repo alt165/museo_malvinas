@@ -82,13 +82,13 @@ class ColeccionObjetoSecurityTest {
     }
 
     @Test
-    void adminYOperatorPuedenCrearColecciones() throws Exception {
+    void adminYMuseologoPuedenCrearColecciones() throws Exception {
         String body = "{\"nombre\":\"Coleccion\",\"descripcion\":\"Descripcion\"}";
         when(coleccionObjetoService.crear(any())).thenReturn(new ColeccionObjetoResponseDTO(1L, "Coleccion", "Descripcion", true, 0L));
 
         mockMvc.perform(post("/api/colecciones").contentType(MediaType.APPLICATION_JSON).content(body).with(user("admin").roles("ADMIN")))
                 .andExpect(status().isCreated());
-        mockMvc.perform(post("/api/colecciones").contentType(MediaType.APPLICATION_JSON).content(body).with(user("operator").roles("OPERATOR")))
+        mockMvc.perform(post("/api/colecciones").contentType(MediaType.APPLICATION_JSON).content(body).with(user("museologo").roles("MUSEOLOGO")))
                 .andExpect(status().isCreated());
     }
 
@@ -97,7 +97,7 @@ class ColeccionObjetoSecurityTest {
         mockMvc.perform(delete("/api/colecciones/1").with(user("admin").roles("ADMIN")))
                 .andExpect(status().isNoContent());
 
-        mockMvc.perform(delete("/api/colecciones/1").with(user("operator").roles("OPERATOR")))
+        mockMvc.perform(delete("/api/colecciones/1").with(user("museologo").roles("MUSEOLOGO")))
                 .andExpect(status().isForbidden());
     }
 }

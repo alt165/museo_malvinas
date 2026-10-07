@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.proveedores.dto.CategoriaObjetoRequestDTO;
+import com.proveedores.dto.AgregarCategoriaObjetoRequestDTO;
 import com.proveedores.dto.CargaRapidaObjetoRequestDTO;
 import com.proveedores.dto.ModoBusquedaTexto;
 import com.proveedores.dto.MoverObjetoRequestDTO;
@@ -23,11 +24,13 @@ import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.DepositanteRepository;
 import com.proveedores.repository.InventarioRepository;
 import com.proveedores.repository.ObjetoDepositanteRepository;
+import com.proveedores.repository.ObjetoCategoriaRepository;
 import com.proveedores.repository.ObjetoMuseoRepository;
 import com.proveedores.repository.ReciboIngresoObjetoRepository;
 import com.proveedores.repository.UbicacionRepository;
 import com.proveedores.service.CategoriaObjetoService;
 import com.proveedores.service.ObjetoMuseoService;
+import com.proveedores.testfixture.ObjetoMuseoTestFixture;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -50,6 +53,9 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private ObjetoDepositanteRepository objetoDepositanteRepository;
+
+    @Autowired
+    private ObjetoCategoriaRepository objetoCategoriaRepository;
 
     @Autowired
     private DepositanteRepository depositanteRepository;
@@ -88,6 +94,43 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
         var segundo = crearObjetoCompleto(new ObjetoMuseoRequestDTO("ignorado", "Objeto siguiente", null, null, null, null, null, null));
 
         assertThat(primero.numeroInventario()).isNotEqualTo(segundo.numeroInventario());
+    }
+
+    @Test
+    void quitarYReagregarCategoriaReactivaLaMismaRelacion() {
+        var objeto = crearObjetoCompleto(ObjetoMuseoTestFixture.valido("IT-CAT-REACT", "Objeto categoria reactivable"));
+        var categoria = categoriaObjetoService.crear(new CategoriaObjetoRequestDTO("IT Categoria relacion reactivable", null));
+        objetoMuseoService.agregarCategoria(objeto.id(), new AgregarCategoriaObjetoRequestDTO(categoria.id(), "Inicial"));
+        var relacion = objetoCategoriaRepository.findByObjetoMuseoIdAndCategoriaObjetoId(objeto.id(), categoria.id()).orElseThrow();
+
+        objetoMuseoService.quitarCategoria(objeto.id(), categoria.id());
+        objetoMuseoService.agregarCategoria(objeto.id(), new AgregarCategoriaObjetoRequestDTO(categoria.id(), "Reactivada"));
+
+        var reactivada = objetoCategoriaRepository.findByObjetoMuseoIdAndCategoriaObjetoId(objeto.id(), categoria.id()).orElseThrow();
+        assertThat(reactivada.getId()).isEqualTo(relacion.getId());
+        assertThat(reactivada.getEliminado()).isFalse();
+        assertThat(reactivada.getObservaciones()).isEqualTo("Reactivada");
+    }
+
+    @Test
+    void actualizarRecepcionReactivaLaMismaRelacionConDepositante() {
+        Depositante depositante = crearDepositante("IT Depositante relacion reactivable");
+        var objeto = objetoMuseoService.crear(ObjetoMuseoTestFixture.valido(
+                "IT-DEP-REACT", "Objeto depositante reactivable", depositante.getId()));
+        var relacion = objetoDepositanteRepository
+                .findFirstByObjetoMuseoIdAndEliminadoFalseOrderByIdAsc(objeto.id()).orElseThrow();
+        relacion.setActivo(false);
+        relacion.setEliminado(true);
+        relacion.setFechaEliminacion(LocalDateTime.now());
+        objetoDepositanteRepository.save(relacion);
+
+        objetoMuseoService.actualizar(objeto.id(), ObjetoMuseoTestFixture.valido(
+                "ignorado", "Objeto depositante reactivable", depositante.getId()));
+
+        var reactivada = objetoDepositanteRepository
+                .findFirstByObjetoMuseoIdAndEliminadoFalseOrderByIdAsc(objeto.id()).orElseThrow();
+        assertThat(reactivada.getId()).isEqualTo(relacion.getId());
+        assertThat(reactivada.getEliminado()).isFalse();
     }
 
     @Test
@@ -386,7 +429,7 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
     void altaCompletaCreaObjetoConDepositanteYDonacionSinFechaVencimiento() {
         Depositante depositante = crearDepositante("IT Depositante donacion");
 
-        var response = objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
+        var response = objetoMuseoService.crear(ObjetoMuseoTestFixture.completar(new ObjetoMuseoRequestDTO(
                 "IT-REC-DON-001",
                 "Objeto donado",
                 "Descripcion donacion",
@@ -394,7 +437,7 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
                 depositante.getId(),
                 CaracterRecepcionObjeto.DONACION,
                 null
-        ));
+        ), depositante.getId()));
 
         assertThat(response.depositanteId()).isEqualTo(depositante.getId());
         assertThat(response.caracterRecepcion()).isEqualTo(CaracterRecepcionObjeto.DONACION);
@@ -413,7 +456,7 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
         Depositante depositante = crearDepositante("IT Depositante prestamo");
         LocalDate vencimiento = LocalDate.now().plusDays(30);
 
-        var response = objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
+        var response = objetoMuseoService.crear(ObjetoMuseoTestFixture.completar(new ObjetoMuseoRequestDTO(
                 "IT-REC-PRE-001",
                 "Objeto prestado",
                 "Descripcion prestamo",
@@ -421,7 +464,7 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
                 depositante.getId(),
                 CaracterRecepcionObjeto.PRESTAMO,
                 vencimiento
-        ));
+        ), depositante.getId()));
 
         assertThat(response.caracterRecepcion()).isEqualTo(CaracterRecepcionObjeto.PRESTAMO);
         assertThat(response.fechaVencimiento()).isEqualTo(vencimiento);
@@ -431,7 +474,7 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
     void rechazaPrestamoSinFechaVencimiento() {
         Depositante depositante = crearDepositante("IT Depositante prestamo sin fecha");
 
-        assertThatThrownBy(() -> objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
+        assertThatThrownBy(() -> objetoMuseoService.crear(ObjetoMuseoTestFixture.completar(new ObjetoMuseoRequestDTO(
                 "IT-REC-PRE-002",
                 "Objeto prestado sin fecha",
                 null,
@@ -439,7 +482,7 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
                 depositante.getId(),
                 CaracterRecepcionObjeto.PRESTAMO,
                 null
-        ))).isInstanceOf(BusinessException.class)
+        ), depositante.getId()))).isInstanceOf(BusinessException.class)
                 .hasMessage("La fecha de vencimiento es obligatoria para prestamo o comodato");
     }
 
@@ -447,7 +490,7 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
     void rechazaComodatoSinFechaVencimiento() {
         Depositante depositante = crearDepositante("IT Depositante comodato sin fecha");
 
-        assertThatThrownBy(() -> objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
+        assertThatThrownBy(() -> objetoMuseoService.crear(ObjetoMuseoTestFixture.completar(new ObjetoMuseoRequestDTO(
                 "IT-REC-COM-001",
                 "Objeto comodato sin fecha",
                 null,
@@ -455,7 +498,7 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
                 depositante.getId(),
                 CaracterRecepcionObjeto.COMODATO,
                 null
-        ))).isInstanceOf(BusinessException.class)
+        ), depositante.getId()))).isInstanceOf(BusinessException.class)
                 .hasMessage("La fecha de vencimiento es obligatoria para prestamo o comodato");
     }
 
@@ -463,7 +506,7 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
     void rechazaFechaVencimientoAnteriorAFechaIngreso() {
         Depositante depositante = crearDepositante("IT Depositante fecha anterior");
 
-        assertThatThrownBy(() -> objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
+        assertThatThrownBy(() -> objetoMuseoService.crear(ObjetoMuseoTestFixture.completar(new ObjetoMuseoRequestDTO(
                 "IT-REC-FEC-001",
                 "Objeto fecha anterior",
                 null,
@@ -471,7 +514,7 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
                 depositante.getId(),
                 CaracterRecepcionObjeto.PRESTAMO,
                 LocalDate.now().minusDays(1)
-        ))).isInstanceOf(BusinessException.class)
+        ), depositante.getId()))).isInstanceOf(BusinessException.class)
                 .hasMessage("La fecha de vencimiento no puede ser anterior a la fecha de ingreso");
     }
 
@@ -479,7 +522,7 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
     void altaCompletaEmiteReciboParaObjetoCreado() {
         Depositante depositante = crearDepositante("IT Depositante recibo completo");
 
-        var response = objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
+        var response = objetoMuseoService.crear(ObjetoMuseoTestFixture.completar(new ObjetoMuseoRequestDTO(
                 "IT-REC-FULL-001",
                 "Objeto con recibo completo",
                 "Descripcion para recibo completo",
@@ -487,7 +530,7 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
                 depositante.getId(),
                 CaracterRecepcionObjeto.DONACION,
                 null
-        ), "operador-completo");
+        ), depositante.getId()), "operador-completo");
 
         assertThat(reciboIngresoObjetoRepository.findFirstByObjetoMuseoIdAndEliminadoFalseOrderByFechaEmisionAsc(response.id()))
                 .get()
@@ -770,20 +813,7 @@ class ObjetoMuseoServiceIntegrationTest extends IntegrationTestBase {
 
     private com.proveedores.dto.ObjetoMuseoResponseDTO crearObjetoCompleto(ObjetoMuseoRequestDTO request) {
         Depositante depositante = crearDepositante("IT Depositante objeto " + request.numeroInventario());
-        return objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
-                request.numeroInventario(),
-                request.denominacionObjeto(),
-                request.descripcion(),
-                request.descripcionTecnica(),
-                request.materiales(),
-                request.dimensiones(),
-                request.estadoConservacion(),
-                request.categoriaIds(),
-                request.ubicacionId(),
-                depositante.getId(),
-                CaracterRecepcionObjeto.DONACION,
-                null
-        ));
+        return objetoMuseoService.crear(ObjetoMuseoTestFixture.completar(request, depositante.getId()));
     }
 
     private void crearInventario(Long objetoId, LocalDate fechaIngreso) {

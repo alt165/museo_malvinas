@@ -3,6 +3,7 @@ package com.proveedores.service;
 import com.proveedores.dto.DetalleConservacionRequestDTO;
 import com.proveedores.dto.DetalleConservacionResponseDTO;
 import com.proveedores.entity.DetalleConservacion;
+import com.proveedores.exception.ConflictException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.DetalleConservacionRepository;
 import java.text.Normalizer;
@@ -28,7 +29,17 @@ public class DetalleConservacionService {
 
     @Transactional
     public DetalleConservacionResponseDTO crear(DetalleConservacionRequestDTO dto) {
-        DetalleConservacion detalle = new DetalleConservacion();
+        String codigo = normalizarCodigo(dto.codigo(), dto.nombre());
+        DetalleConservacion detalle = detalleConservacionRepository.findByCodigo(codigo).orElse(null);
+        if (detalle != null && !detalle.getEliminado()) {
+            throw new ConflictException("Ya existe un detalle de conservacion activo con ese codigo");
+        }
+        if (detalle == null) detalle = new DetalleConservacion();
+        else {
+            detalle.setActivo(true);
+            detalle.setEliminado(false);
+            detalle.setFechaEliminacion(null);
+        }
         aplicar(detalle, dto);
         return toResponse(detalleConservacionRepository.save(detalle));
     }

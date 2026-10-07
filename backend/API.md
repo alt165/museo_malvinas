@@ -27,11 +27,11 @@ Authorization: Bearer <access_token>
 Permisos generales actuales:
 
 - `/api/admin/**`: solo `ADMIN`
-- `GET /api/**`: `ADMIN`, `OPERATOR`, `VIEWER`
-- `POST /api/**`: `ADMIN`, `OPERATOR`
-- `PUT /api/**`: `ADMIN`, `OPERATOR`
-- `PATCH /api/**`: `ADMIN`, `OPERATOR`
-- `DELETE /api/**`: `ADMIN`, `OPERATOR`
+- `GET /api/**`: `ADMIN`, `MUSEOLOGO`, `VIEWER`
+- `POST /api/**`: `ADMIN`, `MUSEOLOGO`
+- `PUT /api/**`: `ADMIN`, `MUSEOLOGO`
+- `PATCH /api/**`: `ADMIN`, `MUSEOLOGO`
+- `DELETE /api/**`: `ADMIN`, `MUSEOLOGO`
 
 ## Convenciones CRUD
 

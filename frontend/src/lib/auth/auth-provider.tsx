@@ -29,7 +29,7 @@ type MuseoTokenParsed = KeycloakTokenParsed & {
 };
 
 function isUserRole(role: string): role is UserRole {
-  return role === "ADMIN" || role === "OPERATOR" || role === "VIEWER";
+  return role === "ADMIN" || role === "MUSEOLOGO" || role === "VIEWER";
 }
 
 function getRoles(token?: MuseoTokenParsed) {

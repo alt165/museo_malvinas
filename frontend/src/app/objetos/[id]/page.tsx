@@ -548,7 +548,7 @@ export default function DetalleObjetoPage() {
   const { canEdit: puedeEscribir } = useEditingMode();
   const { roles } = useAuth();
   const esAdmin = hasRole(roles, "ADMIN");
-  const puedeVerRecibos = esAdmin || hasRole(roles, "OPERATOR");
+  const puedeVerRecibos = esAdmin || hasRole(roles, "MUSEOLOGO");
   const { data, error, isError, isLoading } = useObjetoQuery(id);
   const detallesConservacionQuery = useDetallesConservacionQuery();
   const detallesConservacionLabels = useMemo(() => new Map((detallesConservacionQuery.data ?? []).map((detalle) => [detalle.codigo, detalle.nombre])), [detallesConservacionQuery.data]);

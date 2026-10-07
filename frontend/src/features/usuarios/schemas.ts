@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const roleSchema = z.enum(["ADMIN", "OPERATOR", "VIEWER"]);
+const roleSchema = z.enum(["ADMIN", "MUSEOLOGO", "VIEWER"]);
 const optionalText = z.string().trim().max(100).optional().or(z.literal(""));
 const optionalPassword = z.string().optional().or(z.literal(""));
 

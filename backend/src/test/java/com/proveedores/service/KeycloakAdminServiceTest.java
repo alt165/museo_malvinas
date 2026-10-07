@@ -147,15 +147,15 @@ class KeycloakAdminServiceTest {
                 "admin@local.test",
                 "12345678",
                 List.of(role("ADMIN"), role("VIEWER")),
-                List.of(role("OPERATOR"))
+                List.of(role("MUSEOLOGO"))
         );
-        prepararRolRealm("OPERATOR");
+        prepararRolRealm("MUSEOLOGO");
 
-        var response = service.asignarRoles("user-id", new AsignarRolRequestDTO(Set.of("OPERATOR"), false), "other-admin-id");
+        var response = service.asignarRoles("user-id", new AsignarRolRequestDTO(Set.of("MUSEOLOGO"), false), "other-admin-id");
 
         verify(roleScopeResource).remove(any());
         verify(roleScopeResource).add(any());
-        assertThat(response.roles()).containsExactly("OPERATOR");
+        assertThat(response.roles()).containsExactly("MUSEOLOGO");
     }
 
     @Test
@@ -175,7 +175,17 @@ class KeycloakAdminServiceTest {
                 new AsignarRolRequestDTO(Set.of("SUPERUSER"), true),
                 "admin-id"
         )).isInstanceOf(BusinessException.class)
-                .hasMessageContaining("ADMIN, OPERATOR o VIEWER");
+                .hasMessageContaining("ADMIN, MUSEOLOGO o VIEWER");
+    }
+
+    @Test
+    void rechazaCreacionOAsignacionDelRolLegadoOperator() {
+        assertThatThrownBy(() -> service.asignarRoles(
+                "user-id",
+                new AsignarRolRequestDTO(Set.of("OPERATOR"), true),
+                "admin-id"
+        )).isInstanceOf(BusinessException.class)
+                .hasMessageContaining("ADMIN, MUSEOLOGO o VIEWER");
     }
 
     @Test

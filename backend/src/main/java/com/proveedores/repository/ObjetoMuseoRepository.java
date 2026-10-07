@@ -14,6 +14,9 @@ import org.springframework.data.repository.query.Param;
 
 public interface ObjetoMuseoRepository extends JpaRepository<ObjetoMuseo, Long>, JpaSpecificationExecutor<ObjetoMuseo> {
 
+    @Query(value = "select id from objetos_museo where id in (:ids) order by id for update", nativeQuery = true)
+    List<Long> lockIdsForUpdate(@Param("ids") List<Long> ids);
+
     Optional<ObjetoMuseo> findByNumeroInventario(String numeroInventario);
 
     boolean existsByNumeroInventario(String numeroInventario);

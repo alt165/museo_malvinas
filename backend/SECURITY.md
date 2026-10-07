@@ -35,7 +35,7 @@ Usuarios locales de desarrollo:
 | Usuario | Password | Rol |
 | --- | --- | --- |
 | `admin` | `admin` | `ADMIN` |
-| `operator` | `operator` | `OPERATOR` |
+| `museologo` | contraseña de desarrollo configurada en el realm | `MUSEOLOGO` |
 | `viewer` | `viewer` | `VIEWER` |
 
 Estas credenciales son solo para desarrollo local y no deben usarse en produccion.
@@ -66,7 +66,7 @@ curl http://localhost:8080/api/objetos \
 Roles configurados actualmente en el realm local:
 
 - `ADMIN`
-- `OPERATOR`
+- `MUSEOLOGO`
 - `VIEWER`
 
 Permisos aplicados por `SecurityConfig`:
@@ -74,11 +74,11 @@ Permisos aplicados por `SecurityConfig`:
 | Metodo | Path | Roles permitidos |
 | --- | --- | --- |
 | Cualquiera | `/api/admin/**` | `ADMIN` |
-| `GET` | `/api/**` | `ADMIN`, `OPERATOR`, `VIEWER` |
-| `POST` | `/api/**` | `ADMIN`, `OPERATOR` |
-| `PUT` | `/api/**` | `ADMIN`, `OPERATOR` |
-| `PATCH` | `/api/**` | `ADMIN`, `OPERATOR` |
-| `DELETE` | `/api/**` | `ADMIN`, `OPERATOR` |
+| `GET` | `/api/**` | `ADMIN`, `MUSEOLOGO`, `VIEWER` |
+| `POST` | `/api/**` | `ADMIN`, `MUSEOLOGO` |
+| `PUT` | `/api/**` | `ADMIN`, `MUSEOLOGO` |
+| `PATCH` | `/api/**` | `ADMIN`, `MUSEOLOGO` |
+| `DELETE` | `/api/**` | `ADMIN`, `MUSEOLOGO` |
 
 La documentacion base del proyecto menciona `SUDO`, pero el realm local y la configuracion actual del backend no lo habilitan en reglas de acceso.
 

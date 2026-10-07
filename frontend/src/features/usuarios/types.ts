@@ -1,6 +1,6 @@
 import type { UserRole } from "@/models/session";
 
-export const rolesUsuario: UserRole[] = ["ADMIN", "OPERATOR", "VIEWER"];
+export const rolesUsuario: UserRole[] = ["ADMIN", "MUSEOLOGO", "VIEWER"];
 
 export type UsuarioKeycloakRequestDTO = {
   username: string;

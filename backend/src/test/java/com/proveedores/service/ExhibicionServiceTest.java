@@ -39,12 +39,14 @@ class ExhibicionServiceTest {
     private ObjetoMuseoRepository objetoMuseoRepository;
     @Mock
     private AuditoriaObjetoService auditoriaObjetoService;
+    @Mock
+    private ExhibicionObjetoService exhibicionObjetoService;
 
     @InjectMocks
     private ExhibicionService service;
 
     @Test
-    void finalizarConObjetosPendientesLiberaObjetos() {
+    void finalizarConObjetosPendientesNoInventaDevolucion() {
         Exhibicion exhibicion = exhibicion();
         ExhibicionObjeto pendiente = new ExhibicionObjeto();
         pendiente.setExhibicion(exhibicion);
@@ -59,8 +61,10 @@ class ExhibicionServiceTest {
         var response = service.finalizar(1L);
 
         assertThat(response.estado()).isEqualTo(EstadoExhibicion.FINALIZADA);
-        assertThat(pendiente.getEstado()).isEqualTo(EstadoExhibicionObjeto.DEVUELTO);
-        assertThat(pendiente.getDevolucionVerificada()).isTrue();
+        assertThat(pendiente.getEstado()).isEqualTo(EstadoExhibicionObjeto.PENDIENTE_REVISION);
+        assertThat(pendiente.getDevolucionVerificada()).isFalse();
+        assertThat(pendiente.getVerificadoPor()).isNull();
+        assertThat(pendiente.getFechaVerificacion()).isNull();
     }
 
     @Test
@@ -74,7 +78,6 @@ class ExhibicionServiceTest {
         when(exhibicionRepository.findById(1L)).thenReturn(Optional.of(exhibicion));
         when(exhibicionObjetoRepository.findByExhibicionIdAndEliminadoFalse(1L)).thenReturn(List.of(devuelto));
         when(exhibicionRepository.save(exhibicion)).thenReturn(exhibicion);
-        when(exhibicionObjetoRepository.save(any(ExhibicionObjeto.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         assertThat(service.finalizar(1L).estado()).isEqualTo(EstadoExhibicion.FINALIZADA);
     }
@@ -84,7 +87,6 @@ class ExhibicionServiceTest {
         ObjetoMuseo objeto = objeto();
         when(objetoMuseoRepository.buscarParaDisponibilidadExhibicion("INV", PageRequest.of(0, 10, org.springframework.data.domain.Sort.by("numeroInventario"))))
                 .thenReturn(new PageImpl<>(List.of(objeto)));
-        when(exhibicionObjetoRepository.findByObjetoMuseoIdAndEliminadoFalse(10L)).thenReturn(List.of());
 
         var page = service.buscarObjetosDisponibilidad("INV", LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31), null, PageRequest.of(0, 10));
 
@@ -105,7 +107,7 @@ class ExhibicionServiceTest {
         relacion.setEliminado(false);
         when(objetoMuseoRepository.buscarParaDisponibilidadExhibicion("INV", PageRequest.of(0, 10, org.springframework.data.domain.Sort.by("numeroInventario"))))
                 .thenReturn(new PageImpl<>(List.of(objeto)));
-        when(exhibicionObjetoRepository.findByObjetoMuseoIdAndEliminadoFalse(10L)).thenReturn(List.of(relacion));
+        when(exhibicionObjetoService.buscarConflicto(10L, LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 10), null)).thenReturn(permanente);
 
         var page = service.buscarObjetosDisponibilidad("INV", LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 10), null, PageRequest.of(0, 10));
 
@@ -128,7 +130,6 @@ class ExhibicionServiceTest {
         relacion.setEliminado(false);
         when(objetoMuseoRepository.buscarParaDisponibilidadExhibicion("INV", PageRequest.of(0, 10, org.springframework.data.domain.Sort.by("numeroInventario"))))
                 .thenReturn(new PageImpl<>(List.of(objeto)));
-        when(exhibicionObjetoRepository.findByObjetoMuseoIdAndEliminadoFalse(10L)).thenReturn(List.of(relacion));
 
         var page = service.buscarObjetosDisponibilidad("INV", LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 10), 1L, PageRequest.of(0, 10));
 
@@ -184,7 +185,6 @@ class ExhibicionServiceTest {
         relacion.setObjetoMuseo(objeto);
         when(exhibicionRepository.findById(1L)).thenReturn(Optional.of(original));
         when(exhibicionObjetoRepository.findByExhibicionIdAndEliminadoFalse(1L)).thenReturn(List.of(relacion));
-        when(exhibicionObjetoRepository.findByObjetoMuseoIdAndEliminadoFalse(10L)).thenReturn(List.of(relacion));
 
         var objetos = service.obtenerObjetosParaRepetir(1L, LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 31));
 
@@ -211,7 +211,7 @@ class ExhibicionServiceTest {
         relacionConflicto.setObjetoMuseo(objeto);
         when(exhibicionRepository.findById(1L)).thenReturn(Optional.of(original));
         when(exhibicionObjetoRepository.findByExhibicionIdAndEliminadoFalse(1L)).thenReturn(List.of(relacionOriginal));
-        when(exhibicionObjetoRepository.findByObjetoMuseoIdAndEliminadoFalse(10L)).thenReturn(List.of(relacionOriginal, relacionConflicto));
+        when(exhibicionObjetoService.buscarConflicto(10L, LocalDate.of(2026, 3, 1), null, null)).thenReturn(permanente);
 
         var objetos = service.obtenerObjetosParaRepetir(1L, LocalDate.of(2026, 3, 1), null);
 
@@ -308,8 +308,11 @@ class ExhibicionServiceTest {
         var response = service.cancelar(1L);
 
         assertThat(response.estado()).isEqualTo(EstadoExhibicion.CANCELADA);
-        assertThat(relacion.getEstado()).isEqualTo(EstadoExhibicionObjeto.DEVUELTO);
-        assertThat(relacion.getDevolucionVerificada()).isTrue();
+        assertThat(relacion.getEstado()).isEqualTo(EstadoExhibicionObjeto.EN_EXHIBICION);
+        assertThat(relacion.getDevolucionVerificada()).isFalse();
+        assertThat(relacion.getEliminado()).isTrue();
+        assertThat(relacion.getFechaRetiro()).isNull();
+        assertThat(relacion.getFechaVerificacion()).isNull();
     }
 
     @Test
@@ -339,7 +342,6 @@ class ExhibicionServiceTest {
         relacion.setEliminado(false);
         when(objetoMuseoRepository.buscarParaDisponibilidadExhibicion("INV", PageRequest.of(0, 10, org.springframework.data.domain.Sort.by("numeroInventario"))))
                 .thenReturn(new PageImpl<>(List.of(objeto)));
-        when(exhibicionObjetoRepository.findByObjetoMuseoIdAndEliminadoFalse(10L)).thenReturn(List.of(relacion));
 
         var page = service.buscarObjetosDisponibilidad("INV", LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 10), null, PageRequest.of(0, 10));
 
@@ -347,7 +349,7 @@ class ExhibicionServiceTest {
     }
 
     @Test
-    void buscarDisponibilidadIgnoraExhibicionFinalizadaAunqueTermineElMismoDia() {
+    void buscarDisponibilidadBloqueaExhibicionFinalizadaConDevolucionPendiente() {
         ObjetoMuseo objeto = objeto();
         Exhibicion finalizada = exhibicion();
         finalizada.setId(2L);
@@ -361,11 +363,11 @@ class ExhibicionServiceTest {
         relacion.setEliminado(false);
         when(objetoMuseoRepository.buscarParaDisponibilidadExhibicion("INV", PageRequest.of(0, 10, org.springframework.data.domain.Sort.by("numeroInventario"))))
                 .thenReturn(new PageImpl<>(List.of(objeto)));
-        when(exhibicionObjetoRepository.findByObjetoMuseoIdAndEliminadoFalse(10L)).thenReturn(List.of(relacion));
+        when(exhibicionObjetoService.buscarConflicto(10L, LocalDate.now(), null, null)).thenReturn(finalizada);
 
         var page = service.buscarObjetosDisponibilidad("INV", LocalDate.now(), null, null, PageRequest.of(0, 10));
 
-        assertThat(page.getContent()).singleElement().satisfies(item -> assertThat(item.disponible()).isTrue());
+        assertThat(page.getContent()).singleElement().satisfies(item -> assertThat(item.disponible()).isFalse());
     }
 
     @Test
@@ -380,7 +382,6 @@ class ExhibicionServiceTest {
         relacion.setObjetoMuseo(objeto);
         when(exhibicionRepository.findById(1L)).thenReturn(Optional.of(original));
         when(exhibicionObjetoRepository.findByExhibicionIdAndEliminadoFalse(1L)).thenReturn(List.of(relacion));
-        when(exhibicionObjetoRepository.findByObjetoMuseoIdAndEliminadoFalse(10L)).thenReturn(List.of(relacion));
 
         var objetos = service.obtenerObjetosParaRepetir(1L, LocalDate.now(), null);
 

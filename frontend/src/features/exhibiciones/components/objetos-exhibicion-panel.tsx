@@ -10,7 +10,6 @@ import { RowActionButton, RowActions } from "@/components/common/row-actions";
 import { EmptyState } from "@/components/common/empty-state";
 import { useObjetosQuery } from "@/features/objetos/queries";
 import { ApiClientError } from "@/lib/errors/api-error";
-import { todayInArgentina } from "@/lib/date-time";
 import {
   useAgregarObjetoAExhibicionMutation,
   useObjetosExhibicionQuery,
@@ -42,8 +41,7 @@ export function ObjetosExhibicionPanel({ canWrite, estado, exhibicionId }: Objet
   } = useForm<AgregarObjetoExhibicionFormValues>({
     resolver: zodResolver(agregarObjetoExhibicionSchema),
     defaultValues: {
-      objetoMuseoId: 0,
-      fechaInclusion: todayInArgentina()
+      objetoMuseoId: 0
     }
   });
 
@@ -58,22 +56,15 @@ export function ObjetosExhibicionPanel({ canWrite, estado, exhibicionId }: Objet
       </div>
       {puedeAgregar ? (
         <form
-          className="grid gap-3 rounded-lg border p-4 md:grid-cols-[1fr_180px_auto]"
+          className="grid gap-3 rounded-lg border p-4 md:grid-cols-[1fr_auto]"
           onSubmit={handleSubmit((values) =>
             agregarMutation.mutate(
               {
                 exhibicionId,
-                objetoMuseoId: Number(values.objetoMuseoId),
-                fechaInclusion: values.fechaInclusion,
-                fechaRetiro: null,
-                estado: "EN_EXHIBICION",
-                devolucionVerificada: false,
-                verificadoPorUsuarioId: null,
-                fechaVerificacion: null,
-                observacionesDevolucion: null
+                objetoMuseoId: Number(values.objetoMuseoId)
               },
               {
-                onSuccess: () => reset({ objetoMuseoId: 0, fechaInclusion: todayInArgentina() })
+                onSuccess: () => reset({ objetoMuseoId: 0 })
               }
             )
           )}
@@ -91,13 +82,6 @@ export function ObjetosExhibicionPanel({ canWrite, estado, exhibicionId }: Objet
               ))}
             </select>
             {errors.objetoMuseoId ? <p className="text-sm text-destructive">{errors.objetoMuseoId.message}</p> : null}
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="fechaInclusion">
-              Inclusión<RequiredAsterisk />
-            </label>
-            <input className="h-10 w-full rounded-md border bg-background px-3 text-sm" id="fechaInclusion" type="date" {...register("fechaInclusion")} />
-            {errors.fechaInclusion ? <p className="text-sm text-destructive">{errors.fechaInclusion.message}</p> : null}
           </div>
           <div className="flex items-end">
             <button className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-60" disabled={agregarMutation.isPending} type="submit">

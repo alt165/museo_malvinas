@@ -23,13 +23,6 @@ export type ExhibicionResponseDTO = ExhibicionRequestDTO & {
 export type ExhibicionObjetoRequestDTO = {
   exhibicionId: number;
   objetoMuseoId: number;
-  fechaInclusion: string;
-  fechaRetiro?: string | null;
-  estado: EstadoExhibicionObjeto;
-  devolucionVerificada?: boolean | null;
-  verificadoPorUsuarioId?: number | null;
-  fechaVerificacion?: string | null;
-  observacionesDevolucion?: string | null;
 };
 
 export type ExhibicionObjetoResponseDTO = {

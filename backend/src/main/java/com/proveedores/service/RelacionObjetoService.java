@@ -13,6 +13,7 @@ import com.proveedores.entity.ObjetoVeterano;
 import com.proveedores.entity.RelacionObjeto;
 import com.proveedores.entity.Veterano;
 import com.proveedores.exception.BusinessException;
+import com.proveedores.exception.ConflictException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.mapper.RelacionObjetoMapper;
 import com.proveedores.repository.EmbargoObjetoRepository;
@@ -237,7 +238,7 @@ public class RelacionObjetoService {
                 )
                 .filter(relacion -> relacionActualId == null || !relacion.getId().equals(relacionActualId))
                 .ifPresent(relacion -> {
-                    throw new BusinessException("Ya existe una relacion igual entre los objetos");
+                    throw new ConflictException("Ya existe una relacion igual entre los objetos");
                 });
     }
 

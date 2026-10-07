@@ -84,20 +84,20 @@ class ObjetoPendienteCompletarSecurityTest {
     }
 
     @Test
-    void operatorPuedeListarPendientes() throws Exception {
+    void museologoPuedeListarPendientes() throws Exception {
         when(objetoMuseoService.listarPendientesCompletar(any(Pageable.class))).thenReturn(new PageImpl<>(List.of()));
 
-        mockMvc.perform(get("/api/objetos/pendientes-completar").with(user("operator").roles("OPERATOR")))
+        mockMvc.perform(get("/api/objetos/pendientes-completar").with(user("museologo").roles("MUSEOLOGO")))
                 .andExpect(status().isOk());
     }
 
     @Test
-    void adminYOperatorPuedenExportarPendientes() throws Exception {
+    void adminYMuseologoPuedenExportarPendientes() throws Exception {
         when(objetoMuseoExportService.exportarPendientesCompletarPdf(any(), any())).thenReturn(new byte[] { 1, 2, 3 });
 
         mockMvc.perform(get("/api/objetos/pendientes-completar/export/pdf").with(user("admin").roles("ADMIN")))
                 .andExpect(status().isOk());
-        mockMvc.perform(get("/api/objetos/pendientes-completar/export/pdf").with(user("operator").roles("OPERATOR")))
+        mockMvc.perform(get("/api/objetos/pendientes-completar/export/pdf").with(user("museologo").roles("MUSEOLOGO")))
                 .andExpect(status().isOk());
     }
 
@@ -135,7 +135,7 @@ class ObjetoPendienteCompletarSecurityTest {
                 .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("original/a.png"))));
         mockMvc.perform(get("/api/objetos/1/fotos/2/original").with(user("museologo").roles("MUSEOLOGO")))
                 .andExpect(status().isForbidden());
-        mockMvc.perform(get("/api/objetos/1/fotos/2/original").with(user("operator").roles("OPERATOR")))
+        mockMvc.perform(get("/api/objetos/1/fotos/2/original").with(user("legacy-operator").roles("OPERATOR")))
                 .andExpect(status().isForbidden());
         mockMvc.perform(get("/api/objetos/1/fotos/2/original"))
                 .andExpect(status().isUnauthorized());
@@ -150,8 +150,8 @@ class ObjetoPendienteCompletarSecurityTest {
     }
 
     @Test
-    void operatorNoPuedeListarVencimientosProximos() throws Exception {
-        mockMvc.perform(get("/api/objetos/vencimientos-proximos").with(user("operator").roles("OPERATOR")))
+    void museologoNoPuedeListarVencimientosProximos() throws Exception {
+        mockMvc.perform(get("/api/objetos/vencimientos-proximos").with(user("museologo").roles("MUSEOLOGO")))
                 .andExpect(status().isForbidden());
     }
 
@@ -170,10 +170,10 @@ class ObjetoPendienteCompletarSecurityTest {
     }
 
     @Test
-    void operatorPuedeListarMovimientosDeObjeto() throws Exception {
+    void museologoPuedeListarMovimientosDeObjeto() throws Exception {
         when(objetoMuseoService.listarMovimientos(1L)).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/objetos/1/movimientos").with(user("operator").roles("OPERATOR")))
+        mockMvc.perform(get("/api/objetos/1/movimientos").with(user("museologo").roles("MUSEOLOGO")))
                 .andExpect(status().isOk());
     }
 

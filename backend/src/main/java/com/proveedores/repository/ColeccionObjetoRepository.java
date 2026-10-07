@@ -12,6 +12,8 @@ public interface ColeccionObjetoRepository extends JpaRepository<ColeccionObjeto
 
     Optional<ColeccionObjeto> findByNombreIgnoreCaseAndEliminadoFalse(String nombre);
 
+    List<ColeccionObjeto> findAllByNombreIgnoreCaseOrderByIdAsc(String nombre);
+
     @Query("""
             select coleccion.id, count(objeto.id)
             from ColeccionObjeto coleccion

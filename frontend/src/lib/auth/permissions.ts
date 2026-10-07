@@ -1,7 +1,7 @@
 import type { UserRole } from "@/models/session";
 
-const writeRoles: UserRole[] = ["ADMIN", "OPERATOR"];
-const readRoles: UserRole[] = ["ADMIN", "OPERATOR", "VIEWER"];
+const writeRoles: UserRole[] = ["ADMIN", "MUSEOLOGO"];
+const readRoles: UserRole[] = ["ADMIN", "MUSEOLOGO", "VIEWER"];
 const adminRoles: UserRole[] = ["ADMIN"];
 
 export function hasRole(roles: UserRole[], role: UserRole) {

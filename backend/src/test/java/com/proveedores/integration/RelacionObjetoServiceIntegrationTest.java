@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
+import com.proveedores.dto.ObjetoVeteranoRequestDTO;
 import com.proveedores.dto.CategoriaObjetoRequestDTO;
 import com.proveedores.entity.CaracterRecepcionObjeto;
 import com.proveedores.entity.EstadoConservacion;
@@ -14,6 +15,7 @@ import com.proveedores.entity.Veterano;
 import com.proveedores.entity.VisibilidadCampo;
 import com.proveedores.dto.RelacionObjetoRequestDTO;
 import com.proveedores.exception.BusinessException;
+import com.proveedores.exception.ConflictException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.RelacionObjetoRepository;
 import com.proveedores.repository.EmbargoObjetoRepository;
@@ -22,6 +24,7 @@ import com.proveedores.repository.ObjetoVeteranoRepository;
 import com.proveedores.repository.VeteranoRepository;
 import com.proveedores.service.CategoriaObjetoService;
 import com.proveedores.service.ObjetoMuseoService;
+import com.proveedores.service.ObjetoVeteranoService;
 import com.proveedores.service.RelacionObjetoService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +52,9 @@ class RelacionObjetoServiceIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private ObjetoVeteranoRepository objetoVeteranoRepository;
+
+    @Autowired
+    private ObjetoVeteranoService objetoVeteranoService;
 
     @Autowired
     private VeteranoRepository veteranoRepository;
@@ -119,7 +125,7 @@ class RelacionObjetoServiceIntegrationTest extends IntegrationTestBase {
         relacionObjetoService.crear(request);
 
         assertThatThrownBy(() -> relacionObjetoService.crear(request))
-                .isInstanceOf(BusinessException.class)
+                .isInstanceOf(ConflictException.class)
                 .hasMessage("Ya existe una relacion igual entre los objetos");
     }
 
@@ -157,6 +163,37 @@ class RelacionObjetoServiceIntegrationTest extends IntegrationTestBase {
                     assertThat(entity.getActivo()).isFalse();
                     assertThat(entity.getFechaEliminacion()).isNotNull();
                 });
+    }
+
+    @Test
+    void recrearRelacionHistoricaCreaNuevaOcurrencia() {
+        var origen = crearObjeto("IT-REL-HIST-001", "Objeto origen historico");
+        var destino = crearObjeto("IT-REL-HIST-002", "Objeto destino historico");
+        var request = new RelacionObjetoRequestDTO(origen.id(), destino.id(), "relacion historica", null);
+        var anterior = relacionObjetoService.crear(request);
+        relacionObjetoService.bajaLogica(anterior.id());
+
+        var nueva = relacionObjetoService.crear(request);
+
+        assertThat(nueva.id()).isNotEqualTo(anterior.id());
+        assertThat(relacionObjetoRepository.findById(anterior.id())).get()
+                .satisfies(relacion -> assertThat(relacion.getEliminado()).isTrue());
+    }
+
+    @Test
+    void recrearRelacionObjetoVeteranoReactivaElMismoRegistro() {
+        var objeto = crearObjeto("IT-PER-REACT-001", "Objeto persona reactivable");
+        var persona = crearPersona("Persona", "Reactivable");
+        var request = new ObjetoVeteranoRequestDTO(objeto.id(), persona.getId(), "pertenecio a", "Inicial");
+        var creada = objetoVeteranoService.crear(request);
+        assertThatThrownBy(() -> objetoVeteranoService.crear(request)).isInstanceOf(ConflictException.class);
+        objetoVeteranoService.bajaLogica(creada.id());
+
+        var reactivada = objetoVeteranoService.crear(new ObjetoVeteranoRequestDTO(
+                objeto.id(), persona.getId(), request.tipoRelacion(), "Reactivada"));
+
+        assertThat(reactivada.id()).isEqualTo(creada.id());
+        assertThat(reactivada.descripcion()).isEqualTo("Reactivada");
     }
 
     @Test
