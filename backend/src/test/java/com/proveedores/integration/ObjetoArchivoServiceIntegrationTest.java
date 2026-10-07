@@ -16,6 +16,7 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import javax.imageio.ImageIO;
 import com.proveedores.service.ReciboEscaneadoObjetoMuseoService;
@@ -78,6 +79,32 @@ class ObjetoArchivoServiceIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void rechazaFotoCorruptaAunqueDeclareMimePermitido() {
+        Long objetoId = crearObjeto("IT-FILE-FOTO-CORRUPT");
+
+        assertThatThrownBy(() -> fotoObjetoMuseoService.subir(
+                objetoId,
+                new MockMultipartFile("archivo", "foto.png", "image/png", "no-imagen".getBytes()),
+                null,
+                "tester"
+        )).isInstanceOf(BusinessException.class)
+                .hasMessage("El archivo no contiene una imagen valida");
+    }
+
+    @Test
+    void rechazaFotoCuandoMimeNoCoincideConFormatoReal() throws Exception {
+        Long objetoId = crearObjeto("IT-FILE-FOTO-MIME");
+
+        assertThatThrownBy(() -> fotoObjetoMuseoService.subir(
+                objetoId,
+                new MockMultipartFile("archivo", "foto.jpg", "image/jpeg", imagenPng(10, 10)),
+                null,
+                "tester"
+        )).isInstanceOf(BusinessException.class)
+                .hasMessage("El contenido de la imagen no coincide con su tipo MIME");
+    }
+
+    @Test
     void rechazaFotoMayorAlMaximo() {
         Long objetoId = crearObjeto("IT-FILE-FOTO-003");
         MockMultipartFile archivo = new MockMultipartFile("archivo", "foto.jpg", "image/jpeg", new byte[6 * 1024 * 1024]);
@@ -88,10 +115,12 @@ class ObjetoArchivoServiceIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void subirReciboEscaneadoOpcionalYReemplazaAnterior() {
+    void subirReciboEscaneadoOpcionalYReemplazaAnterior() throws Exception {
         Long objetoId = crearObjeto("IT-FILE-REC-001");
-        MockMultipartFile primero = new MockMultipartFile("archivo", "recibo.pdf", "application/pdf", "pdf".getBytes());
-        MockMultipartFile segundo = new MockMultipartFile("archivo", "recibo.png", "image/png", "png".getBytes());
+        MockMultipartFile primero = new MockMultipartFile(
+                "archivo", "../../recibo.pdf", "application/pdf",
+                "%PDF-1.4\n1 0 obj\nendobj\n%%EOF\n".getBytes(StandardCharsets.US_ASCII));
+        MockMultipartFile segundo = new MockMultipartFile("archivo", "recibo.png", "image/png", imagenPng(20, 10));
 
         var response = reciboEscaneadoObjetoMuseoService.subir(objetoId, primero, "tester");
         var reemplazo = reciboEscaneadoObjetoMuseoService.subir(objetoId, segundo, "tester");
@@ -104,6 +133,37 @@ class ObjetoArchivoServiceIntegrationTest extends IntegrationTestBase {
         reciboEscaneadoObjetoMuseoService.eliminar(objetoId, reemplazo.id());
 
         assertThat(reciboEscaneadoObjetoMuseoService.obtener(objetoId)).isEmpty();
+    }
+
+    @Test
+    void reemplazoInvalidoConservaReciboAnterior() {
+        Long objetoId = crearObjeto("IT-FILE-REC-ROLLBACK");
+        byte[] pdf = "%PDF-1.4\n%%EOF\n".getBytes(StandardCharsets.US_ASCII);
+        var anterior = reciboEscaneadoObjetoMuseoService.subir(
+                objetoId, new MockMultipartFile("archivo", "anterior.pdf", "application/pdf", pdf), "tester");
+
+        assertThatThrownBy(() -> reciboEscaneadoObjetoMuseoService.subir(
+                objetoId,
+                new MockMultipartFile("archivo", "nuevo.png", "image/png", "corrupta".getBytes()),
+                "tester"
+        )).isInstanceOf(BusinessException.class);
+
+        assertThat(reciboEscaneadoObjetoMuseoService.obtener(objetoId)).get()
+                .satisfies(actual -> assertThat(actual.id()).isEqualTo(anterior.id()));
+        assertThat(reciboEscaneadoObjetoMuseoService.descargar(objetoId).resource().exists()).isTrue();
+    }
+
+    @Test
+    void cargaMultipleDeFotosEsAtomicaAnteArchivoInvalido() throws Exception {
+        Long objetoId = crearObjeto("IT-FILE-BATCH-ROLLBACK");
+        MockMultipartFile valida = new MockMultipartFile("archivos", "valida.png", "image/png", imagenPng(12, 12));
+        MockMultipartFile invalida = new MockMultipartFile("archivos", "invalida.png", "image/png", "no-imagen".getBytes());
+
+        assertThatThrownBy(() -> fotoObjetoMuseoService.subirTodos(
+                objetoId, java.util.List.of(valida, invalida), null, null, null, "tester"))
+                .isInstanceOf(BusinessException.class);
+
+        assertThat(fotoObjetoMuseoRepository.findByObjetoMuseoIdAndEliminadoFalse(objetoId)).isEmpty();
     }
 
     private Long crearObjeto(String numeroInventario) {

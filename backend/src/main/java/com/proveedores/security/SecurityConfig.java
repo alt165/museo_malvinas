@@ -17,6 +17,12 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -94,6 +100,27 @@ public class SecurityConfig {
                         ))
                 )
                 .build();
+    }
+
+    @Bean
+    public OAuth2TokenValidator<Jwt> jwtTokenValidator(
+            @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}") String issuer,
+            KeycloakSecurityProperties properties
+    ) {
+        return new DelegatingOAuth2TokenValidator<>(
+                JwtValidators.createDefaultWithIssuer(issuer),
+                new RequiredAudienceValidator(properties.clientId())
+        );
+    }
+
+    @Bean
+    public JwtDecoder jwtDecoder(
+            @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}") String jwkSetUri,
+            OAuth2TokenValidator<Jwt> jwtTokenValidator
+    ) {
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
+        decoder.setJwtValidator(jwtTokenValidator);
+        return decoder;
     }
 
     @Bean

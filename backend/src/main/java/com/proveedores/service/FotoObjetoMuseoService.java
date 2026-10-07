@@ -19,34 +19,39 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class FotoObjetoMuseoService {
 
-    private static final Set<String> CONTENT_TYPES_PERMITIDOS = Set.of("image/jpeg", "image/png", "image/webp");
-
     private final FotoObjetoMuseoRepository fotoObjetoMuseoRepository;
     private final ObjetoMuseoService objetoMuseoService;
     private final ObjectFileStorageService objectFileStorageService;
     private final ImageWatermarkService imageWatermarkService;
+    private final UploadFileValidator uploadFileValidator;
+    private final TransactionalFileLifecycle transactionalFileLifecycle;
     private final long maxSizeBytes;
+    private final int maxFilesPerRequest;
 
     public FotoObjetoMuseoService(
             FotoObjetoMuseoRepository fotoObjetoMuseoRepository,
             ObjetoMuseoService objetoMuseoService,
             ObjectFileStorageService objectFileStorageService,
             ImageWatermarkService imageWatermarkService,
-            @org.springframework.beans.factory.annotation.Value("${app.upload.max-photo-size-mb}") long maxPhotoSizeMb
+            UploadFileValidator uploadFileValidator,
+            TransactionalFileLifecycle transactionalFileLifecycle,
+            @org.springframework.beans.factory.annotation.Value("${app.upload.max-photo-size-mb}") long maxPhotoSizeMb,
+            @org.springframework.beans.factory.annotation.Value("${app.upload.max-files-per-request:10}") int maxFilesPerRequest
     ) {
         this.fotoObjetoMuseoRepository = fotoObjetoMuseoRepository;
         this.objetoMuseoService = objetoMuseoService;
         this.objectFileStorageService = objectFileStorageService;
         this.imageWatermarkService = imageWatermarkService;
+        this.uploadFileValidator = uploadFileValidator;
+        this.transactionalFileLifecycle = transactionalFileLifecycle;
         this.maxSizeBytes = maxPhotoSizeMb * 1024L * 1024L;
+        this.maxFilesPerRequest = maxFilesPerRequest;
     }
 
     @Transactional
@@ -57,27 +62,58 @@ public class FotoObjetoMuseoService {
     @Transactional
     public FotoObjetoMuseoResponseDTO subir(Long objetoId, MultipartFile archivo, String descripcion, VisibilidadCampo visibilidad, String cargadoPor) {
         ObjetoMuseo objeto = objetoMuseoService.buscarObjetoActivo(objetoId);
-        validarArchivo(archivo);
+        UploadFileValidator.ValidatedFile validated = validarArchivo(archivo);
+        return guardar(objeto, validated, descripcion, visibilidad, cargadoPor);
+    }
 
-        byte[] original = leerArchivo(archivo);
-        ImageWatermarkService.GeneratedPublicImage publicImage = imageWatermarkService.generar(original, archivo.getContentType());
-        String extension = extensionOriginal(archivo.getContentType());
+    @Transactional
+    public List<FotoObjetoMuseoResponseDTO> subirTodos(
+            Long objetoId,
+            List<MultipartFile> archivos,
+            String descripcion,
+            List<VisibilidadCampo> visibilidades,
+            VisibilidadCampo visibilidad,
+            String cargadoPor
+    ) {
+        validarCantidad(archivos);
+        ObjetoMuseo objeto = objetoMuseoService.buscarObjetoActivo(objetoId);
+        List<UploadFileValidator.ValidatedFile> validatedFiles = archivos.stream().map(this::validarArchivo).toList();
+        List<FotoObjetoMuseoResponseDTO> result = new ArrayList<>();
+        for (int index = 0; index < validatedFiles.size(); index++) {
+            VisibilidadCampo itemVisibility = visibilidades != null && index < visibilidades.size()
+                    ? visibilidades.get(index)
+                    : visibilidad;
+            result.add(guardar(objeto, validatedFiles.get(index), descripcion, itemVisibility, cargadoPor));
+        }
+        return result;
+    }
+
+    private FotoObjetoMuseoResponseDTO guardar(
+            ObjetoMuseo objeto,
+            UploadFileValidator.ValidatedFile validated,
+            String descripcion,
+            VisibilidadCampo visibilidad,
+            String cargadoPor
+    ) {
+        byte[] original = validated.bytes();
+        ImageWatermarkService.GeneratedPublicImage publicImage = imageWatermarkService.generar(original, validated.contentType());
         ObjectFileStorageService.StoredObjectFile storedOriginal = null;
         ObjectFileStorageService.StoredObjectFile storedPublic = null;
         try {
             storedOriginal = objectFileStorageService.storeBytes(
-                    objetoId, "fotos/original", original, objeto.getNumeroInventario() + "." + extension, extension);
+                    objeto.getId(), "fotos/original", original,
+                    objeto.getNumeroInventario() + "." + validated.extension(), validated.extension());
             storedPublic = objectFileStorageService.storeBytes(
-                    objetoId, "fotos/public", publicImage.bytes(),
+                    objeto.getId(), "fotos/public", publicImage.bytes(),
                     objeto.getNumeroInventario() + "." + publicImage.extension(), publicImage.extension());
             registrarLimpiezaSiRollback(storedOriginal.relativePath(), storedPublic.relativePath());
 
             FotoObjetoMuseo foto = new FotoObjetoMuseo();
             foto.setObjetoMuseo(objeto);
             foto.setNombreArchivo(storedOriginal.originalName());
-            foto.setNombreArchivoOriginal(archivo.getOriginalFilename());
+            foto.setNombreArchivoOriginal(validated.originalName());
             foto.setNombreArchivoAlmacenado(storedOriginal.storedName());
-            foto.setContentType(archivo.getContentType());
+            foto.setContentType(validated.contentType());
             foto.setTamanioBytes((long) original.length);
             foto.setRutaAlmacenamiento(storedOriginal.absolutePath());
             foto.setRutaRelativa(storedOriginal.relativePath());
@@ -189,15 +225,21 @@ public class FotoObjetoMuseoService {
                         || "ROLE_MUSEOLOGO".equals(authority));
     }
 
-    private void validarArchivo(MultipartFile archivo) {
-        if (archivo == null || archivo.isEmpty()) {
-            throw new BusinessException("La foto es obligatoria");
-        }
-        if (!CONTENT_TYPES_PERMITIDOS.contains(archivo.getContentType())) {
-            throw new BusinessException("Tipo de imagen no permitido");
-        }
-        if (archivo.getSize() > maxSizeBytes) {
-            throw new BusinessException("La foto supera el tamano maximo permitido");
+    private UploadFileValidator.ValidatedFile validarArchivo(MultipartFile archivo) {
+        return uploadFileValidator.validateImage(archivo, maxSizeBytes, new UploadFileValidator.UploadMessages(
+                "La foto es obligatoria",
+                "Tipo de imagen no permitido",
+                "La foto supera el tamano maximo permitido",
+                "El archivo no contiene una imagen valida",
+                "El contenido de la imagen no coincide con su tipo MIME",
+                "No se pudo leer la foto"
+        ));
+    }
+
+    private void validarCantidad(List<MultipartFile> archivos) {
+        if (archivos == null || archivos.isEmpty()) throw new BusinessException("Debe seleccionar al menos una foto");
+        if (archivos.size() > maxFilesPerRequest) {
+            throw new BusinessException("La carga supera la cantidad maxima de archivos permitida");
         }
     }
 
@@ -235,32 +277,10 @@ public class FotoObjetoMuseoService {
         }
     }
 
-    private byte[] leerArchivo(MultipartFile archivo) {
-        try {
-            return archivo.getBytes();
-        } catch (IOException ex) {
-            throw new BusinessException("No se pudo leer la foto");
-        }
-    }
-
-    private String extensionOriginal(String contentType) {
-        return switch (contentType) {
-            case "image/png" -> "png";
-            case "image/webp" -> "webp";
-            default -> "jpg";
-        };
-    }
-
     private void registrarLimpiezaSiRollback(String... relativePaths) {
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) return;
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCompletion(int status) {
-                if (status == STATUS_ROLLED_BACK) {
-                    for (String path : relativePaths) objectFileStorageService.delete(path);
-                }
-            }
-        });
+        for (String path : relativePaths) {
+            transactionalFileLifecycle.deleteOnRollback(() -> objectFileStorageService.delete(path));
+        }
     }
 
     private FotoObjetoMuseoResponseDTO toResponse(FotoObjetoMuseo foto) {

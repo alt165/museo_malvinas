@@ -6,11 +6,11 @@ import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.ReciboIngresoObjetoRepository;
 import java.io.IOException;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDateTime;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
@@ -23,21 +23,25 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class ReciboIngresoObjetoService {
 
-    private static final Set<String> CONTENT_TYPES_COPIA_FIRMADA = Set.of("application/pdf", "image/jpeg", "image/png", "image/webp");
-
     private final ReciboIngresoObjetoRepository reciboIngresoObjetoRepository;
     private final ReciboPdfService reciboPdfService;
+    private final UploadFileValidator uploadFileValidator;
+    private final TransactionalFileLifecycle transactionalFileLifecycle;
     private final Path signedReceiptsDir;
     private final long maxSignedReceiptSizeBytes;
 
     public ReciboIngresoObjetoService(
             ReciboIngresoObjetoRepository reciboIngresoObjetoRepository,
             ReciboPdfService reciboPdfService,
+            UploadFileValidator uploadFileValidator,
+            TransactionalFileLifecycle transactionalFileLifecycle,
             @Value("${app.storage.signed-receipts-dir}") String signedReceiptsDir,
             @Value("${app.upload.max-signed-receipt-size-mb}") long maxSignedReceiptSizeMb
     ) {
         this.reciboIngresoObjetoRepository = reciboIngresoObjetoRepository;
         this.reciboPdfService = reciboPdfService;
+        this.uploadFileValidator = uploadFileValidator;
+        this.transactionalFileLifecycle = transactionalFileLifecycle;
         this.signedReceiptsDir = Path.of(signedReceiptsDir).toAbsolutePath().normalize();
         this.maxSignedReceiptSizeBytes = maxSignedReceiptSizeMb * 1024L * 1024L;
     }
@@ -62,30 +66,24 @@ public class ReciboIngresoObjetoService {
     @Transactional
     public ReciboIngresoObjetoResponseDTO subirCopiaFirmada(Long id, MultipartFile archivo, String cargadoPor) {
         ReciboIngresoObjeto recibo = buscarActivo(id);
-        validarCopiaFirmada(archivo);
+        UploadFileValidator.ValidatedFile validated = validarCopiaFirmada(archivo);
+        Path rutaAnterior = StringUtils.hasText(recibo.getCopiaFirmadaRutaAlmacenamiento())
+                ? Path.of(recibo.getCopiaFirmadaRutaAlmacenamiento()).toAbsolutePath().normalize()
+                : null;
+        Path destino = almacenarCopiaFirmada(id, validated);
+        transactionalFileLifecycle.deleteOnRollback(() -> eliminarArchivo(destino));
 
-        String nombreOriginal = StringUtils.hasText(archivo.getOriginalFilename()) ? archivo.getOriginalFilename() : "recibo-firmado";
-        String nombreSeguro = nombreOriginal.replaceAll("[^A-Za-z0-9._-]", "_");
-        Path directorioRecibo = signedReceiptsDir.resolve(String.valueOf(id)).normalize();
-        Path destino = directorioRecibo.resolve(UUID.randomUUID() + "-" + nombreSeguro).normalize();
-        if (!destino.startsWith(signedReceiptsDir)) {
-            throw new BusinessException("Nombre de archivo invalido");
-        }
-
-        try {
-            Files.createDirectories(directorioRecibo);
-            archivo.transferTo(destino);
-        } catch (IOException ex) {
-            throw new BusinessException("No se pudo almacenar la copia firmada del recibo");
-        }
-
-        recibo.setCopiaFirmadaNombreArchivo(nombreOriginal);
-        recibo.setCopiaFirmadaContentType(archivo.getContentType());
-        recibo.setCopiaFirmadaTamanioBytes(archivo.getSize());
+        recibo.setCopiaFirmadaNombreArchivo(validated.originalName());
+        recibo.setCopiaFirmadaContentType(validated.contentType());
+        recibo.setCopiaFirmadaTamanioBytes((long) validated.bytes().length);
         recibo.setCopiaFirmadaRutaAlmacenamiento(destino.toString());
         recibo.setCopiaFirmadaFechaCarga(com.proveedores.time.MuseoTime.now());
         recibo.setCopiaFirmadaCargadoPor(cargadoPor);
-        return toResponse(reciboIngresoObjetoRepository.save(recibo));
+        ReciboIngresoObjeto saved = reciboIngresoObjetoRepository.saveAndFlush(recibo);
+        if (rutaAnterior != null && !rutaAnterior.equals(destino)) {
+            transactionalFileLifecycle.deleteAfterCommit(() -> eliminarArchivo(rutaAnterior));
+        }
+        return toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -110,15 +108,50 @@ public class ReciboIngresoObjetoService {
         return recibo;
     }
 
-    private void validarCopiaFirmada(MultipartFile archivo) {
-        if (archivo == null || archivo.isEmpty()) {
-            throw new BusinessException("La copia firmada es obligatoria");
+    private UploadFileValidator.ValidatedFile validarCopiaFirmada(MultipartFile archivo) {
+        return uploadFileValidator.validateImageOrPdf(archivo, maxSignedReceiptSizeBytes, new UploadFileValidator.UploadMessages(
+                "La copia firmada es obligatoria",
+                "Tipo de archivo no permitido para copia firmada",
+                "La copia firmada supera el tamano maximo permitido",
+                "La copia firmada no contiene un PDF o imagen valida",
+                "El contenido de la copia firmada no coincide con su tipo MIME",
+                "No se pudo leer la copia firmada"
+        ));
+    }
+
+    private Path almacenarCopiaFirmada(Long id, UploadFileValidator.ValidatedFile file) {
+        Path directorioRecibo = signedReceiptsDir.resolve(String.valueOf(id)).normalize();
+        Path destino = directorioRecibo.resolve(UUID.randomUUID() + "." + file.extension()).normalize();
+        if (!directorioRecibo.startsWith(signedReceiptsDir) || !destino.startsWith(signedReceiptsDir)) {
+            throw new BusinessException("Nombre de archivo invalido");
         }
-        if (!CONTENT_TYPES_COPIA_FIRMADA.contains(archivo.getContentType())) {
-            throw new BusinessException("Tipo de archivo no permitido para copia firmada");
+        Path temporary = null;
+        try {
+            Files.createDirectories(directorioRecibo);
+            temporary = Files.createTempFile(directorioRecibo, ".upload-", ".tmp");
+            Files.write(temporary, file.bytes());
+            try {
+                Files.move(temporary, destino, StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException exception) {
+                Files.move(temporary, destino);
+            }
+            return destino;
+        } catch (IOException exception) {
+            eliminarArchivo(temporary);
+            throw new BusinessException("No se pudo almacenar la copia firmada del recibo");
         }
-        if (archivo.getSize() > maxSignedReceiptSizeBytes) {
-            throw new BusinessException("La copia firmada supera el tamano maximo permitido");
+    }
+
+    private void eliminarArchivo(Path path) {
+        if (path == null) return;
+        Path normalized = path.toAbsolutePath().normalize();
+        if (!normalized.startsWith(signedReceiptsDir)) {
+            throw new BusinessException("Ruta de archivo invalida");
+        }
+        try {
+            Files.deleteIfExists(normalized);
+        } catch (IOException exception) {
+            throw new BusinessException("No se pudo eliminar la copia firmada almacenada");
         }
     }
 

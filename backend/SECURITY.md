@@ -10,6 +10,8 @@ La aplicacion no implementa login propio. El flujo esperado es:
 Cliente -> Keycloak -> access token JWT -> Backend -> validacion JWT -> autorizacion por rol
 ```
 
+El backend valida firma, expiracion, issuer y la audiencia `museo-backend`. Un token del mismo realm emitido sin esa audiencia es rechazado. Los clientes que obtienen access tokens para consumir la API deben incluir un audience mapper estandar con `museo-backend` en el claim `aud`; el realm local ya configura este mapper para `museo-local` y `museo-frontend`.
+
 ## Configuracion local de Keycloak
 
 El entorno Docker importa el realm desde:
@@ -81,6 +83,10 @@ Permisos aplicados por `SecurityConfig`:
 | `DELETE` | `/api/**` | `ADMIN`, `MUSEOLOGO` |
 
 La documentacion base del proyecto menciona `SUDO`, pero el realm local y la configuracion actual del backend no lo habilitan en reglas de acceso.
+
+## Request ID
+
+`X-Request-Id` se conserva solamente cuando contiene entre 1 y 64 caracteres ASCII alfanumericos, punto, guion o underscore. Si falta o contiene espacios, Unicode, CR/LF, controles u otros caracteres, el backend genera un UUID y utiliza exclusivamente ese valor en MDC y en el header de respuesta.
 
 ## Administracion de usuarios y DNI
 

@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 import com.proveedores.entity.FotoObjetoMuseo;
 import com.proveedores.entity.ObjetoMuseo;
@@ -38,11 +39,22 @@ class FotoObjetoMuseoServiceTest {
     @Mock private ObjetoMuseoService objetoMuseoService;
     @Mock private ObjectFileStorageService storage;
     @Mock private ImageWatermarkService watermarkService;
+    @Mock private UploadFileValidator uploadFileValidator;
+    @Mock private TransactionalFileLifecycle transactionalFileLifecycle;
     private FotoObjetoMuseoService service;
 
     @BeforeEach
     void setUp() {
-        service = new FotoObjetoMuseoService(repository, objetoMuseoService, storage, watermarkService, 5);
+        lenient().when(uploadFileValidator.validateImage(any(), anyLong(), any()))
+                .thenAnswer(invocation -> {
+                    MockMultipartFile file = invocation.getArgument(0);
+                    String extension = "image/jpeg".equals(file.getContentType()) ? "jpg" : "png";
+                    return new UploadFileValidator.ValidatedFile(
+                            file.getBytes(), file.getContentType(), extension, file.getOriginalFilename());
+                });
+        service = new FotoObjetoMuseoService(
+                repository, objetoMuseoService, storage, watermarkService,
+                uploadFileValidator, transactionalFileLifecycle, 5, 10);
     }
 
     @AfterEach

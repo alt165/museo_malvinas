@@ -119,9 +119,7 @@ public class VeteranoController {
             archivosParaSubir.add(archivo);
         }
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(archivosParaSubir.stream()
-                        .map(item -> veteranoImagenService.subir(id, item, descripcion, usuario(authentication)))
-                        .toList());
+                .body(veteranoImagenService.subirTodos(id, archivosParaSubir, descripcion, usuario(authentication)));
     }
 
     @Operation(summary = "Listar imagenes del veterano")

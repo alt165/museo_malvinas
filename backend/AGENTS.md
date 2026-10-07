@@ -30,7 +30,7 @@ El sistema es un backend para la gestión de un museo que incluye:
 
 El agente DEBE usar:
 
-* Java 17+
+* Java 17 (version oficial; no usar APIs de Java 18+)
 * Spring Boot
 * Spring Web
 * Spring Data JPA

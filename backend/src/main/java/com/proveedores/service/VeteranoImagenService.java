@@ -6,9 +6,7 @@ import com.proveedores.entity.VeteranoImagen;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.VeteranoImagenRepository;
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Set;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,42 +16,74 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class VeteranoImagenService {
 
-    private static final Set<String> CONTENT_TYPES_PERMITIDOS = Set.of("image/jpeg", "image/png", "image/webp");
-
     private final VeteranoImagenRepository veteranoImagenRepository;
     private final VeteranoService veteranoService;
     private final ObjectFileStorageService objectFileStorageService;
+    private final UploadFileValidator uploadFileValidator;
+    private final TransactionalFileLifecycle transactionalFileLifecycle;
     private final long maxSizeBytes;
+    private final int maxFilesPerRequest;
 
     public VeteranoImagenService(
             VeteranoImagenRepository veteranoImagenRepository,
             VeteranoService veteranoService,
             ObjectFileStorageService objectFileStorageService,
-            @org.springframework.beans.factory.annotation.Value("${app.upload.max-photo-size-mb}") long maxPhotoSizeMb
+            UploadFileValidator uploadFileValidator,
+            TransactionalFileLifecycle transactionalFileLifecycle,
+            @org.springframework.beans.factory.annotation.Value("${app.upload.max-photo-size-mb}") long maxPhotoSizeMb,
+            @org.springframework.beans.factory.annotation.Value("${app.upload.max-files-per-request:10}") int maxFilesPerRequest
     ) {
         this.veteranoImagenRepository = veteranoImagenRepository;
         this.veteranoService = veteranoService;
         this.objectFileStorageService = objectFileStorageService;
+        this.uploadFileValidator = uploadFileValidator;
+        this.transactionalFileLifecycle = transactionalFileLifecycle;
         this.maxSizeBytes = maxPhotoSizeMb * 1024L * 1024L;
+        this.maxFilesPerRequest = maxFilesPerRequest;
     }
 
     @Transactional
     public VeteranoImagenResponseDTO subir(Long veteranoId, MultipartFile archivo, String descripcion, String cargadoPor) {
         Veterano veterano = veteranoService.buscarActivo(veteranoId);
-        validarArchivo(archivo);
+        return guardar(veterano, validarArchivo(archivo), descripcion, cargadoPor);
+    }
 
-        ObjectFileStorageService.StoredObjectFile storedFile = objectFileStorageService.storeInOwnerFolder("veterano-" + veteranoId, "imagenes", archivo);
+    @Transactional
+    public List<VeteranoImagenResponseDTO> subirTodos(
+            Long veteranoId,
+            List<MultipartFile> archivos,
+            String descripcion,
+            String cargadoPor
+    ) {
+        if (archivos == null || archivos.isEmpty()) throw new BusinessException("Debe seleccionar al menos una imagen");
+        if (archivos.size() > maxFilesPerRequest) {
+            throw new BusinessException("La carga supera la cantidad maxima de archivos permitida");
+        }
+        Veterano veterano = veteranoService.buscarActivo(veteranoId);
+        List<UploadFileValidator.ValidatedFile> validatedFiles = archivos.stream().map(this::validarArchivo).toList();
+        return validatedFiles.stream().map(file -> guardar(veterano, file, descripcion, cargadoPor)).toList();
+    }
+
+    private VeteranoImagenResponseDTO guardar(
+            Veterano veterano,
+            UploadFileValidator.ValidatedFile file,
+            String descripcion,
+            String cargadoPor
+    ) {
+        ObjectFileStorageService.StoredObjectFile storedFile = objectFileStorageService.storeBytesInOwnerFolder(
+                "veterano-" + veterano.getId(), "imagenes", file.bytes(), file.originalName(), file.extension());
+        transactionalFileLifecycle.deleteOnRollback(() -> objectFileStorageService.delete(storedFile.relativePath()));
 
         VeteranoImagen imagen = new VeteranoImagen();
         imagen.setVeterano(veterano);
-        imagen.setNombreArchivo(storedFile.originalName());
+        imagen.setNombreArchivo(file.originalName());
         imagen.setNombreArchivoAlmacenado(storedFile.storedName());
-        imagen.setTipoContenido(archivo.getContentType());
-        imagen.setTamanioBytes(archivo.getSize());
+        imagen.setTipoContenido(file.contentType());
+        imagen.setTamanioBytes((long) file.bytes().length);
         imagen.setRutaArchivo(storedFile.absolutePath());
         imagen.setRutaRelativa(storedFile.relativePath());
         imagen.setDescripcion(descripcion);
-        imagen.setOrden((int) veteranoImagenRepository.countByVeteranoIdAndEliminadoFalse(veteranoId));
+        imagen.setOrden((int) veteranoImagenRepository.countByVeteranoIdAndEliminadoFalse(veterano.getId()));
         imagen.setFechaCarga(com.proveedores.time.MuseoTime.now());
         imagen.setCargadoPor(cargadoPor);
         return toResponse(veteranoImagenRepository.save(imagen));
@@ -94,16 +124,15 @@ public class VeteranoImagenService {
                 .orElseThrow(() -> new ResourceNotFoundException("Imagen del veterano no encontrada"));
     }
 
-    private void validarArchivo(MultipartFile archivo) {
-        if (archivo == null || archivo.isEmpty()) {
-            throw new BusinessException("La imagen es obligatoria");
-        }
-        if (!CONTENT_TYPES_PERMITIDOS.contains(archivo.getContentType())) {
-            throw new BusinessException("Tipo de imagen no permitido");
-        }
-        if (archivo.getSize() > maxSizeBytes) {
-            throw new BusinessException("La imagen supera el tamano maximo permitido");
-        }
+    private UploadFileValidator.ValidatedFile validarArchivo(MultipartFile archivo) {
+        return uploadFileValidator.validateImage(archivo, maxSizeBytes, new UploadFileValidator.UploadMessages(
+                "La imagen es obligatoria",
+                "Tipo de imagen no permitido",
+                "La imagen supera el tamano maximo permitido",
+                "El archivo no contiene una imagen valida",
+                "El contenido de la imagen no coincide con su tipo MIME",
+                "No se pudo leer la imagen"
+        ));
     }
 
     private VeteranoImagenResponseDTO toResponse(VeteranoImagen imagen) {

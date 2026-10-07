@@ -43,6 +43,8 @@ java -jar app.jar
 
 No guardar secretos reales en git.
 
+El runtime oficial del backend es Java 17. `pom.xml`, la etapa Maven y la imagen JRE del Dockerfile usan release/Temurin 17. El despliegue no debe sustituirlo silenciosamente por otra version mayor sin una fase de migracion y pruebas.
+
 ## Base de datos
 
 Recomendaciones:
@@ -75,6 +77,7 @@ El `docker-compose.yml` local usa `start-dev` y credenciales de desarrollo. Para
 - Revisar redirect URIs y web origins.
 - Eliminar usuarios locales de ejemplo.
 - Confirmar roles reales requeridos por el backend: `ADMIN`, `MUSEOLOGO`, `VIEWER`.
+- Configurar un audience mapper OIDC para que los access tokens destinados a la API incluyan `museo-backend` (o el valor de `KEYCLOAK_CLIENT_ID`) en `aud`. El backend rechaza tokens del mismo issuer emitidos sólo para otro cliente.
 
 ## Swagger
 

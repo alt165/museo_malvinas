@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -159,6 +160,19 @@ public class GlobalExceptionHandler {
     ) {
         log.warn("event=exception.method_not_supported status={} path={} method={}", HttpStatus.METHOD_NOT_ALLOWED.value(), request.getRequestURI(), exception.getMethod());
         return buildResponse(HttpStatus.METHOD_NOT_ALLOWED, "Metodo HTTP no soportado para este recurso", request);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiErrorResponse> handleMaxUploadSizeExceeded(
+            MaxUploadSizeExceededException exception,
+            HttpServletRequest request
+    ) {
+        log.warn("event=exception.payload_too_large status={} path={}", HttpStatus.PAYLOAD_TOO_LARGE.value(), request.getRequestURI());
+        return buildResponse(
+                HttpStatus.PAYLOAD_TOO_LARGE,
+                "La carga supera el tamano maximo permitido",
+                request
+        );
     }
 
     @ExceptionHandler(AccessDeniedException.class)

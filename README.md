@@ -6,7 +6,7 @@
 
 ### `Descripción del proyecto`
 
- El Sistema de Gestión de Archivo es una aplicación diseñada para administrar, registrar y localizar objetos, documentación y material audiovisual del Museo Malvinas, Antártida y Atlántico Sur ubicado en San Carlos de Bariloche. El sistema permite gestionar de manera integral el inventario patrimonial de la institución, incluyendo el registro de objetos, colecciones, depositantes, ingresos, ubicaciones físicas, exhibiciones y la información histórica de los veteranos de guerra vinculados al museo. Su arquitectura se compone de un Frontend desarrollado con tecnologías web modernas, un Backend en Java Spring Boot, base de datos PostgreSQL y gestión de acceso mediante Keycloak.
+ El Sistema de Gestión de Archivo es una aplicación diseñada para administrar, registrar y localizar objetos, documentación y material audiovisual del Museo Malvinas, Antártida y Atlántico Sur ubicado en San Carlos de Bariloche. El sistema permite gestionar de manera integral el inventario patrimonial de la institución, incluyendo el registro de objetos, colecciones, depositantes, ingresos, ubicaciones físicas, exhibiciones y la información histórica de los veteranos de guerra vinculados al museo. Su arquitectura se compone de un Frontend desarrollado con tecnologías web modernas, un Backend Spring Boot sobre Java 17, base de datos PostgreSQL y gestión de acceso mediante Keycloak.
 
 ### `Instalación`
 
