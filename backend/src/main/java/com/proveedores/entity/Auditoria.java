@@ -46,8 +46,11 @@ public class Auditoria extends EntidadBase {
     @Column(nullable = false, length = 120)
     private String entidad;
 
-    @Column(name = "entidad_id", nullable = false)
+    @Column(name = "entidad_id")
     private Long entidadId;
+
+    @Column(name = "referencia_externa", length = 160)
+    private String referenciaExterna;
 
     @Column(length = 80)
     private String accion;

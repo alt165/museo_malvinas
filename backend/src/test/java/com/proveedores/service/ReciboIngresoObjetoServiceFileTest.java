@@ -37,6 +37,9 @@ class ReciboIngresoObjetoServiceFileTest {
     @Mock
     private ReciboPdfService pdfService;
 
+    @Mock
+    private AuditoriaObjetoService auditoriaService;
+
     @Test
     void copiaFirmadaUsaNombreFisicoGeneradoYContenidoValidado() throws Exception {
         ReciboIngresoObjeto recibo = recibo();
@@ -146,6 +149,7 @@ class ReciboIngresoObjetoServiceFileTest {
                 pdfService,
                 new UploadFileValidator(100_000_000L),
                 new TransactionalFileLifecycle(),
+                auditoriaService,
                 tempDir.toString(),
                 10
         );

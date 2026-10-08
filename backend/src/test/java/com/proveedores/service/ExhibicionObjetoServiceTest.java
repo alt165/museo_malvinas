@@ -54,7 +54,7 @@ class ExhibicionObjetoServiceTest {
         existente.setId(50L);
         existente.setExhibicion(activaExistente);
         existente.setEliminado(false);
-        when(exhibicionRepository.findById(1L)).thenReturn(Optional.of(nueva));
+        when(exhibicionRepository.lockByIdForUpdate(1L)).thenReturn(Optional.of(nueva));
         when(objetoMuseoRepository.findById(10L)).thenReturn(Optional.of(objeto()));
         when(exhibicionObjetoRepository.findByObjetoMuseoIdAndEliminadoFalse(10L)).thenReturn(List.of(existente));
 
@@ -75,6 +75,7 @@ class ExhibicionObjetoServiceTest {
         usuario.setNombre("Operador");
         usuario.setEliminado(false);
         when(exhibicionObjetoRepository.findById(1L)).thenReturn(Optional.of(relacion));
+        when(exhibicionRepository.lockByIdForUpdate(1L)).thenReturn(Optional.of(relacion.getExhibicion()));
         when(usuarioMovimientoService.resolver(nullable(String.class))).thenReturn(Optional.of(usuario));
         when(exhibicionObjetoRepository.save(any(ExhibicionObjeto.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -87,7 +88,7 @@ class ExhibicionObjetoServiceTest {
 
     @Test
     void crearConObjetoInexistenteLanzaResourceNotFoundException() {
-        when(exhibicionRepository.findById(1L)).thenReturn(Optional.of(exhibicion(1L)));
+        when(exhibicionRepository.lockByIdForUpdate(1L)).thenReturn(Optional.of(exhibicion(1L)));
         when(objetoMuseoRepository.findById(10L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.crear(request())).isInstanceOf(ResourceNotFoundException.class);

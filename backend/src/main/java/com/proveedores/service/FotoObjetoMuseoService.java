@@ -5,6 +5,7 @@ import com.proveedores.dto.RegeneracionFotosPublicasResponseDTO;
 import com.proveedores.entity.FotoObjetoMuseo;
 import com.proveedores.entity.ObjetoMuseo;
 import com.proveedores.entity.VisibilidadCampo;
+import com.proveedores.entity.TipoOperacionAuditoria;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.FotoObjetoMuseoRepository;
@@ -31,6 +32,7 @@ public class FotoObjetoMuseoService {
     private final ImageWatermarkService imageWatermarkService;
     private final UploadFileValidator uploadFileValidator;
     private final TransactionalFileLifecycle transactionalFileLifecycle;
+    private final AuditoriaObjetoService auditoriaService;
     private final long maxSizeBytes;
     private final int maxFilesPerRequest;
 
@@ -41,6 +43,7 @@ public class FotoObjetoMuseoService {
             ImageWatermarkService imageWatermarkService,
             UploadFileValidator uploadFileValidator,
             TransactionalFileLifecycle transactionalFileLifecycle,
+            AuditoriaObjetoService auditoriaService,
             @org.springframework.beans.factory.annotation.Value("${app.upload.max-photo-size-mb}") long maxPhotoSizeMb,
             @org.springframework.beans.factory.annotation.Value("${app.upload.max-files-per-request:10}") int maxFilesPerRequest
     ) {
@@ -50,6 +53,7 @@ public class FotoObjetoMuseoService {
         this.imageWatermarkService = imageWatermarkService;
         this.uploadFileValidator = uploadFileValidator;
         this.transactionalFileLifecycle = transactionalFileLifecycle;
+        this.auditoriaService = auditoriaService;
         this.maxSizeBytes = maxPhotoSizeMb * 1024L * 1024L;
         this.maxFilesPerRequest = maxFilesPerRequest;
     }
@@ -124,7 +128,12 @@ public class FotoObjetoMuseoService {
             foto.setVisibilidad(visibilidad == null ? VisibilidadCampo.PUBLICO : visibilidad);
             foto.setFechaCarga(com.proveedores.time.MuseoTime.now());
             foto.setCargadoPor(cargadoPor);
-            return toResponse(fotoObjetoMuseoRepository.save(foto));
+            FotoObjetoMuseo saved = fotoObjetoMuseoRepository.save(foto);
+            auditoriaService.registrarEvento("FOTO_OBJETO", saved.getId(), null, TipoOperacionAuditoria.CREACION,
+                    "FOTO_CARGADA", "Carga de fotografía de objeto", "ARCHIVOS", null,
+                    auditoriaService.mapOf("objetoId", objeto.getId(), "visibilidad", saved.getVisibilidad(),
+                            "contentType", saved.getContentType(), "tamanioBytes", saved.getTamanioBytes()), cargadoPor);
+            return toResponse(saved);
         } catch (RuntimeException ex) {
             if (storedPublic != null) objectFileStorageService.delete(storedPublic.relativePath());
             if (storedOriginal != null) objectFileStorageService.delete(storedOriginal.relativePath());
@@ -154,19 +163,28 @@ public class FotoObjetoMuseoService {
                 imageWatermarkService.publicCacheMaxAgeSeconds());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public FotoArchivo descargarOriginal(Long objetoId, Long fotoId) {
         if (!puedeDescargarOriginal()) throw new AccessDeniedException("No tiene permiso para descargar la fotografia original");
         FotoObjetoMuseo foto = buscarFoto(objetoId, fotoId);
         validarPuedeVerFoto(foto);
-        return new FotoArchivo(toResponse(foto), cargarOriginal(foto), foto.getContentType(), true, 0);
+        FotoArchivo archivo = new FotoArchivo(toResponse(foto), cargarOriginal(foto), foto.getContentType(), true, 0);
+        auditoriaService.registrarEvento("FOTO_OBJETO", foto.getId(), null, TipoOperacionAuditoria.MODIFICACION,
+                "ORIGINAL_DESCARGADO", "Descarga sensible de fotografía original", "ARCHIVOS", null,
+                auditoriaService.mapOf("objetoId", objetoId), null);
+        return archivo;
     }
 
     @Transactional
     public FotoObjetoMuseoResponseDTO actualizarVisibilidad(Long objetoId, Long fotoId, VisibilidadCampo visibilidad) {
         FotoObjetoMuseo foto = buscarFoto(objetoId, fotoId);
+        VisibilidadCampo anterior = foto.getVisibilidad();
         foto.setVisibilidad(visibilidad == null ? VisibilidadCampo.PUBLICO : visibilidad);
-        return toResponse(fotoObjetoMuseoRepository.save(foto));
+        FotoObjetoMuseo saved = fotoObjetoMuseoRepository.save(foto);
+        auditoriaService.registrarEvento("FOTO_OBJETO", saved.getId(), null, TipoOperacionAuditoria.MODIFICACION,
+                "VISIBILIDAD_FOTO_CAMBIADA", "Cambio de visibilidad de fotografía", "ARCHIVOS",
+                auditoriaService.mapOf("visibilidad", anterior), auditoriaService.mapOf("visibilidad", saved.getVisibilidad()), null);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -176,6 +194,9 @@ public class FotoObjetoMuseoService {
         foto.setEliminado(true);
         foto.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         fotoObjetoMuseoRepository.save(foto);
+        auditoriaService.registrarEvento("FOTO_OBJETO", foto.getId(), null, TipoOperacionAuditoria.ELIMINACION,
+                "FOTO_ELIMINADA", "Baja lógica de fotografía de objeto", "ARCHIVOS",
+                auditoriaService.mapOf("objetoId", objetoId, "visibilidad", foto.getVisibilidad()), null, null);
     }
 
     public RegeneracionFotosPublicasResponseDTO regenerarPublicasFaltantes() {

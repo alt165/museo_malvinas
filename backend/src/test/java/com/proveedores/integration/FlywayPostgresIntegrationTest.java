@@ -15,20 +15,22 @@ class FlywayPostgresIntegrationTest extends IntegrationTestBase {
     @Test
     void flywayAplicaMigracionesEnPostgreSQL() {
         List<String> versiones = jdbcTemplate.queryForList(
-                "select version from flyway_schema_history where success = true order by installed_rank",
+                "select version from flyway_schema_history where success = true and version is not null order by installed_rank",
                 String.class
         );
 
-        Integer objetosSembrados = jdbcTemplate.queryForObject("select count(*) from objetos_museo", Integer.class);
         Integer ubicacionesSembradas = jdbcTemplate.queryForObject("select count(*) from ubicaciones", Integer.class);
-        Integer exhibicionesSembradas = jdbcTemplate.queryForObject("select count(*) from exhibiciones", Integer.class);
 
-        assertThat(versiones).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28");
-        assertThat(objetosSembrados).isGreaterThanOrEqualTo(6);
+        assertThat(versiones).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30");
         assertThat(ubicacionesSembradas).isGreaterThanOrEqualTo(5);
         assertThat(jdbcTemplate.queryForObject("select count(*) from ubicaciones where nombre = 'Pre ingreso' and eliminado = false", Integer.class))
                 .isEqualTo(1);
-        assertThat(exhibicionesSembradas).isGreaterThanOrEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from objetos_museo where numero_inventario like 'MM-DEV-%'", Integer.class))
+                .isZero();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from exhibiciones where nombre = 'Malvinas: memorias en objetos'", Integer.class))
+                .isZero();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from categoria_objeto where eliminado = false", Integer.class))
+                .isGreaterThanOrEqualTo(6);
         assertThat(jdbcTemplate.queryForObject("select count(*) from pg_indexes where tablename = 'exhibiciones' and indexname in ('idx_exhibicion_fecha_inicio', 'idx_exhibicion_fecha_fin')", Integer.class))
                 .isEqualTo(2);
         assertThat(jdbcTemplate.queryForObject("select count(*) from pg_indexes where tablename = 'exhibicion_objeto' and indexname = 'idx_exhibicion_objeto_objeto'", Integer.class))
@@ -104,6 +106,8 @@ class FlywayPostgresIntegrationTest extends IntegrationTestBase {
         assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.columns where table_name = 'auditorias' and column_name in ('accion', 'descripcion', 'origen', 'numero_inventario', 'usuario_identificador', 'usuario_nombre', 'rol')", Integer.class))
                 .isEqualTo(7);
         assertThat(jdbcTemplate.queryForObject("select count(*) from pg_indexes where tablename = 'auditorias' and indexname = 'idx_auditoria_objeto_fecha'", Integer.class))
+                .isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.columns where table_name = 'auditorias' and column_name = 'referencia_externa'", Integer.class))
                 .isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.tables where table_name in ('rangos_militares', 'unidades_militares')", Integer.class))
                 .isEqualTo(2);

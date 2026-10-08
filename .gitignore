@@ -7,4 +7,13 @@ backend/storage/
 *.iml
 
 .env
+.env.production
+.env.production.*.local
+secrets/
+certs/
+restore-test-data/
+.phase4-test/
+.phase5-runtime/
+dependency-check-data/
+*.tsbuildinfo
 *.log

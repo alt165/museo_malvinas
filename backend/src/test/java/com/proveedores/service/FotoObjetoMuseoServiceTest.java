@@ -41,6 +41,7 @@ class FotoObjetoMuseoServiceTest {
     @Mock private ImageWatermarkService watermarkService;
     @Mock private UploadFileValidator uploadFileValidator;
     @Mock private TransactionalFileLifecycle transactionalFileLifecycle;
+    @Mock private AuditoriaObjetoService auditoriaService;
     private FotoObjetoMuseoService service;
 
     @BeforeEach
@@ -54,7 +55,7 @@ class FotoObjetoMuseoServiceTest {
                 });
         service = new FotoObjetoMuseoService(
                 repository, objetoMuseoService, storage, watermarkService,
-                uploadFileValidator, transactionalFileLifecycle, 5, 10);
+                uploadFileValidator, transactionalFileLifecycle, auditoriaService, 5, 10);
     }
 
     @AfterEach

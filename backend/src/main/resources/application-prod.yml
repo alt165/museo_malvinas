@@ -11,6 +11,9 @@ spring:
         format_sql: false
   flyway:
     enabled: true
+    baseline-on-migrate: false
+    user: ${SPRING_FLYWAY_USER}
+    password: ${SPRING_FLYWAY_PASSWORD}
   security:
     oauth2:
       resourceserver:

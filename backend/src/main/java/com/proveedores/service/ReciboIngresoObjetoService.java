@@ -2,6 +2,7 @@ package com.proveedores.service;
 
 import com.proveedores.dto.ReciboIngresoObjetoResponseDTO;
 import com.proveedores.entity.ReciboIngresoObjeto;
+import com.proveedores.entity.TipoOperacionAuditoria;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.ReciboIngresoObjetoRepository;
@@ -27,6 +28,7 @@ public class ReciboIngresoObjetoService {
     private final ReciboPdfService reciboPdfService;
     private final UploadFileValidator uploadFileValidator;
     private final TransactionalFileLifecycle transactionalFileLifecycle;
+    private final AuditoriaObjetoService auditoriaService;
     private final Path signedReceiptsDir;
     private final long maxSignedReceiptSizeBytes;
 
@@ -35,6 +37,7 @@ public class ReciboIngresoObjetoService {
             ReciboPdfService reciboPdfService,
             UploadFileValidator uploadFileValidator,
             TransactionalFileLifecycle transactionalFileLifecycle,
+            AuditoriaObjetoService auditoriaService,
             @Value("${app.storage.signed-receipts-dir}") String signedReceiptsDir,
             @Value("${app.upload.max-signed-receipt-size-mb}") long maxSignedReceiptSizeMb
     ) {
@@ -42,6 +45,7 @@ public class ReciboIngresoObjetoService {
         this.reciboPdfService = reciboPdfService;
         this.uploadFileValidator = uploadFileValidator;
         this.transactionalFileLifecycle = transactionalFileLifecycle;
+        this.auditoriaService = auditoriaService;
         this.signedReceiptsDir = Path.of(signedReceiptsDir).toAbsolutePath().normalize();
         this.maxSignedReceiptSizeBytes = maxSignedReceiptSizeMb * 1024L * 1024L;
     }
@@ -83,6 +87,12 @@ public class ReciboIngresoObjetoService {
         if (rutaAnterior != null && !rutaAnterior.equals(destino)) {
             transactionalFileLifecycle.deleteAfterCommit(() -> eliminarArchivo(rutaAnterior));
         }
+        auditoriaService.registrarEvento("RECIBO_INGRESO", saved.getId(), null, TipoOperacionAuditoria.MODIFICACION,
+                rutaAnterior == null ? "COPIA_FIRMADA_CARGADA" : "COPIA_FIRMADA_REEMPLAZADA",
+                "Carga de copia firmada de recibo", "ARCHIVOS", null,
+                auditoriaService.mapOf("objetoId", saved.getObjetoMuseo().getId(),
+                        "contentType", saved.getCopiaFirmadaContentType(),
+                        "tamanioBytes", saved.getCopiaFirmadaTamanioBytes()), cargadoPor);
         return toResponse(saved);
     }
 

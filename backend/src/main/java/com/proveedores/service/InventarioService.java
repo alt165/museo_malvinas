@@ -7,6 +7,7 @@ import com.proveedores.entity.Inventario;
 import com.proveedores.entity.MovimientoInventario;
 import com.proveedores.entity.ObjetoMuseo;
 import com.proveedores.entity.TipoMovimientoInventario;
+import com.proveedores.entity.TipoOperacionAuditoria;
 import com.proveedores.entity.Ubicacion;
 import com.proveedores.exception.ConflictException;
 import com.proveedores.exception.ResourceNotFoundException;
@@ -33,19 +34,22 @@ public class InventarioService {
     private final UbicacionRepository ubicacionRepository;
     private final MovimientoInventarioRepository movimientoInventarioRepository;
     private final UsuarioMovimientoService usuarioMovimientoService;
+    private final AuditoriaObjetoService auditoriaService;
 
     public InventarioService(
             InventarioRepository inventarioRepository,
             ObjetoMuseoRepository objetoMuseoRepository,
             UbicacionRepository ubicacionRepository,
             MovimientoInventarioRepository movimientoInventarioRepository,
-            UsuarioMovimientoService usuarioMovimientoService
+            UsuarioMovimientoService usuarioMovimientoService,
+            AuditoriaObjetoService auditoriaService
     ) {
         this.inventarioRepository = inventarioRepository;
         this.objetoMuseoRepository = objetoMuseoRepository;
         this.ubicacionRepository = ubicacionRepository;
         this.movimientoInventarioRepository = movimientoInventarioRepository;
         this.usuarioMovimientoService = usuarioMovimientoService;
+        this.auditoriaService = auditoriaService;
     }
 
     @Transactional
@@ -72,6 +76,9 @@ public class InventarioService {
         entity.setFechaUltimoMovimiento(com.proveedores.time.MuseoTime.now());
         Inventario saved = inventarioRepository.save(entity);
         registrarMovimiento(saved, TipoMovimientoInventario.INGRESO, null, ubicacion);
+        auditoriaService.registrarEvento("INVENTARIO", saved.getId(), null, TipoOperacionAuditoria.CREACION,
+                "INVENTARIO_CREADO", "Alta o reactivación de inventario", "INVENTARIO", null,
+                snapshot(saved), null);
         log.info("event=inventario.created inventarioId={} objetoMuseoId={} ubicacionId={} estado={}", saved.getId(), objeto.getId(), ubicacion.getId(), saved.getEstado());
         return InventarioMapper.toResponse(saved);
     }
@@ -122,6 +129,9 @@ public class InventarioService {
         } else {
             log.info("event=inventario.updated inventarioId={} objetoMuseoId={} estado={}", saved.getId(), objeto.getId(), saved.getEstado());
         }
+        auditoriaService.registrarEvento("INVENTARIO", saved.getId(), null, TipoOperacionAuditoria.MODIFICACION,
+                "INVENTARIO_ACTUALIZADO", "Actualización de inventario", "INVENTARIO",
+                auditoriaService.mapOf("estado", estadoAnterior, "ubicacionId", ubicacionAnterior.getId()), snapshot(saved), null);
         return InventarioMapper.toResponse(saved);
     }
 
@@ -132,7 +142,18 @@ public class InventarioService {
         entity.setEliminado(true);
         entity.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         inventarioRepository.save(entity);
+        auditoriaService.registrarEvento("INVENTARIO", entity.getId(), null, TipoOperacionAuditoria.ELIMINACION,
+                "INVENTARIO_ELIMINADO", "Baja lógica de inventario", "INVENTARIO", snapshot(entity), null, null);
         log.info("event=inventario.deleted inventarioId={} objetoMuseoId={}", entity.getId(), entity.getObjetoMuseo().getId());
+    }
+
+    private Object snapshot(Inventario inventario) {
+        return auditoriaService.mapOf(
+                "objetoId", inventario.getObjetoMuseo().getId(),
+                "estado", inventario.getEstado(),
+                "ubicacionId", inventario.getUbicacion().getId(),
+                "fechaUltimoMovimiento", inventario.getFechaUltimoMovimiento()
+        );
     }
 
     private void registrarMovimiento(Inventario inventario, TipoMovimientoInventario tipo, Ubicacion origen, Ubicacion destino) {

@@ -1,0 +1,248 @@
+x-logging: &production-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  postgres-museo:
+    image: postgres:16.11-alpine
+    environment:
+      POSTGRES_DB: ${MUSEO_DB_NAME:?MUSEO_DB_NAME is required}
+      POSTGRES_USER: ${MUSEO_DB_ADMIN_USER:?MUSEO_DB_ADMIN_USER is required}
+      POSTGRES_PASSWORD: ${MUSEO_DB_ADMIN_PASSWORD:?MUSEO_DB_ADMIN_PASSWORD is required}
+      MUSEO_DB_MIGRATOR_USER: ${MUSEO_DB_MIGRATOR_USER:?MUSEO_DB_MIGRATOR_USER is required}
+      MUSEO_DB_MIGRATOR_PASSWORD: ${MUSEO_DB_MIGRATOR_PASSWORD:?MUSEO_DB_MIGRATOR_PASSWORD is required}
+      MUSEO_DB_RUNTIME_USER: ${MUSEO_DB_RUNTIME_USER:?MUSEO_DB_RUNTIME_USER is required}
+      MUSEO_DB_RUNTIME_PASSWORD: ${MUSEO_DB_RUNTIME_PASSWORD:?MUSEO_DB_RUNTIME_PASSWORD is required}
+    volumes:
+      - ${MUSEO_DATA_DIR:?MUSEO_DATA_DIR is required}/postgres-museo:/var/lib/postgresql/data
+      - ./ops/postgres/init-museo.sh:/docker-entrypoint-initdb.d/10-init-museo.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+    mem_limit: 768m
+    cpus: 1.0
+    pids_limit: 200
+    logging: *production-logging
+    networks:
+      - museo-db
+
+  postgres-keycloak:
+    image: postgres:16.11-alpine
+    environment:
+      POSTGRES_DB: ${KEYCLOAK_DB_NAME:?KEYCLOAK_DB_NAME is required}
+      POSTGRES_USER: ${KEYCLOAK_DB_ADMIN_USER:?KEYCLOAK_DB_ADMIN_USER is required}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_ADMIN_PASSWORD:?KEYCLOAK_DB_ADMIN_PASSWORD is required}
+      KEYCLOAK_DB_USER: ${KEYCLOAK_DB_USER:?KEYCLOAK_DB_USER is required}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?KEYCLOAK_DB_PASSWORD is required}
+    volumes:
+      - ${MUSEO_DATA_DIR:?MUSEO_DATA_DIR is required}/postgres-keycloak:/var/lib/postgresql/data
+      - ./ops/postgres/init-keycloak.sh:/docker-entrypoint-initdb.d/10-init-keycloak.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+    mem_limit: 768m
+    cpus: 1.0
+    pids_limit: 200
+    logging: *production-logging
+    networks:
+      - keycloak-db
+
+  keycloak:
+    build:
+      context: ./ops/keycloak
+    command: ["start", "--optimized"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL_HOST: postgres-keycloak
+      KC_DB_URL_DATABASE: ${KEYCLOAK_DB_NAME:?KEYCLOAK_DB_NAME is required}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER:?KEYCLOAK_DB_USER is required}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?KEYCLOAK_DB_PASSWORD is required}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_BOOTSTRAP_ADMIN_USERNAME:?KEYCLOAK_BOOTSTRAP_ADMIN_USERNAME is required}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD:?KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD is required}
+      KC_HOSTNAME: ${PUBLIC_AUTH_URL:?PUBLIC_AUTH_URL is required}
+      KC_HOSTNAME_STRICT: "true"
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+      KC_CACHE: local
+      MUSEO_REALM: ${KEYCLOAK_REALM:-museo}
+      MUSEO_FRONTEND_CLIENT_ID: ${KEYCLOAK_FRONTEND_CLIENT_ID:-museo-frontend}
+      MUSEO_BACKEND_CLIENT_ID: ${KEYCLOAK_BACKEND_CLIENT_ID:-museo-backend}
+      MUSEO_ADMIN_CLIENT_ID: ${KEYCLOAK_ADMIN_CLIENT_ID:-museo-admin}
+      MUSEO_ADMIN_CLIENT_SECRET: ${KEYCLOAK_ADMIN_CLIENT_SECRET:?KEYCLOAK_ADMIN_CLIENT_SECRET is required}
+      MUSEO_PUBLIC_APP_URL: ${PUBLIC_APP_URL:?PUBLIC_APP_URL is required}
+      MUSEO_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_BOOTSTRAP_ADMIN_USERNAME:?KEYCLOAK_BOOTSTRAP_ADMIN_USERNAME is required}
+      MUSEO_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD:?KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD is required}
+    volumes:
+      - ./backend/docker/keycloak/themes:/opt/keycloak/themes:ro
+      - ./ops/keycloak:/opt/keycloak/tools:ro
+    depends_on:
+      postgres-keycloak:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -ec
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000;
+          printf 'GET /health/ready HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3;
+          grep -q '200 OK' <&3
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 45s
+    restart: unless-stopped
+    mem_limit: 1024m
+    cpus: 1.5
+    pids_limit: 300
+    logging: *production-logging
+    networks:
+      - edge
+      - keycloak-db
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-museo:5432/${MUSEO_DB_NAME:?MUSEO_DB_NAME is required}
+      SPRING_DATASOURCE_USERNAME: ${MUSEO_DB_RUNTIME_USER:?MUSEO_DB_RUNTIME_USER is required}
+      SPRING_DATASOURCE_PASSWORD: ${MUSEO_DB_RUNTIME_PASSWORD:?MUSEO_DB_RUNTIME_PASSWORD is required}
+      SPRING_FLYWAY_USER: ${MUSEO_DB_MIGRATOR_USER:?MUSEO_DB_MIGRATOR_USER is required}
+      SPRING_FLYWAY_PASSWORD: ${MUSEO_DB_MIGRATOR_PASSWORD:?MUSEO_DB_MIGRATOR_PASSWORD is required}
+      KEYCLOAK_ISSUER_URI: ${PUBLIC_AUTH_URL:?PUBLIC_AUTH_URL is required}/realms/${KEYCLOAK_REALM:-museo}
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/${KEYCLOAK_REALM:-museo}/protocol/openid-connect/certs
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_BACKEND_CLIENT_ID:-museo-backend}
+      KEYCLOAK_ADMIN_SERVER_URL: http://keycloak:8080
+      KEYCLOAK_ADMIN_REALM: ${KEYCLOAK_REALM:-museo}
+      KEYCLOAK_ADMIN_CLIENT_ID: ${KEYCLOAK_ADMIN_CLIENT_ID:-museo-admin}
+      KEYCLOAK_ADMIN_CLIENT_SECRET: ${KEYCLOAK_ADMIN_CLIENT_SECRET:?KEYCLOAK_ADMIN_CLIENT_SECRET is required}
+      APP_CORS_ALLOWED_ORIGINS: ${PUBLIC_APP_URL:?PUBLIC_APP_URL is required}
+      APP_STORAGE_OBJECT_FILES_DIR: /app/storage/object-files
+      APP_STORAGE_SIGNED_RECEIPTS_DIR: /app/storage/signed-receipts
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=70 -XX:+ExitOnOutOfMemoryError
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+    volumes:
+      - ${MUSEO_DATA_DIR:?MUSEO_DATA_DIR is required}/storage:/app/storage
+    depends_on:
+      postgres-museo:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/actuator/health/readiness >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 45s
+    restart: unless-stopped
+    mem_limit: 1536m
+    cpus: 2.0
+    pids_limit: 300
+    logging: *production-logging
+    networks:
+      - edge
+      - museo-db
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${PUBLIC_APP_URL:?PUBLIC_APP_URL is required}
+        NEXT_PUBLIC_KEYCLOAK_URL: ${PUBLIC_AUTH_URL:?PUBLIC_AUTH_URL is required}
+        NEXT_PUBLIC_KEYCLOAK_REALM: ${KEYCLOAK_REALM:-museo}
+        NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: ${KEYCLOAK_FRONTEND_CLIENT_ID:-museo-frontend}
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${PUBLIC_APP_URL:?PUBLIC_APP_URL is required}
+      NEXT_PUBLIC_KEYCLOAK_URL: ${PUBLIC_AUTH_URL:?PUBLIC_AUTH_URL is required}
+      NEXT_PUBLIC_KEYCLOAK_REALM: ${KEYCLOAK_REALM:-museo}
+      NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: ${KEYCLOAK_FRONTEND_CLIENT_ID:-museo-frontend}
+      NODE_OPTIONS: --max-old-space-size=384
+    depends_on:
+      backend:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 200
+    logging: *production-logging
+    networks:
+      - edge
+
+  reverse-proxy:
+    image: nginx:1.27.4-alpine
+    environment:
+      APP_HOST: ${APP_HOST:?APP_HOST is required}
+      AUTH_HOST: ${AUTH_HOST:?AUTH_HOST is required}
+    volumes:
+      - ./ops/nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ${TLS_CERT_DIR:?TLS_CERT_DIR is required}:/etc/nginx/tls:ro
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    ports:
+      - ${PROXY_BIND_ADDRESS:-0.0.0.0}:${HTTP_PORT:-80}:80
+      - ${PROXY_BIND_ADDRESS:-0.0.0.0}:${HTTPS_PORT:-443}:443
+    read_only: true
+    tmpfs:
+      - /etc/nginx/conf.d:size=1m
+      - /var/cache/nginx:size=64m
+      - /var/run:size=8m
+      - /tmp:size=16m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    mem_limit: 128m
+    cpus: 0.5
+    pids_limit: 100
+    logging: *production-logging
+    networks:
+      - edge
+
+networks:
+  edge:
+    driver: bridge
+  museo-db:
+    driver: bridge
+    internal: true
+  keycloak-db:
+    driver: bridge
+    internal: true

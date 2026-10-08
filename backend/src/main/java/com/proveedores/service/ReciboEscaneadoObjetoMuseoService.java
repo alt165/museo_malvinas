@@ -3,6 +3,7 @@ package com.proveedores.service;
 import com.proveedores.dto.ReciboEscaneadoObjetoMuseoResponseDTO;
 import com.proveedores.entity.ObjetoMuseo;
 import com.proveedores.entity.ReciboEscaneadoObjetoMuseo;
+import com.proveedores.entity.TipoOperacionAuditoria;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.ReciboEscaneadoObjetoMuseoRepository;
@@ -20,6 +21,7 @@ public class ReciboEscaneadoObjetoMuseoService {
     private final ObjectFileStorageService objectFileStorageService;
     private final UploadFileValidator uploadFileValidator;
     private final TransactionalFileLifecycle transactionalFileLifecycle;
+    private final AuditoriaObjetoService auditoriaService;
     private final long maxSizeBytes;
 
     public ReciboEscaneadoObjetoMuseoService(
@@ -28,6 +30,7 @@ public class ReciboEscaneadoObjetoMuseoService {
             ObjectFileStorageService objectFileStorageService,
             UploadFileValidator uploadFileValidator,
             TransactionalFileLifecycle transactionalFileLifecycle,
+            AuditoriaObjetoService auditoriaService,
             @org.springframework.beans.factory.annotation.Value("${app.upload.max-receipt-size-mb}") long maxReceiptSizeMb
     ) {
         this.reciboEscaneadoRepository = reciboEscaneadoRepository;
@@ -35,6 +38,7 @@ public class ReciboEscaneadoObjetoMuseoService {
         this.objectFileStorageService = objectFileStorageService;
         this.uploadFileValidator = uploadFileValidator;
         this.transactionalFileLifecycle = transactionalFileLifecycle;
+        this.auditoriaService = auditoriaService;
         this.maxSizeBytes = maxReceiptSizeMb * 1024L * 1024L;
     }
 
@@ -69,6 +73,11 @@ public class ReciboEscaneadoObjetoMuseoService {
         if (anterior != null) {
             transactionalFileLifecycle.deleteAfterCommit(() -> objectFileStorageService.delete(anterior.getRutaRelativa()));
         }
+        auditoriaService.registrarEvento("RECIBO_ESCANEADO", saved.getId(), null, TipoOperacionAuditoria.CREACION,
+                anterior == null ? "RECIBO_CARGADO" : "RECIBO_REEMPLAZADO",
+                "Carga de recibo escaneado", "ARCHIVOS", null,
+                auditoriaService.mapOf("objetoId", objetoId, "contentType", saved.getContentType(),
+                        "tamanioBytes", saved.getTamanioBytes()), cargadoPor);
         return toResponse(saved);
     }
 
@@ -92,6 +101,9 @@ public class ReciboEscaneadoObjetoMuseoService {
         ReciboEscaneadoObjetoMuseo recibo = reciboEscaneadoRepository.findByIdAndObjetoMuseoIdAndEliminadoFalse(reciboId, objetoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Recibo escaneado no encontrado"));
         eliminarActivo(recibo);
+        auditoriaService.registrarEvento("RECIBO_ESCANEADO", recibo.getId(), null, TipoOperacionAuditoria.ELIMINACION,
+                "RECIBO_ELIMINADO", "Baja lógica de recibo escaneado", "ARCHIVOS",
+                auditoriaService.mapOf("objetoId", objetoId), null, null);
     }
 
     private void eliminarActivo(ReciboEscaneadoObjetoMuseo recibo) {

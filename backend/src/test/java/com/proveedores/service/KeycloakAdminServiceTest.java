@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 import com.proveedores.config.KeycloakAdminProperties;
@@ -53,6 +55,8 @@ class KeycloakAdminServiceTest {
     private RolesResource rolesResource;
     @Mock
     private RoleResource adminRoleResource;
+    @Mock
+    private AuditoriaObjetoService auditoriaService;
 
     private KeycloakAdminService service;
 
@@ -64,7 +68,7 @@ class KeycloakAdminServiceTest {
                 "museo-admin",
                 "secret"
         );
-        service = new KeycloakAdminService(keycloak, properties);
+        service = new KeycloakAdminService(keycloak, properties, auditoriaService);
     }
 
     @Test
@@ -192,6 +196,8 @@ class KeycloakAdminServiceTest {
     void resetearContrasenaSiempreUsaCredencialTemporal() {
         prepararRealm();
         when(usersResource.get("user-id")).thenReturn(userResource);
+        Map<String, Object> datosAuditoria = Map.of("credencialTemporalConfigurada", true);
+        when(auditoriaService.mapOf("credencialTemporalConfigurada", true)).thenReturn(datosAuditoria);
 
         service.resetearContrasenaTemporal("user-id", new ResetPasswordRequestDTO("NuevaClave123"));
 
@@ -199,6 +205,78 @@ class KeycloakAdminServiceTest {
         verify(userResource).resetPassword(captor.capture());
         assertThat(captor.getValue().getValue()).isEqualTo("NuevaClave123");
         assertThat(captor.getValue().isTemporary()).isTrue();
+        ArgumentCaptor<Object> datosCaptor = ArgumentCaptor.forClass(Object.class);
+        verify(auditoriaService).registrarEventoIndependiente(
+                org.mockito.ArgumentMatchers.eq("USUARIO_KEYCLOAK"),
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.eq("user-id"),
+                any(),
+                org.mockito.ArgumentMatchers.eq("PASSWORD_TEMPORAL_RESETEADA"),
+                any(), any(), org.mockito.ArgumentMatchers.isNull(), datosCaptor.capture(), any()
+        );
+        assertThat(datosCaptor.getValue()).isEqualTo(datosAuditoria);
+        assertThat(datosCaptor.getValue().toString()).doesNotContain("NuevaClave123", "password", "contrasena");
+    }
+
+    @Test
+    void rolInexistenteNoRetiraRolesActuales() {
+        prepararRealm();
+        prepararUsuarioExistente("user-id", "admin", "Admin", "Local", "admin@test", "12345678",
+                List.of(role("ADMIN")), List.of(role("ADMIN")));
+        when(realmResource.roles()).thenReturn(rolesResource);
+        when(rolesResource.get("MUSEOLOGO")).thenReturn(adminRoleResource);
+        when(adminRoleResource.toRepresentation()).thenThrow(new jakarta.ws.rs.WebApplicationException());
+
+        assertThatThrownBy(() -> service.asignarRoles("user-id",
+                new AsignarRolRequestDTO(Set.of("MUSEOLOGO"), true), "other-admin"))
+                .isInstanceOf(BusinessException.class);
+
+        verify(roleScopeResource, never()).add(any());
+        verify(roleScopeResource, never()).remove(any());
+    }
+
+    @Test
+    void falloAlAgregarNoRetiraRolesActuales() {
+        prepararRealm();
+        prepararUsuarioExistente("user-id", "admin", "Admin", "Local", "admin@test", "12345678",
+                List.of(role("ADMIN")), List.of(role("ADMIN")));
+        prepararRolRealm("MUSEOLOGO");
+        doThrow(new jakarta.ws.rs.WebApplicationException()).when(roleScopeResource).add(any());
+
+        assertThatThrownBy(() -> service.asignarRoles("user-id",
+                new AsignarRolRequestDTO(Set.of("MUSEOLOGO"), true), "other-admin"))
+                .isInstanceOf(BusinessException.class);
+
+        verify(roleScopeResource, never()).remove(any());
+    }
+
+    @Test
+    void falloAlRetirarConservaRolAnteriorYRolNuevo() {
+        prepararRealm();
+        prepararUsuarioExistente("user-id", "admin", "Admin", "Local", "admin@test", "12345678",
+                List.of(role("ADMIN")), List.of(role("ADMIN"), role("MUSEOLOGO")));
+        prepararRolRealm("MUSEOLOGO");
+        doThrow(new jakarta.ws.rs.WebApplicationException()).when(roleScopeResource).remove(any());
+
+        assertThatThrownBy(() -> service.asignarRoles("user-id",
+                new AsignarRolRequestDTO(Set.of("MUSEOLOGO"), true), "other-admin"))
+                .isInstanceOf(BusinessException.class);
+
+        verify(roleScopeResource).add(any());
+        verify(roleScopeResource).remove(any());
+    }
+
+    @Test
+    void mismosRolesNoEjecutanMutaciones() {
+        prepararRealm();
+        prepararUsuarioExistente("user-id", "museologo", "Museo", "Logo", "museo@test", "12345678",
+                List.of(role("MUSEOLOGO")), List.of(role("MUSEOLOGO")));
+        prepararRolRealm("MUSEOLOGO");
+
+        service.asignarRoles("user-id", new AsignarRolRequestDTO(Set.of("MUSEOLOGO"), true), "admin-id");
+
+        verify(roleScopeResource, never()).add(any());
+        verify(roleScopeResource, never()).remove(any());
     }
 
     private void prepararUsuarioExistente(
@@ -220,7 +298,7 @@ class KeycloakAdminServiceTest {
         usuario.setEnabled(true);
         usuario.setAttributes(Map.of("dni", List.of(dni)));
         when(usersResource.get(id)).thenReturn(userResource);
-        when(userResource.toRepresentation()).thenReturn(usuario);
+        org.mockito.Mockito.lenient().when(userResource.toRepresentation()).thenReturn(usuario);
         when(userResource.roles()).thenReturn(roleMappingResource);
         when(roleMappingResource.realmLevel()).thenReturn(roleScopeResource);
         when(roleScopeResource.listAll()).thenReturn(rolesActuales, rolesRespuesta);

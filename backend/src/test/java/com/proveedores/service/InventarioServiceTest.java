@@ -42,6 +42,8 @@ class InventarioServiceTest {
     private MovimientoInventarioRepository movimientoInventarioRepository;
     @Mock
     private UsuarioMovimientoService usuarioMovimientoService;
+    @Mock
+    private AuditoriaObjetoService auditoriaService;
 
     @InjectMocks
     private InventarioService service;

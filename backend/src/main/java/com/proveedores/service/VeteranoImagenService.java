@@ -3,6 +3,7 @@ package com.proveedores.service;
 import com.proveedores.dto.VeteranoImagenResponseDTO;
 import com.proveedores.entity.Veterano;
 import com.proveedores.entity.VeteranoImagen;
+import com.proveedores.entity.TipoOperacionAuditoria;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.VeteranoImagenRepository;
@@ -21,6 +22,7 @@ public class VeteranoImagenService {
     private final ObjectFileStorageService objectFileStorageService;
     private final UploadFileValidator uploadFileValidator;
     private final TransactionalFileLifecycle transactionalFileLifecycle;
+    private final AuditoriaObjetoService auditoriaService;
     private final long maxSizeBytes;
     private final int maxFilesPerRequest;
 
@@ -30,6 +32,7 @@ public class VeteranoImagenService {
             ObjectFileStorageService objectFileStorageService,
             UploadFileValidator uploadFileValidator,
             TransactionalFileLifecycle transactionalFileLifecycle,
+            AuditoriaObjetoService auditoriaService,
             @org.springframework.beans.factory.annotation.Value("${app.upload.max-photo-size-mb}") long maxPhotoSizeMb,
             @org.springframework.beans.factory.annotation.Value("${app.upload.max-files-per-request:10}") int maxFilesPerRequest
     ) {
@@ -38,6 +41,7 @@ public class VeteranoImagenService {
         this.objectFileStorageService = objectFileStorageService;
         this.uploadFileValidator = uploadFileValidator;
         this.transactionalFileLifecycle = transactionalFileLifecycle;
+        this.auditoriaService = auditoriaService;
         this.maxSizeBytes = maxPhotoSizeMb * 1024L * 1024L;
         this.maxFilesPerRequest = maxFilesPerRequest;
     }
@@ -86,7 +90,12 @@ public class VeteranoImagenService {
         imagen.setOrden((int) veteranoImagenRepository.countByVeteranoIdAndEliminadoFalse(veterano.getId()));
         imagen.setFechaCarga(com.proveedores.time.MuseoTime.now());
         imagen.setCargadoPor(cargadoPor);
-        return toResponse(veteranoImagenRepository.save(imagen));
+        VeteranoImagen saved = veteranoImagenRepository.save(imagen);
+        auditoriaService.registrarEvento("VETERANO_IMAGEN", saved.getId(), null, TipoOperacionAuditoria.CREACION,
+                "MULTIMEDIA_PERSONA_CARGADA", "Carga de imagen de veterano", "ARCHIVOS", null,
+                auditoriaService.mapOf("veteranoId", veterano.getId(), "contentType", saved.getTipoContenido(),
+                        "tamanioBytes", saved.getTamanioBytes()), cargadoPor);
+        return toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -116,6 +125,9 @@ public class VeteranoImagenService {
         imagen.setEliminado(true);
         imagen.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         veteranoImagenRepository.save(imagen);
+        auditoriaService.registrarEvento("VETERANO_IMAGEN", imagen.getId(), null, TipoOperacionAuditoria.ELIMINACION,
+                "MULTIMEDIA_PERSONA_ELIMINADA", "Baja lógica de imagen de veterano", "ARCHIVOS",
+                auditoriaService.mapOf("veteranoId", veteranoId), null, null);
     }
 
     private VeteranoImagen buscarImagen(Long veteranoId, Long imagenId) {

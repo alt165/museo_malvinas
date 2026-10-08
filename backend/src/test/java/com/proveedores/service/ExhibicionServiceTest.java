@@ -53,7 +53,7 @@ class ExhibicionServiceTest {
         pendiente.setObjetoMuseo(objeto());
         pendiente.setEstado(EstadoExhibicionObjeto.PENDIENTE_REVISION);
         pendiente.setDevolucionVerificada(false);
-        when(exhibicionRepository.findById(1L)).thenReturn(Optional.of(exhibicion));
+        when(exhibicionObjetoService.buscarExhibicionBloqueada(1L)).thenReturn(exhibicion);
         when(exhibicionObjetoRepository.findByExhibicionIdAndEliminadoFalse(1L)).thenReturn(List.of(pendiente));
         when(exhibicionRepository.save(exhibicion)).thenReturn(exhibicion);
         when(exhibicionObjetoRepository.save(any(ExhibicionObjeto.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -75,7 +75,7 @@ class ExhibicionServiceTest {
         devuelto.setObjetoMuseo(objeto());
         devuelto.setEstado(EstadoExhibicionObjeto.DEVUELTO);
         devuelto.setDevolucionVerificada(true);
-        when(exhibicionRepository.findById(1L)).thenReturn(Optional.of(exhibicion));
+        when(exhibicionObjetoService.buscarExhibicionBloqueada(1L)).thenReturn(exhibicion);
         when(exhibicionObjetoRepository.findByExhibicionIdAndEliminadoFalse(1L)).thenReturn(List.of(devuelto));
         when(exhibicionRepository.save(exhibicion)).thenReturn(exhibicion);
 
@@ -300,7 +300,7 @@ class ExhibicionServiceTest {
         relacion.setObjetoMuseo(objeto());
         relacion.setEstado(EstadoExhibicionObjeto.EN_EXHIBICION);
         relacion.setDevolucionVerificada(false);
-        when(exhibicionRepository.findById(1L)).thenReturn(Optional.of(exhibicion));
+        when(exhibicionObjetoService.buscarExhibicionBloqueada(1L)).thenReturn(exhibicion);
         when(exhibicionRepository.save(exhibicion)).thenReturn(exhibicion);
         when(exhibicionObjetoRepository.findByExhibicionIdAndEliminadoFalse(1L)).thenReturn(List.of(relacion));
         when(exhibicionObjetoRepository.save(any(ExhibicionObjeto.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -320,7 +320,7 @@ class ExhibicionServiceTest {
         Exhibicion exhibicion = exhibicion();
         exhibicion.setEstado(EstadoExhibicion.ACTIVA);
         exhibicion.setFechaInicio(LocalDate.now());
-        when(exhibicionRepository.findById(1L)).thenReturn(Optional.of(exhibicion));
+        when(exhibicionObjetoService.buscarExhibicionBloqueada(1L)).thenReturn(exhibicion);
 
         assertThatThrownBy(() -> service.cancelar(1L))
                 .isInstanceOf(BusinessException.class)
@@ -413,6 +413,7 @@ class ExhibicionServiceTest {
         planificada.setFechaInicio(LocalDate.now());
         when(exhibicionRepository.findByEstadoAndEliminadoFalseAndFechaInicioLessThanEqual(EstadoExhibicion.PLANIFICADA, LocalDate.now()))
                 .thenReturn(List.of(planificada));
+        when(exhibicionObjetoService.buscarExhibicionBloqueada(1L)).thenReturn(planificada);
         when(exhibicionRepository.save(planificada)).thenReturn(planificada);
         when(exhibicionObjetoRepository.findByExhibicionIdAndEliminadoFalse(1L)).thenReturn(List.of());
 

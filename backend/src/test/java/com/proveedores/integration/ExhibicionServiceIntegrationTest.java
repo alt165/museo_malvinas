@@ -195,6 +195,70 @@ class ExhibicionServiceIntegrationTest extends IntegrationTestBase {
                 .satisfies(asignacion -> assertThat(asignacion.objetoMuseoId()).isEqualTo(objeto.id()));
     }
 
+    @Test
+    void exhibicionFinalizadaNoPuedeDarseDeBajaNiLiberarObjetoConDevolucionPendiente() {
+        var objeto = objetoMuseoService.crear(ObjetoMuseoTestFixture.valido("IT-EXH-DELETE-PENDING", "Objeto pendiente baja"));
+        var exhibicion = crearExhibicion("IT Exhibicion pendiente de baja");
+        exhibicionObjetoService.crear(new ExhibicionObjetoRequestDTO(exhibicion.id(), objeto.id()));
+        exhibicionService.finalizar(exhibicion.id());
+
+        assertThatThrownBy(() -> exhibicionService.bajaLogica(exhibicion.id()))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("devolución pendiente");
+        assertThatThrownBy(() -> exhibicionService.crear(new ExhibicionRequestDTO(
+                "IT Reserva bloqueada por devolución",
+                null,
+                TipoExhibicion.PERMANENTE,
+                LocalDate.now(),
+                null,
+                EstadoExhibicion.ACTIVA,
+                java.util.Set.of(objeto.id())
+        ))).isInstanceOf(ConflictException.class);
+
+        assertThat(exhibicionRepository.findById(exhibicion.id())).get().satisfies(entity -> {
+            assertThat(entity.getEliminado()).isFalse();
+            assertThat(entity.getEstado()).isEqualTo(EstadoExhibicion.FINALIZADA);
+        });
+        assertThat(exhibicionObjetoRepository.findByExhibicionIdAndEliminadoFalse(exhibicion.id()))
+                .singleElement()
+                .satisfies(relacion -> {
+                    assertThat(relacion.getEstado()).isEqualTo(EstadoExhibicionObjeto.PENDIENTE_REVISION);
+                    assertThat(relacion.getDevolucionVerificada()).isFalse();
+                });
+    }
+
+    @Test
+    void devolucionVerificadaPermiteBajaYReservaPosterior() {
+        var objeto = objetoMuseoService.crear(ObjetoMuseoTestFixture.valido("IT-EXH-DELETE-RETURNED", "Objeto devuelto baja"));
+        var exhibicion = crearExhibicion("IT Exhibicion devuelta para baja");
+        var relacion = exhibicionObjetoService.crear(new ExhibicionObjetoRequestDTO(exhibicion.id(), objeto.id()));
+        exhibicionService.finalizar(exhibicion.id());
+
+        var usuario = new com.proveedores.entity.Usuario();
+        usuario.setNombre("Verificador baja");
+        usuario.setEmail("verificador-baja@example.test");
+        usuario.setKeycloakId("kc-verificador-baja");
+        usuario.setFechaCreacion(com.proveedores.time.MuseoTime.now());
+        usuarioRepository.save(usuario);
+        exhibicionObjetoService.verificarDevolucion(relacion.id(), "Retorno verificado antes de la baja", usuario.getEmail());
+
+        exhibicionService.bajaLogica(exhibicion.id());
+        var nueva = exhibicionService.crear(new ExhibicionRequestDTO(
+                "IT Reserva posterior a baja segura",
+                null,
+                TipoExhibicion.PERMANENTE,
+                LocalDate.now(),
+                null,
+                EstadoExhibicion.ACTIVA,
+                java.util.Set.of(objeto.id())
+        ));
+
+        assertThat(exhibicionRepository.findById(exhibicion.id())).get()
+                .satisfies(entity -> assertThat(entity.getEliminado()).isTrue());
+        assertThat(nueva.objetos()).singleElement()
+                .satisfies(asignacion -> assertThat(asignacion.objetoMuseoId()).isEqualTo(objeto.id()));
+    }
+
     private com.proveedores.dto.ExhibicionResponseDTO crearExhibicion(String nombre) {
         return exhibicionService.crear(new ExhibicionRequestDTO(
                 nombre,

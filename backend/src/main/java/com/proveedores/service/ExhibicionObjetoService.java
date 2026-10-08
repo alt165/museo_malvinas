@@ -58,7 +58,7 @@ public class ExhibicionObjetoService {
 
     @Transactional
     public ExhibicionObjetoResponseDTO crear(ExhibicionObjetoRequestDTO dto, String operador) {
-        Exhibicion exhibicion = buscarExhibicion(dto.exhibicionId());
+        Exhibicion exhibicion = buscarExhibicionBloqueada(dto.exhibicionId());
         validarEstadoAsignable(exhibicion);
         bloquearYValidarAsignaciones(Set.of(dto.objetoMuseoId()), exhibicion.getFechaInicio(), exhibicion.getFechaFin(), exhibicion.getId());
         ObjetoMuseo objeto = buscarObjeto(dto.objetoMuseoId());
@@ -98,6 +98,7 @@ public class ExhibicionObjetoService {
     @Transactional
     public ExhibicionObjetoResponseDTO verificarDevolucion(Long id, String observaciones, String operador) {
         ExhibicionObjeto entity = buscarActivo(id);
+        entity.setExhibicion(buscarExhibicionBloqueada(entity.getExhibicion().getId()));
         bloquearObjetos(List.of(entity.getObjetoMuseo().getId()));
         if (Boolean.TRUE.equals(entity.getDevolucionVerificada())) {
             throw new ConflictException("La devolución ya fue verificada");
@@ -122,6 +123,10 @@ public class ExhibicionObjetoService {
                 snapshotExhibicion(saved),
                 operador
         );
+        auditoriaObjetoService.registrarEvento("EXHIBICION_OBJETO", saved.getId(), null,
+                TipoOperacionAuditoria.MODIFICACION, "DEVOLUCION_VERIFICADA",
+                "Verificación física de devolución de objeto", "EXHIBICIONES", anteriores,
+                snapshotExhibicion(saved), operador);
         log.info("event=exhibicion_objeto.return_verified exhibicionObjetoId={} exhibicionId={} objetoMuseoId={}", saved.getId(), saved.getExhibicion().getId(), saved.getObjetoMuseo().getId());
         return ExhibicionObjetoMapper.toResponse(saved);
     }
@@ -129,6 +134,7 @@ public class ExhibicionObjetoService {
     @Transactional
     public ExhibicionObjetoResponseDTO revertirDevolucion(Long id, String operador) {
         ExhibicionObjeto entity = buscarActivo(id);
+        entity.setExhibicion(buscarExhibicionBloqueada(entity.getExhibicion().getId()));
         bloquearObjetos(List.of(entity.getObjetoMuseo().getId()));
         var anteriores = snapshotExhibicion(entity);
         entity.setEstado(entity.getExhibicion().getEstado() == EstadoExhibicion.FINALIZADA
@@ -149,6 +155,10 @@ public class ExhibicionObjetoService {
                 snapshotExhibicion(saved),
                 operador
         );
+        auditoriaObjetoService.registrarEvento("EXHIBICION_OBJETO", saved.getId(), null,
+                TipoOperacionAuditoria.MODIFICACION, "DEVOLUCION_REVERTIDA",
+                "Reversión de verificación física de devolución", "EXHIBICIONES", anteriores,
+                snapshotExhibicion(saved), operador);
         log.info("event=exhibicion_objeto.return_reverted exhibicionObjetoId={} exhibicionId={} objetoMuseoId={}", saved.getId(), saved.getExhibicion().getId(), saved.getObjetoMuseo().getId());
         return ExhibicionObjetoMapper.toResponse(saved);
     }
@@ -156,6 +166,7 @@ public class ExhibicionObjetoService {
     @Transactional
     public void bajaLogica(Long id, String operador) {
         ExhibicionObjeto entity = buscarActivo(id);
+        entity.setExhibicion(buscarExhibicionBloqueada(entity.getExhibicion().getId()));
         bloquearObjetos(List.of(entity.getObjetoMuseo().getId()));
         eliminarAsignacion(entity, operador);
         log.info("event=exhibicion_objeto.deleted exhibicionObjetoId={} exhibicionId={} objetoMuseoId={}", entity.getId(), entity.getExhibicion().getId(), entity.getObjetoMuseo().getId());
@@ -233,7 +244,7 @@ public class ExhibicionObjetoService {
 
     public Exhibicion buscarConflicto(Long objetoId, LocalDate fechaInicio, LocalDate fechaFin, Long exhibicionId) {
         return exhibicionObjetoRepository.findByObjetoMuseoIdAndEliminadoFalse(objetoId).stream()
-                .filter(relacion -> relacion.getExhibicion() != null && !relacion.getExhibicion().getEliminado())
+                .filter(relacion -> relacion.getExhibicion() != null)
                 .filter(relacion -> exhibicionId == null || !relacion.getExhibicion().getId().equals(exhibicionId))
                 .filter(this::bloqueaDisponibilidad)
                 .filter(relacion -> {
@@ -245,6 +256,11 @@ public class ExhibicionObjetoService {
                 .map(ExhibicionObjeto::getExhibicion)
                 .findFirst()
                 .orElse(null);
+    }
+
+    public boolean tieneAsignacionesSinLiberar(Long exhibicionId) {
+        return exhibicionObjetoRepository.findByExhibicionIdAndEliminadoFalse(exhibicionId).stream()
+                .anyMatch(this::bloqueaDisponibilidad);
     }
 
     private boolean bloqueaDisponibilidad(ExhibicionObjeto relacion) {
@@ -314,8 +330,9 @@ public class ExhibicionObjetoService {
         return entity;
     }
 
-    private Exhibicion buscarExhibicion(Long id) {
-        Exhibicion entity = exhibicionRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Exhibicion no encontrada"));
+    public Exhibicion buscarExhibicionBloqueada(Long id) {
+        Exhibicion entity = exhibicionRepository.lockByIdForUpdate(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Exhibicion no encontrada"));
         if (entity.getEliminado()) {
             throw new ResourceNotFoundException("Exhibicion no encontrada");
         }

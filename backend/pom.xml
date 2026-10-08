@@ -21,7 +21,7 @@
         <java.version>17</java.version>
         <maven.compiler.release>17</maven.compiler.release>
         <springdoc-openapi.version>2.6.0</springdoc-openapi.version>
-        <keycloak-admin-client.version>25.0.6</keycloak-admin-client.version>
+        <keycloak-admin-client.version>26.0.12</keycloak-admin-client.version>
         <itext.version>7.2.5</itext.version>
         <testcontainers.version>1.21.3</testcontainers.version>
         <twelvemonkeys.version>3.15.2</twelvemonkeys.version>
