@@ -4,6 +4,7 @@ import com.proveedores.dto.VeteranoVideoRequestDTO;
 import com.proveedores.dto.VeteranoVideoResponseDTO;
 import com.proveedores.entity.Veterano;
 import com.proveedores.entity.VeteranoVideo;
+import com.proveedores.entity.TipoOperacionAuditoria;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.VeteranoVideoRepository;
@@ -20,10 +21,13 @@ public class VeteranoVideoService {
 
     private final VeteranoVideoRepository veteranoVideoRepository;
     private final VeteranoService veteranoService;
+    private final AuditoriaObjetoService auditoriaService;
 
-    public VeteranoVideoService(VeteranoVideoRepository veteranoVideoRepository, VeteranoService veteranoService) {
+    public VeteranoVideoService(VeteranoVideoRepository veteranoVideoRepository, VeteranoService veteranoService,
+                                AuditoriaObjetoService auditoriaService) {
         this.veteranoVideoRepository = veteranoVideoRepository;
         this.veteranoService = veteranoService;
+        this.auditoriaService = auditoriaService;
     }
 
     @Transactional
@@ -32,7 +36,11 @@ public class VeteranoVideoService {
         VeteranoVideo video = new VeteranoVideo();
         video.setVeterano(veterano);
         aplicarDatos(video, dto, veteranoId, true);
-        return toResponse(veteranoVideoRepository.save(video));
+        VeteranoVideo saved = veteranoVideoRepository.save(video);
+        auditoriaService.registrarEvento("VETERANO_VIDEO", saved.getId(), null, TipoOperacionAuditoria.CREACION,
+                "MULTIMEDIA_PERSONA_CREADA", "Alta de referencia de video de veterano", "MULTIMEDIA", null,
+                auditoriaService.mapOf("veteranoId", veteranoId, "videoId", saved.getVideoId()), null);
+        return toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -46,8 +54,13 @@ public class VeteranoVideoService {
     @Transactional
     public VeteranoVideoResponseDTO actualizar(Long veteranoId, Long videoId, VeteranoVideoRequestDTO dto) {
         VeteranoVideo video = buscarVideo(veteranoId, videoId);
+        Object anterior = auditoriaService.mapOf("titulo", video.getTitulo(), "videoId", video.getVideoId());
         aplicarDatos(video, dto, veteranoId, false);
-        return toResponse(veteranoVideoRepository.save(video));
+        VeteranoVideo saved = veteranoVideoRepository.save(video);
+        auditoriaService.registrarEvento("VETERANO_VIDEO", saved.getId(), null, TipoOperacionAuditoria.MODIFICACION,
+                "MULTIMEDIA_PERSONA_ACTUALIZADA", "Actualización de referencia de video de veterano", "MULTIMEDIA",
+                anterior, auditoriaService.mapOf("titulo", saved.getTitulo(), "videoId", saved.getVideoId()), null);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -57,6 +70,9 @@ public class VeteranoVideoService {
         video.setEliminado(true);
         video.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         veteranoVideoRepository.save(video);
+        auditoriaService.registrarEvento("VETERANO_VIDEO", video.getId(), null, TipoOperacionAuditoria.ELIMINACION,
+                "MULTIMEDIA_PERSONA_ELIMINADA", "Baja lógica de referencia de video de veterano", "MULTIMEDIA",
+                auditoriaService.mapOf("veteranoId", veteranoId, "videoId", video.getVideoId()), null, null);
     }
 
     private void aplicarDatos(VeteranoVideo video, VeteranoVideoRequestDTO dto, Long veteranoId, boolean nuevo) {

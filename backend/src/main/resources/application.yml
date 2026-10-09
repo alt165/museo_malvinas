@@ -1,6 +1,10 @@
 spring:
   application:
     name: museo-backend
+  servlet:
+    multipart:
+      max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:10MB}
+      max-request-size: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:51MB}
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/museo}
     username: ${SPRING_DATASOURCE_USERNAME:museo}
@@ -43,6 +47,8 @@ app:
     max-photo-size-mb: ${APP_UPLOAD_MAX_PHOTO_SIZE_MB:5}
     max-receipt-size-mb: ${APP_UPLOAD_MAX_RECEIPT_SIZE_MB:10}
     max-signed-receipt-size-mb: ${APP_UPLOAD_MAX_SIGNED_RECEIPT_SIZE_MB:10}
+    max-files-per-request: ${APP_UPLOAD_MAX_FILES_PER_REQUEST:10}
+    max-image-pixels: ${APP_UPLOAD_MAX_IMAGE_PIXELS:40000000}
   images:
     public-version:
       max-size: ${APP_IMAGES_PUBLIC_MAX_SIZE:1600}

@@ -32,6 +32,7 @@ import com.proveedores.entity.TipoOperacionAuditoria;
 import com.proveedores.entity.VisibilidadCampo;
 import com.proveedores.entity.Ubicacion;
 import com.proveedores.exception.BusinessException;
+import com.proveedores.exception.ConflictException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.mapper.ObjetoMuseoMapper;
 import com.proveedores.repository.CategoriaObjetoRepository;
@@ -341,11 +342,14 @@ public class ObjetoMuseoService {
     public ObjetoMuseoResponseDTO agregarCategoria(Long id, AgregarCategoriaObjetoRequestDTO dto) {
         ObjetoMuseo objeto = buscarActivo(id);
         CategoriaObjeto categoria = buscarCategoriaActiva(dto.categoriaId());
-        if (objetoCategoriaRepository.existsByObjetoMuseoIdAndCategoriaObjetoIdAndEliminadoFalse(id, dto.categoriaId())) {
-            throw new BusinessException("El objeto ya tiene asociada esa categoria");
+        ObjetoCategoria relacion = objetoCategoriaRepository
+                .findByObjetoMuseoIdAndCategoriaObjetoId(id, dto.categoriaId())
+                .orElse(null);
+        if (relacion != null && !relacion.getEliminado()) {
+            throw new ConflictException("El objeto ya tiene asociada esa categoria");
         }
-
-        ObjetoCategoria relacion = new ObjetoCategoria();
+        if (relacion == null) relacion = new ObjetoCategoria();
+        else reactivar(relacion);
         relacion.setObjetoMuseo(objeto);
         relacion.setCategoriaObjeto(categoria);
         relacion.setObservaciones(dto.observaciones());
@@ -916,7 +920,13 @@ public class ObjetoMuseoService {
         Depositante depositante = buscarDepositanteActivo(dto.depositanteId());
 
         ObjetoDepositante relacion = objetoDepositanteRepository.findFirstByObjetoMuseoIdAndEliminadoFalseOrderByIdAsc(objeto.getId())
-                .orElseGet(ObjetoDepositante::new);
+                .orElseGet(() -> objetoDepositanteRepository
+                        .findByObjetoMuseoIdAndDepositanteId(objeto.getId(), depositante.getId())
+                        .map(existente -> {
+                            reactivar(existente);
+                            return existente;
+                        })
+                        .orElseGet(ObjetoDepositante::new));
         relacion.setObjetoMuseo(objeto);
         relacion.setDepositante(depositante);
         relacion.setFechaDeposito(fechaIngreso);
@@ -1022,7 +1032,10 @@ public class ObjetoMuseoService {
         for (Long categoriaId : idsUnicos) {
             if (!actuales.contains(categoriaId)) {
                 CategoriaObjeto categoria = buscarCategoriaActiva(categoriaId);
-                ObjetoCategoria relacion = new ObjetoCategoria();
+                ObjetoCategoria relacion = objetoCategoriaRepository
+                        .findByObjetoMuseoIdAndCategoriaObjetoId(objeto.getId(), categoriaId)
+                        .orElseGet(ObjetoCategoria::new);
+                reactivar(relacion);
                 relacion.setObjetoMuseo(objeto);
                 relacion.setCategoriaObjeto(categoria);
                 objetoCategoriaRepository.save(relacion);
@@ -1037,6 +1050,12 @@ public class ObjetoMuseoService {
             throw new ResourceNotFoundException("Categoria no encontrada");
         }
         return categoria;
+    }
+
+    private void reactivar(com.proveedores.entity.EntidadBase entity) {
+        entity.setActivo(true);
+        entity.setEliminado(false);
+        entity.setFechaEliminacion(null);
     }
 
     private Depositante buscarDepositanteActivo(Long id) {

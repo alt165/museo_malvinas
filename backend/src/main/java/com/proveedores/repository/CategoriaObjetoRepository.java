@@ -8,5 +8,7 @@ public interface CategoriaObjetoRepository extends JpaRepository<CategoriaObjeto
 
     Optional<CategoriaObjeto> findByNombreAndEliminadoFalse(String nombre);
 
+    Optional<CategoriaObjeto> findByNombre(String nombre);
+
     boolean existsByNombre(String nombre);
 }

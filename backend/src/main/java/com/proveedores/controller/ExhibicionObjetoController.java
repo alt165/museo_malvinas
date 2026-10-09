@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -55,23 +54,15 @@ public class ExhibicionObjetoController {
         return ResponseEntity.ok(exhibicionObjetoService.listar());
     }
 
-    @Operation(summary = "Actualizar recurso")
-    @ApiResponse(responseCode = "200", description = "Recurso actualizado")
-    @PutMapping("/{id}")
-    public ResponseEntity<ExhibicionObjetoResponseDTO> actualizar(@PathVariable Long id, @RequestBody @Valid ExhibicionObjetoRequestDTO dto) {
-        return ResponseEntity.ok(exhibicionObjetoService.actualizar(id, dto));
-    }
-
     @Operation(summary = "Verificar devolucion de objeto")
     @ApiResponse(responseCode = "200", description = "Devolucion verificada")
     @PostMapping("/{id}/verificar-devolucion")
     public ResponseEntity<ExhibicionObjetoResponseDTO> verificarDevolucion(
             @PathVariable Long id,
-            @RequestParam(required = false) Long usuarioId,
             @RequestParam(required = false) String observaciones,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(exhibicionObjetoService.verificarDevolucion(id, usuarioId, observaciones, usuario(authentication)));
+        return ResponseEntity.ok(exhibicionObjetoService.verificarDevolucion(id, observaciones, usuario(authentication)));
     }
 
     @Operation(summary = "Revertir verificacion de devolucion de objeto")

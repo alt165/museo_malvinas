@@ -1,6 +1,7 @@
 package com.proveedores.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -13,6 +14,7 @@ import com.proveedores.entity.MovimientoInventario;
 import com.proveedores.entity.ObjetoMuseo;
 import com.proveedores.entity.TipoMovimientoInventario;
 import com.proveedores.entity.Ubicacion;
+import com.proveedores.entity.Usuario;
 import com.proveedores.repository.InventarioRepository;
 import com.proveedores.repository.MovimientoInventarioRepository;
 import com.proveedores.repository.ObjetoMuseoRepository;
@@ -40,6 +42,8 @@ class InventarioServiceTest {
     private MovimientoInventarioRepository movimientoInventarioRepository;
     @Mock
     private UsuarioMovimientoService usuarioMovimientoService;
+    @Mock
+    private AuditoriaObjetoService auditoriaService;
 
     @InjectMocks
     private InventarioService service;
@@ -71,9 +75,11 @@ class InventarioServiceTest {
         Ubicacion destino = ubicacion(3L, "Sala B");
         Inventario inventario = inventario(10L, objeto, origen, EstadoInventario.DISPONIBLE);
         when(inventarioRepository.findById(10L)).thenReturn(Optional.of(inventario));
-        when(objetoMuseoRepository.findById(1L)).thenReturn(Optional.of(objeto));
         when(ubicacionRepository.findById(3L)).thenReturn(Optional.of(destino));
         when(inventarioRepository.save(any(Inventario.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        Usuario usuario = new Usuario();
+        usuario.setId(7L);
+        when(usuarioMovimientoService.resolver(null)).thenReturn(Optional.of(usuario));
 
         service.actualizar(10L, request(1L, 3L, EstadoInventario.DISPONIBLE));
 
@@ -82,6 +88,20 @@ class InventarioServiceTest {
         assertThat(captor.getValue().getTipo()).isEqualTo(TipoMovimientoInventario.CAMBIO_UBICACION);
         assertThat(captor.getValue().getUbicacionOrigen().getId()).isEqualTo(2L);
         assertThat(captor.getValue().getUbicacionDestino().getId()).isEqualTo(3L);
+        assertThat(captor.getValue().getUsuario().getId()).isEqualTo(7L);
+        assertThat(captor.getValue().getFecha()).isNotNull();
+    }
+
+    @Test
+    void actualizarRechazaCambiarElObjetoDelInventario() {
+        ObjetoMuseo objeto = objeto(1L);
+        Ubicacion ubicacion = ubicacion(2L, "Sala A");
+        Inventario inventario = inventario(10L, objeto, ubicacion, EstadoInventario.DISPONIBLE);
+        when(inventarioRepository.findById(10L)).thenReturn(Optional.of(inventario));
+
+        assertThatThrownBy(() -> service.actualizar(10L, request(99L, 2L, EstadoInventario.DISPONIBLE)))
+                .isInstanceOf(com.proveedores.exception.ConflictException.class)
+                .hasMessageContaining("inmutable");
     }
 
     private InventarioRequestDTO request(Long objetoId, Long ubicacionId, EstadoInventario estado) {

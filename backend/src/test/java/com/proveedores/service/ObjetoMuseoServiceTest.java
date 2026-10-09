@@ -475,11 +475,11 @@ class ObjetoMuseoServiceTest {
     }
 
     @Test
-    void obtenerPorIdExponeUbicacionPrivadaParaOperator() {
+    void obtenerPorIdExponeUbicacionPrivadaParaMuseologo() {
         ObjetoMuseo objeto = objeto(1L, "INV-1");
         objeto.setVisibilidades(Map.of("ubicacion", VisibilidadCampo.PRIVADO));
         Inventario inventario = inventarioActual(objeto, 7L, "Deposito reservado");
-        autenticarComo("ROLE_OPERATOR");
+        autenticarComo("ROLE_MUSEOLOGO");
         when(objetoMuseoRepository.findById(1L)).thenReturn(Optional.of(objeto));
         when(inventarioRepository.findByObjetoMuseoIdAndEliminadoFalse(1L)).thenReturn(Optional.of(inventario));
 

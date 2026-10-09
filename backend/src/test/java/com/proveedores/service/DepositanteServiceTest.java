@@ -35,6 +35,8 @@ class DepositanteServiceTest {
 
     @Mock
     private ObjetoMuseoService objetoMuseoService;
+    @Mock
+    private AuditoriaObjetoService auditoriaService;
 
     @InjectMocks
     private DepositanteService service;

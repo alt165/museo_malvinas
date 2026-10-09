@@ -3,6 +3,7 @@ package com.proveedores.service;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import java.io.IOException;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -12,7 +13,6 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class ObjectFileStorageService {
@@ -23,45 +23,21 @@ public class ObjectFileStorageService {
         this.rootDir = Path.of(rootDir).toAbsolutePath().normalize();
     }
 
-    public StoredObjectFile store(Long objetoId, String folder, MultipartFile archivo) {
-        return storeInOwnerFolder("objeto-" + objetoId, folder, archivo);
-    }
-
-    public StoredObjectFile store(Long objetoId, String folder, MultipartFile archivo, String fileNameBase, String extension) {
-        String logicalName = fileNameBase + "." + extension;
-        String storedName = fileNameBase + "-" + UUID.randomUUID() + "." + extension;
-        return storeInOwnerFolder("objeto-" + objetoId, folder, archivo, logicalName, storedName);
-    }
-
-    public StoredObjectFile storeInOwnerFolder(String ownerFolder, String folder, MultipartFile archivo) {
-        String originalName = StringUtils.hasText(archivo.getOriginalFilename()) ? archivo.getOriginalFilename() : "archivo";
-        String safeName = originalName.replaceAll("[^A-Za-z0-9._-]", "_");
-        return storeInOwnerFolder(ownerFolder, folder, archivo, originalName, UUID.randomUUID() + "-" + safeName);
-    }
-
-    private StoredObjectFile storeInOwnerFolder(String ownerFolder, String folder, MultipartFile archivo, String originalName, String storedName) {
-        String safeOwnerFolder = ownerFolder.replaceAll("[^A-Za-z0-9._-]", "_");
-        String safeFolder = folder.replaceAll("[^A-Za-z0-9._/-]", "_");
-        Path relativePath = Path.of(safeOwnerFolder, safeFolder, storedName);
-        Path destination = rootDir.resolve(relativePath).normalize();
-        if (!destination.startsWith(rootDir)) {
-            throw new BusinessException("Nombre de archivo invalido");
-        }
-
-        try {
-            Files.createDirectories(destination.getParent());
-            archivo.transferTo(destination);
-        } catch (IOException ex) {
-            throw new BusinessException("No se pudo almacenar el archivo");
-        }
-
-        return new StoredObjectFile(originalName, storedName, relativePath.toString().replace('\\', '/'), destination.toString());
-    }
-
     public StoredObjectFile storeBytes(Long objetoId, String folder, byte[] content, String logicalName, String extension) {
+        return storeBytesInOwnerFolder("objeto-" + objetoId, folder, content, logicalName, extension);
+    }
+
+    public StoredObjectFile storeBytesInOwnerFolder(
+            String ownerFolder,
+            String folder,
+            byte[] content,
+            String logicalName,
+            String extension
+    ) {
         String safeExtension = extension.replaceAll("[^A-Za-z0-9]", "");
+        if (!StringUtils.hasText(safeExtension)) throw new BusinessException("Extension de archivo invalida");
         String storedName = UUID.randomUUID() + "." + safeExtension;
-        String safeOwnerFolder = ("objeto-" + objetoId).replaceAll("[^A-Za-z0-9._-]", "_");
+        String safeOwnerFolder = ownerFolder.replaceAll("[^A-Za-z0-9._-]", "_");
         String safeFolder = folder.replaceAll("[^A-Za-z0-9._/-]", "_");
         Path relativePath = Path.of(safeOwnerFolder, safeFolder, storedName);
         Path destination = rootDir.resolve(relativePath).normalize();
@@ -71,12 +47,20 @@ public class ObjectFileStorageService {
             Files.createDirectories(destination.getParent());
             temporary = Files.createTempFile(destination.getParent(), ".upload-", ".tmp");
             Files.write(temporary, content);
-            Files.move(temporary, destination, StandardCopyOption.ATOMIC_MOVE);
+            moveIntoPlace(temporary, destination);
         } catch (IOException ex) {
             deletePath(temporary);
             throw new BusinessException("No se pudo almacenar el archivo");
         }
         return new StoredObjectFile(logicalName, storedName, relativePath.toString().replace('\\', '/'), destination.toString());
+    }
+
+    private void moveIntoPlace(Path temporary, Path destination) throws IOException {
+        try {
+            Files.move(temporary, destination, StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException exception) {
+            Files.move(temporary, destination);
+        }
     }
 
     public Resource load(String relativePath) {

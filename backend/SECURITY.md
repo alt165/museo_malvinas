@@ -10,6 +10,8 @@ La aplicacion no implementa login propio. El flujo esperado es:
 Cliente -> Keycloak -> access token JWT -> Backend -> validacion JWT -> autorizacion por rol
 ```
 
+El backend valida firma, expiracion, issuer y la audiencia `museo-backend`. Un token del mismo realm emitido sin esa audiencia es rechazado. Los clientes que obtienen access tokens para consumir la API deben incluir un audience mapper estandar con `museo-backend` en el claim `aud`; el realm local ya configura este mapper para `museo-local` y `museo-frontend`.
+
 ## Configuracion local de Keycloak
 
 El entorno Docker importa el realm desde:
@@ -35,7 +37,7 @@ Usuarios locales de desarrollo:
 | Usuario | Password | Rol |
 | --- | --- | --- |
 | `admin` | `admin` | `ADMIN` |
-| `operator` | `operator` | `OPERATOR` |
+| `museologo` | contraseña de desarrollo configurada en el realm | `MUSEOLOGO` |
 | `viewer` | `viewer` | `VIEWER` |
 
 Estas credenciales son solo para desarrollo local y no deben usarse en produccion.
@@ -66,7 +68,7 @@ curl http://localhost:8080/api/objetos \
 Roles configurados actualmente en el realm local:
 
 - `ADMIN`
-- `OPERATOR`
+- `MUSEOLOGO`
 - `VIEWER`
 
 Permisos aplicados por `SecurityConfig`:
@@ -74,13 +76,17 @@ Permisos aplicados por `SecurityConfig`:
 | Metodo | Path | Roles permitidos |
 | --- | --- | --- |
 | Cualquiera | `/api/admin/**` | `ADMIN` |
-| `GET` | `/api/**` | `ADMIN`, `OPERATOR`, `VIEWER` |
-| `POST` | `/api/**` | `ADMIN`, `OPERATOR` |
-| `PUT` | `/api/**` | `ADMIN`, `OPERATOR` |
-| `PATCH` | `/api/**` | `ADMIN`, `OPERATOR` |
-| `DELETE` | `/api/**` | `ADMIN`, `OPERATOR` |
+| `GET` | `/api/**` | `ADMIN`, `MUSEOLOGO`, `VIEWER` |
+| `POST` | `/api/**` | `ADMIN`, `MUSEOLOGO` |
+| `PUT` | `/api/**` | `ADMIN`, `MUSEOLOGO` |
+| `PATCH` | `/api/**` | `ADMIN`, `MUSEOLOGO` |
+| `DELETE` | `/api/**` | `ADMIN`, `MUSEOLOGO` |
 
 La documentacion base del proyecto menciona `SUDO`, pero el realm local y la configuracion actual del backend no lo habilitan en reglas de acceso.
+
+## Request ID
+
+`X-Request-Id` se conserva solamente cuando contiene entre 1 y 64 caracteres ASCII alfanumericos, punto, guion o underscore. Si falta o contiene espacios, Unicode, CR/LF, controles u otros caracteres, el backend genera un UUID y utiliza exclusivamente ese valor en MDC y en el header de respuesta.
 
 ## Administracion de usuarios y DNI
 

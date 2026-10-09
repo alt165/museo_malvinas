@@ -6,6 +6,7 @@ import com.proveedores.entity.ObjetoMuseo;
 import com.proveedores.entity.ObjetoVeterano;
 import com.proveedores.entity.Veterano;
 import com.proveedores.exception.BusinessException;
+import com.proveedores.exception.ConflictException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.mapper.ObjetoVeteranoMapper;
 import com.proveedores.repository.ObjetoMuseoRepository;
@@ -97,7 +98,7 @@ public class ObjetoVeteranoService {
                 dto.tipoRelacion()
         );
         if (existe) {
-            throw new BusinessException("Ya existe una relacion activa entre el objeto y el veterano con ese tipo");
+            throw new ConflictException("Ya existe una relacion activa entre el objeto y el veterano con ese tipo");
         }
     }
 

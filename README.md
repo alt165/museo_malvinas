@@ -6,7 +6,11 @@
 
 ### `Descripción del proyecto`
 
- El Sistema de Gestión de Archivo es una aplicación diseñada para administrar, registrar y localizar objetos, documentación y material audiovisual del Museo Malvinas, Antártida y Atlántico Sur ubicado en San Carlos de Bariloche. El sistema permite gestionar de manera integral el inventario patrimonial de la institución, incluyendo el registro de objetos, colecciones, depositantes, ingresos, ubicaciones físicas, exhibiciones y la información histórica de los veteranos de guerra vinculados al museo. Su arquitectura se compone de un Frontend desarrollado con tecnologías web modernas, un Backend en Java Spring Boot, base de datos PostgreSQL y gestión de acceso mediante Keycloak.
+ El Sistema de Gestión de Archivo es una aplicación diseñada para administrar, registrar y localizar objetos, documentación y material audiovisual del Museo Malvinas, Antártida y Atlántico Sur ubicado en San Carlos de Bariloche. El sistema permite gestionar de manera integral el inventario patrimonial de la institución, incluyendo el registro de objetos, colecciones, depositantes, ingresos, ubicaciones físicas, exhibiciones y la información histórica de los veteranos de guerra vinculados al museo. Su arquitectura se compone de un Frontend desarrollado con tecnologías web modernas, un Backend Spring Boot sobre Java 17, base de datos PostgreSQL y gestión de acceso mediante Keycloak.
+
+Para producción, usar exclusivamente [`docker-compose.prod.yml`](docker-compose.prod.yml) y seguir [`PRODUCTION_DEPLOYMENT.md`](PRODUCTION_DEPLOYMENT.md). El `docker-compose.yml` principal es sólo para desarrollo local.
+
+La plataforma productiva versionada utiliza Java 17, PostgreSQL 16.11, Keycloak 26.8.0 y migraciones Flyway hasta V30. Los datos demostrativos no forman parte de una instalación productiva nueva; los fixtures de integración viven únicamente bajo `backend/src/test/resources`.
 
 ### `Instalación`
 

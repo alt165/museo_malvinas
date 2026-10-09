@@ -158,7 +158,7 @@ Roles definidos:
 
 * SUDO → superusuario, responsable de todo el sistema
 * ADMIN → acceso total a las tablas administrativas sin poder dar de alta usuarios
-* OPERATOR → gestión de inventario
+* MUSEOLOGO → gestión de inventario
 * VIEWER → solo lectura
 
 ### Consideraciones
@@ -508,7 +508,7 @@ Se define un flujo obligatorio:
 
 ## 🔐 Reglas de Negocio
 
-* Solo usuarios con rol ADMIN u OPERATOR pueden:
+* Solo usuarios con rol ADMIN o MUSEOLOGO pueden:
 
   * Crear exhibiciones
   * Asociar objetos
@@ -573,5 +573,4 @@ Se deben cubrir casos:
 * Exhibiciones itinerantes
 * Préstamo a otros museos
 * Seguimiento logístico de objetos
-
 

@@ -36,4 +36,17 @@ class ObjectFileStorageServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Ruta de archivo invalida");
     }
+
+    @Test
+    void nombreFisicoNuncaDerivaDelNombreOriginalMalicioso() {
+        ObjectFileStorageService service = new ObjectFileStorageService(tempDir.toString());
+
+        var stored = service.storeBytesInOwnerFolder(
+                "veterano-4", "imagenes", new byte[]{1}, "..\\..\\malicioso.png\r\n", "png");
+
+        assertThat(stored.storedName()).matches("[0-9a-f-]{36}\\.png");
+        assertThat(stored.relativePath()).startsWith("veterano-4/imagenes/");
+        assertThat(stored.relativePath()).doesNotContain("malicioso", "..", "\\");
+        assertThat(tempDir.resolve(stored.relativePath())).isRegularFile();
+    }
 }

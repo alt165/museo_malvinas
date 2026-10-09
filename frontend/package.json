@@ -9,32 +9,36 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@hookform/resolvers": "latest",
-    "@tanstack/react-query": "latest",
-    "@tanstack/react-table": "latest",
-    "class-variance-authority": "latest",
-    "clsx": "latest",
-    "keycloak-js": "latest",
-    "lucide-react": "latest",
-    "next": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "react-hook-form": "latest",
+    "@hookform/resolvers": "5.2.2",
+    "@tanstack/react-query": "5.100.9",
+    "@tanstack/react-table": "8.21.3",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "keycloak-js": "26.2.4",
+    "lucide-react": "1.14.0",
+    "next": "16.4.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "react-hook-form": "7.75.0",
     "reactflow": "^11.11.4",
-    "tailwind-merge": "latest",
-    "zod": "latest"
+    "tailwind-merge": "3.5.0",
+    "zod": "4.4.3"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "latest",
-    "@types/node": "latest",
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "autoprefixer": "latest",
-    "eslint": "latest",
-    "eslint-config-next": "latest",
-    "postcss": "latest",
-    "shadcn": "latest",
-    "tailwindcss": "latest",
-    "typescript": "latest"
+    "@tailwindcss/postcss": "4.2.4",
+    "@types/node": "25.6.0",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "autoprefixer": "10.5.0",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.4.0",
+    "postcss": "8.5.14",
+    "shadcn": "4.7.0",
+    "tailwindcss": "4.2.4",
+    "typescript": "6.0.3"
+  },
+  "overrides": {
+    "baseline-browser-mapping": "2.11.27",
+    "source-map-js": "1.2.2"
   }
 }

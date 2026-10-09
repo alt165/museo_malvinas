@@ -18,7 +18,7 @@ Usar como referencia del backend:
 - SETUP.md
 - Swagger/OpenAPI disponible
 - endpoints reales del backend
-- roles definidos en Keycloak: ADMIN, OPERATOR, VIEWER
+- roles definidos en Keycloak: ADMIN, MUSEOLOGO, VIEWER
 
 Objetivo:
 diseñar la arquitectura inicial del frontend antes de generar código.
@@ -68,7 +68,7 @@ Requerimientos:
 
 6. Definir permisos por rol:
    - ADMIN: acceso total
-   - OPERATOR: gestión operativa
+   - MUSEOLOGO: gestión operativa
    - VIEWER: solo lectura
 
 7. Definir estrategia para consumir la API:
@@ -161,7 +161,7 @@ Usar como referencia:
 - backend/SECURITY.md
 - backend/API.md
 - variables de entorno de frontend
-- roles: ADMIN, OPERATOR, VIEWER
+- roles: ADMIN, MUSEOLOGO, VIEWER
 
 Requerimientos:
 
@@ -193,7 +193,7 @@ Requerimientos:
 5. Proteger rutas:
    - usuarios no autenticados -> login
    - VIEWER solo lectura
-   - ADMIN y OPERATOR con acciones operativas
+   - ADMIN y MUSEOLOGO con acciones operativas
 
 6. Crear paginas minimas:
    - /login
@@ -271,7 +271,7 @@ Requerimientos:
 
 3. Aplicar permisos visuales:
    - VIEWER puede ver modulos de consulta
-   - ADMIN y OPERATOR pueden ver acciones operativas
+   - ADMIN y MUSEOLOGO pueden ver acciones operativas
    - no mostrar acciones no permitidas por rol
 
 4. Mejorar Topbar:
@@ -316,7 +316,7 @@ Ejecutar:
 Al finalizar:
 - informar rutas creadas
 - informar componentes reutilizables creados
-- explicar como verificar navegacion con usuarios ADMIN, OPERATOR y VIEWER
+- explicar como verificar navegacion con usuarios ADMIN, MUSEOLOGO y VIEWER
 ```
 
 ### Objetivo del prompt
@@ -327,7 +327,7 @@ Completar la estructura visual y de navegacion del frontend administrativo antes
 
 - AppShell responsive con sidebar, topbar y contenido.
 - Navegacion principal con estado activo.
-- Acciones operativas visibles solo para `ADMIN` y `OPERATOR`.
+- Acciones operativas visibles solo para `ADMIN` y `MUSEOLOGO`.
 - Placeholders para las rutas principales.
 - Componentes reutilizables de encabezado y estados.
 
@@ -384,7 +384,7 @@ Requerimientos:
    - estado de loading
    - estado de error
    - empty state
-   - boton "Nuevo objeto" solo para ADMIN/OPERATOR
+   - boton "Nuevo objeto" solo para ADMIN/MUSEOLOGO
 
 5. Implementar pagina:
    - /objetos/[id]
@@ -410,7 +410,7 @@ Requerimientos:
 
 9. Respetar permisos:
    - VIEWER solo lectura
-   - ADMIN/OPERATOR pueden crear/editar/dar de baja
+   - ADMIN/MUSEOLOGO pueden crear/editar/dar de baja
 
 10. No implementar todavia inventario, categorias, depositantes ni exhibiciones salvo datos minimos necesarios para que el formulario compile.
 
@@ -482,7 +482,7 @@ Requerimientos:
    - tabla con objeto, numero de inventario, ubicacion, estado, conservacion, fechas
    - acciones ver/editar segun permisos
    - estados loading/error/empty
-   - boton para crear inventario solo ADMIN/OPERATOR
+   - boton para crear inventario solo ADMIN/MUSEOLOGO
 
 5. Implementar formulario InventarioForm:
    - objetoMuseoId
@@ -514,7 +514,7 @@ Requerimientos:
 
 9. Respetar permisos:
    - VIEWER solo lectura
-   - ADMIN/OPERATOR pueden crear/editar inventario
+   - ADMIN/MUSEOLOGO pueden crear/editar inventario
 
 10. Manejar errores ApiErrorResponse del backend.
 
@@ -541,7 +541,7 @@ Implementar inventario y consulta de movimientos consumiendo endpoints reales de
 - Tabla y detalle de inventario.
 - Alta y edicion de inventario con selectores de objetos y ubicaciones.
 - Tabla de movimientos de inventario.
-- Permisos de escritura limitados a `ADMIN` y `OPERATOR`.
+- Permisos de escritura limitados a `ADMIN` y `MUSEOLOGO`.
 
 ## 7. Modulo funcional de Exhibiciones
 
@@ -592,7 +592,7 @@ Requerimientos:
 4. Implementar pagina /exhibiciones:
    - tabla con nombre, tipo, estado, fechaInicio, fechaFin
    - acciones ver/editar/finalizar segun permisos y estado
-   - boton Nueva exhibicion solo ADMIN/OPERATOR
+   - boton Nueva exhibicion solo ADMIN/MUSEOLOGO
    - loading/error/empty states
 
 5. Implementar formulario ExhibicionForm:
@@ -613,8 +613,8 @@ Requerimientos:
 7. En detalle /exhibiciones/[id], mostrar:
    - datos generales de la exhibicion
    - lista de objetos asociados
-   - boton para agregar objeto solo ADMIN/OPERATOR si la exhibicion no esta FINALIZADA
-   - boton finalizar exhibicion solo ADMIN/OPERATOR cuando corresponda
+   - boton para agregar objeto solo ADMIN/MUSEOLOGO si la exhibicion no esta FINALIZADA
+   - boton finalizar exhibicion solo ADMIN/MUSEOLOGO cuando corresponda
    - estado de devolucion de cada objeto
 
 8. Implementar agregar objeto a exhibicion:
@@ -629,7 +629,7 @@ Requerimientos:
 
 10. Respetar permisos:
    - VIEWER solo lectura
-   - ADMIN/OPERATOR pueden crear, editar, asociar objetos, verificar devolucion y finalizar
+   - ADMIN/MUSEOLOGO pueden crear, editar, asociar objetos, verificar devolucion y finalizar
 
 11. Manejar errores ApiErrorResponse del backend.
 
@@ -656,7 +656,7 @@ Implementar gestion funcional de exhibiciones, asociacion de objetos y verificac
 - Listado, detalle, alta y edicion de exhibiciones.
 - Asociacion de objetos desde detalle.
 - Verificacion de devolucion y finalizacion con invalidacion de queries.
-- Permisos de escritura limitados a `ADMIN` y `OPERATOR`.
+- Permisos de escritura limitados a `ADMIN` y `MUSEOLOGO`.
 
 ## 8. Confirmacion y reversion de devolucion de objetos en exhibicion
 
@@ -706,4 +706,4 @@ Implementar gestion funcional de veteranos, actuaciones historicas y asociacion 
 - Listado, detalle, alta y edicion de veteranos.
 - Panel de actuaciones y objetos asociados en detalle.
 - Endpoint backend faltante para relaciones objeto-veterano.
-- Permisos de escritura limitados a `ADMIN` y `OPERATOR`.
+- Permisos de escritura limitados a `ADMIN` y `MUSEOLOGO`.

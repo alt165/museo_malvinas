@@ -4,6 +4,7 @@ import com.proveedores.dto.RangoMilitarRequestDTO;
 import com.proveedores.dto.RangoMilitarResponseDTO;
 import com.proveedores.entity.Fuerza;
 import com.proveedores.entity.RangoMilitar;
+import com.proveedores.exception.ConflictException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.RangoMilitarRepository;
 import java.time.LocalDateTime;
@@ -22,7 +23,13 @@ public class RangoMilitarService {
 
     @Transactional
     public RangoMilitarResponseDTO crear(RangoMilitarRequestDTO dto) {
-        RangoMilitar rango = new RangoMilitar();
+        String nombre = dto.nombre().trim();
+        RangoMilitar rango = rangoMilitarRepository.findByFuerzaAndNombre(dto.fuerza(), nombre).orElse(null);
+        if (rango != null && !rango.getEliminado()) {
+            throw new ConflictException("Ya existe un rango militar activo con esa fuerza y nombre");
+        }
+        if (rango == null) rango = new RangoMilitar();
+        else reactivar(rango);
         aplicar(rango, dto);
         return toResponse(rangoMilitarRepository.save(rango));
     }
@@ -77,6 +84,12 @@ public class RangoMilitarService {
         rango.setFuerza(dto.fuerza());
         rango.setNombre(dto.nombre().trim());
         rango.setOrdenJerarquico(dto.ordenJerarquico());
+    }
+
+    private void reactivar(RangoMilitar rango) {
+        rango.setActivo(true);
+        rango.setEliminado(false);
+        rango.setFechaEliminacion(null);
     }
 
     private RangoMilitarResponseDTO toResponse(RangoMilitar rango) {

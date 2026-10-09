@@ -13,6 +13,9 @@ import com.proveedores.service.VeteranoImagenService;
 import com.proveedores.service.VeteranoService;
 import com.proveedores.service.VeteranoVideoService;
 import java.time.LocalDate;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import javax.imageio.ImageIO;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockMultipartFile;
@@ -35,14 +38,15 @@ class VeteranoMultimediaIntegrationTest extends IntegrationTestBase {
     private VeteranoVideoRepository veteranoVideoRepository;
 
     @Test
-    void subirImagenValidaListaDescargaYElimina() {
+    void subirImagenValidaListaDescargaYElimina() throws Exception {
         Long veteranoId = crearVeterano("Imagen");
-        MockMultipartFile imagen = new MockMultipartFile("archivo", "veterano.webp", "image/webp", "imagen".getBytes());
+        MockMultipartFile imagen = new MockMultipartFile("archivo", "../../veterano.png", "image/png", imagenPng());
 
         var response = veteranoImagenService.subir(veteranoId, imagen, "Retrato", "tester");
 
         assertThat(response.id()).isNotNull();
-        assertThat(response.nombreArchivo()).isEqualTo("veterano.webp");
+        assertThat(response.nombreArchivo()).isEqualTo("../../veterano.png");
+        assertThat(response.nombreArchivoAlmacenado()).doesNotContain("veterano").doesNotContain("..");
         assertThat(response.veteranoId()).isEqualTo(veteranoId);
         assertThat(veteranoImagenService.listar(veteranoId)).extracting("id").contains(response.id());
         assertThat(veteranoImagenService.descargar(veteranoId, response.id()).resource().exists()).isTrue();
@@ -52,6 +56,19 @@ class VeteranoMultimediaIntegrationTest extends IntegrationTestBase {
         assertThat(veteranoImagenRepository.findById(response.id())).get()
                 .satisfies(entity -> assertThat(entity.getEliminado()).isTrue());
         assertThat(veteranoImagenService.listar(veteranoId)).extracting("id").doesNotContain(response.id());
+    }
+
+    @Test
+    void rechazaImagenCorruptaAunqueDeclareMimePermitido() {
+        Long veteranoId = crearVeterano("Corrupta");
+
+        assertThatThrownBy(() -> veteranoImagenService.subir(
+                veteranoId,
+                new MockMultipartFile("archivo", "foto.png", "image/png", "no-imagen".getBytes()),
+                null,
+                "tester"
+        )).isInstanceOf(BusinessException.class)
+                .hasMessage("El archivo no contiene una imagen valida");
     }
 
     @Test
@@ -140,5 +157,12 @@ class VeteranoMultimediaIntegrationTest extends IntegrationTestBase {
                 null,
                 "Historia"
         )).id();
+    }
+
+    private byte[] imagenPng() throws Exception {
+        BufferedImage image = new BufferedImage(16, 16, BufferedImage.TYPE_INT_RGB);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", output);
+        return output.toByteArray();
     }
 }

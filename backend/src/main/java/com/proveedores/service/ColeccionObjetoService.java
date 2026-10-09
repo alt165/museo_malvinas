@@ -8,6 +8,7 @@ import com.proveedores.entity.ColeccionObjeto;
 import com.proveedores.entity.ObjetoMuseo;
 import com.proveedores.entity.TipoOperacionAuditoria;
 import com.proveedores.exception.BusinessException;
+import com.proveedores.exception.ConflictException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.mapper.ColeccionObjetoMapper;
 import com.proveedores.repository.ColeccionObjetoRepository;
@@ -55,8 +56,26 @@ public class ColeccionObjetoService {
 
     @Transactional
     public ColeccionObjetoResponseDTO crear(ColeccionObjetoRequestDTO dto, String operador) {
-        validarNombreDisponible(dto.nombre(), null);
-        ColeccionObjeto saved = coleccionObjetoRepository.save(ColeccionObjetoMapper.toEntity(dto));
+        List<ColeccionObjeto> coincidencias = coleccionObjetoRepository.findAllByNombreIgnoreCaseOrderByIdAsc(dto.nombre());
+        ColeccionObjeto entity = coincidencias.stream()
+                .filter(coleccion -> !coleccion.getEliminado())
+                .findFirst()
+                .orElseGet(() -> coincidencias.stream()
+                        .filter(ColeccionObjeto::getEliminado)
+                        .findFirst()
+                        .orElse(null));
+        if (entity != null && !entity.getEliminado()) {
+            throw new ConflictException("Ya existe una coleccion activa con ese nombre");
+        }
+        if (entity == null) entity = ColeccionObjetoMapper.toEntity(dto);
+        else {
+            entity.setActivo(true);
+            entity.setEliminado(false);
+            entity.setFechaEliminacion(null);
+            entity.setNombre(dto.nombre());
+            entity.setDescripcion(dto.descripcion());
+        }
+        ColeccionObjeto saved = coleccionObjetoRepository.save(entity);
         sincronizarObjetos(saved, dto.objetoIds(), operador);
         return toResponse(saved);
     }
@@ -300,7 +319,7 @@ public class ColeccionObjetoService {
         coleccionObjetoRepository.findByNombreIgnoreCaseAndEliminadoFalse(nombre)
                 .filter(coleccion -> idActual == null || !coleccion.getId().equals(idActual))
                 .ifPresent(coleccion -> {
-                    throw new BusinessException("Ya existe una coleccion con ese nombre");
+                    throw new ConflictException("Ya existe una coleccion con ese nombre");
                 });
     }
 

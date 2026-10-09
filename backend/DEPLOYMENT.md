@@ -43,6 +43,8 @@ java -jar app.jar
 
 No guardar secretos reales en git.
 
+El runtime oficial del backend es Java 17. `pom.xml`, la etapa Maven y la imagen JRE del Dockerfile usan release/Temurin 17. El despliegue no debe sustituirlo silenciosamente por otra version mayor sin una fase de migracion y pruebas.
+
 ## Base de datos
 
 Recomendaciones:
@@ -74,7 +76,8 @@ El `docker-compose.yml` local usa `start-dev` y credenciales de desarrollo. Para
 - Usar una base de datos productiva para Keycloak.
 - Revisar redirect URIs y web origins.
 - Eliminar usuarios locales de ejemplo.
-- Confirmar roles reales requeridos por el backend: `ADMIN`, `OPERATOR`, `VIEWER`.
+- Confirmar roles reales requeridos por el backend: `ADMIN`, `MUSEOLOGO`, `VIEWER`.
+- Configurar un audience mapper OIDC para que los access tokens destinados a la API incluyan `museo-backend` (o el valor de `KEYCLOAK_CLIENT_ID`) en `aud`. El backend rechaza tokens del mismo issuer emitidos sólo para otro cliente.
 
 ## Swagger
 
@@ -155,11 +158,10 @@ No se deben loguear tokens JWT, passwords, cookies ni headers de autorizacion.
 - Confirmar conectividad con PostgreSQL.
 - Confirmar migraciones Flyway.
 - Confirmar realm, issuer y JWK set de Keycloak.
-- Validar roles `ADMIN`, `OPERATOR`, `VIEWER`.
+- Validar roles `ADMIN`, `MUSEOLOGO`, `VIEWER`.
 - Configurar CORS con origins reales.
 - Confirmar Swagger deshabilitado o protegido.
 - Verificar `/actuator/health/readiness`.
 - Configurar backups y restore.
 - Configurar recoleccion de logs.
 - Ejecutar `mvn test` y pruebas de smoke antes de promover.
-

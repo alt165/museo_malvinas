@@ -44,7 +44,7 @@ type ObjetoMuseoDraft = {
   depositanteSeleccionado: DepositanteResponseDTO | null;
 };
 
-export const ALTA_COMPLETA_DRAFT_STORAGE_KEY = "museo_alta_completa_objeto_borrador";
+const DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 const fotoContentTypesPermitidos = new Set(["image/jpeg", "image/png", "image/webp"]);
 const reciboContentTypesPermitidos = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
@@ -178,7 +178,10 @@ function readDraft(storageKey?: string) {
     const rawDraft = window.localStorage.getItem(storageKey);
     if (!rawDraft) return null;
     const parsedDraft: unknown = JSON.parse(rawDraft);
-    if (isDraft(parsedDraft)) return parsedDraft;
+    if (isDraft(parsedDraft)) {
+      const savedAt = Date.parse(parsedDraft.savedAt);
+      if (Number.isFinite(savedAt) && Date.now() - savedAt <= DRAFT_MAX_AGE_MS) return parsedDraft;
+    }
     window.localStorage.removeItem(storageKey);
   } catch {
     try {

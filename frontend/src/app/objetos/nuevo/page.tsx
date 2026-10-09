@@ -6,7 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ErrorState } from "@/components/common/error-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
-import { ALTA_COMPLETA_DRAFT_STORAGE_KEY, ObjetoMuseoForm, type ObjetoMuseoFormFiles } from "@/features/objetos/components/objeto-museo-form";
+import { ObjetoMuseoForm, type ObjetoMuseoFormFiles } from "@/features/objetos/components/objeto-museo-form";
 import { listarRecibosObjeto, subirFotosObjeto, subirReciboEscaneadoObjeto } from "@/features/objetos/api";
 import { objetosQueryKeys, useCrearObjetoMutation } from "@/features/objetos/queries";
 import { descargarTicketRecepcionPdf } from "@/features/objetos/recibos";
@@ -14,11 +14,15 @@ import type { ObjetoMuseoRequestDTO, ObjetoMuseoResponseDTO, ReciboIngresoObjeto
 import { getApiErrorMessage } from "@/features/objetos/utils";
 import { ApiClientError } from "@/lib/errors/api-error";
 import { routePermissions } from "@/lib/routes";
+import { useAuth } from "@/lib/auth/auth-provider";
+import { objectCreateDraftKey } from "@/lib/storage/user-drafts";
 
 export default function NuevoObjetoPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const mutation = useCrearObjetoMutation();
+  const { user } = useAuth();
+  const draftStorageKey = user?.id ? objectCreateDraftKey(user.id) : undefined;
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [createdObjectId, setCreatedObjectId] = useState<number | null>(null);
@@ -34,7 +38,7 @@ export default function NuevoObjetoPage() {
     mutation.mutate(payload, {
       onSuccess: async (objeto) => {
         try {
-          window.localStorage.removeItem(ALTA_COMPLETA_DRAFT_STORAGE_KEY);
+          if (draftStorageKey) window.localStorage.removeItem(draftStorageKey);
         } catch {
           // El alta ya fue confirmada por el backend; localStorage no debe interrumpir el flujo exitoso.
         }
@@ -126,7 +130,7 @@ export default function NuevoObjetoPage() {
         <ObjetoMuseoForm
           allowFileUploads
           draftPersistenceEnabled={draftPersistenceEnabled}
-          draftStorageKey={ALTA_COMPLETA_DRAFT_STORAGE_KEY}
+          draftStorageKey={draftStorageKey}
           isSubmitting={mutation.isPending}
           onSubmit={handleSubmit}
           resetSignal={formResetSignal}

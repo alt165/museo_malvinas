@@ -8,11 +8,13 @@ import com.proveedores.dto.ColeccionObjetoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.entity.CaracterRecepcionObjeto;
 import com.proveedores.exception.BusinessException;
+import com.proveedores.exception.ConflictException;
 import com.proveedores.repository.ColeccionObjetoRepository;
 import com.proveedores.repository.ObjetoMuseoRepository;
 import com.proveedores.service.AuditoriaObjetoService;
 import com.proveedores.service.ColeccionObjetoService;
 import com.proveedores.service.ObjetoMuseoService;
+import com.proveedores.testfixture.ObjetoMuseoTestFixture;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,8 +51,20 @@ class ColeccionObjetoServiceIntegrationTest extends IntegrationTestBase {
         coleccionObjetoService.crear(new ColeccionObjetoRequestDTO("IT Coleccion duplicada", null, null));
 
         assertThatThrownBy(() -> coleccionObjetoService.crear(new ColeccionObjetoRequestDTO("it coleccion duplicada", null, null)))
-                .isInstanceOf(BusinessException.class)
-                .hasMessage("Ya existe una coleccion con ese nombre");
+                .isInstanceOf(ConflictException.class)
+                .hasMessage("Ya existe una coleccion activa con ese nombre");
+    }
+
+    @Test
+    void recrearColeccionEliminadaReactivaElMismoRegistro() {
+        var creada = coleccionObjetoService.crear(new ColeccionObjetoRequestDTO("IT Coleccion reactivable", "Inicial", null));
+        coleccionObjetoService.bajaLogica(creada.id(), "admin-test");
+
+        var reactivada = coleccionObjetoService.crear(new ColeccionObjetoRequestDTO("it coleccion reactivable", "Actualizada", null));
+
+        assertThat(reactivada.id()).isEqualTo(creada.id());
+        assertThat(reactivada.activo()).isTrue();
+        assertThat(reactivada.descripcion()).isEqualTo("Actualizada");
     }
 
     @Test
@@ -217,19 +231,6 @@ class ColeccionObjetoServiceIntegrationTest extends IntegrationTestBase {
 
 
     private com.proveedores.dto.ObjetoMuseoResponseDTO crearObjeto(String numeroInventario, String denominacion) {
-        return objetoMuseoService.crear(new ObjetoMuseoRequestDTO(
-                numeroInventario,
-                denominacion,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                1L,
-                CaracterRecepcionObjeto.DONACION,
-                null
-        ));
+        return objetoMuseoService.crear(ObjetoMuseoTestFixture.valido(numeroInventario, denominacion));
     }
 }

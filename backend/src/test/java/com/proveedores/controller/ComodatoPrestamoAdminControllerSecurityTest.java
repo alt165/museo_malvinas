@@ -52,8 +52,8 @@ class ComodatoPrestamoAdminControllerSecurityTest {
     }
 
     @Test
-    void operatorNoPuedeListarComodatosYPrestamos() throws Exception {
-        mockMvc.perform(get("/api/admin/comodatos-prestamos").with(user("operator").roles("OPERATOR")))
+    void museologoNoPuedeListarComodatosYPrestamos() throws Exception {
+        mockMvc.perform(get("/api/admin/comodatos-prestamos").with(user("museologo").roles("MUSEOLOGO")))
                 .andExpect(status().isForbidden());
     }
 
@@ -72,8 +72,8 @@ class ComodatoPrestamoAdminControllerSecurityTest {
     }
 
     @Test
-    void operatorNoPuedeExportarPdfComodatosYPrestamos() throws Exception {
-        mockMvc.perform(get("/api/admin/comodatos-prestamos/export/pdf").with(user("operator").roles("OPERATOR")))
+    void museologoNoPuedeExportarPdfComodatosYPrestamos() throws Exception {
+        mockMvc.perform(get("/api/admin/comodatos-prestamos/export/pdf").with(user("museologo").roles("MUSEOLOGO")))
                 .andExpect(status().isForbidden());
     }
 
@@ -87,9 +87,9 @@ class ComodatoPrestamoAdminControllerSecurityTest {
     }
 
     @Test
-    void operatorNoPuedeActualizarFechaVencimiento() throws Exception {
+    void museologoNoPuedeActualizarFechaVencimiento() throws Exception {
         mockMvc.perform(patch("/api/admin/comodatos-prestamos/1/fecha-vencimiento")
-                        .with(user("operator").roles("OPERATOR"))
+                        .with(user("museologo").roles("MUSEOLOGO"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fechaVencimiento\":\"2026-06-20\"}"))
                 .andExpect(status().isForbidden());

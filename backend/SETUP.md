@@ -68,6 +68,10 @@ La aplicacion tiene defaults para desarrollo en `application.yml`:
 | `APP_UPLOAD_MAX_PHOTO_SIZE_MB` | `5` |
 | `APP_UPLOAD_MAX_RECEIPT_SIZE_MB` | `10` |
 | `APP_UPLOAD_MAX_SIGNED_RECEIPT_SIZE_MB` | `10` |
+| `APP_UPLOAD_MAX_FILES_PER_REQUEST` | `10` |
+| `APP_UPLOAD_MAX_IMAGE_PIXELS` | `100000000` |
+| `SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE` | `10MB` |
+| `SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE` | `51MB` |
 | `SERVER_PORT` | `8080` |
 | `APP_LOG_LEVEL` | `INFO` |
 
@@ -128,6 +132,8 @@ Los tests incluyen:
 ## Storage de archivos
 
 Las fotos de objetos y los recibos escaneados no se guardan como binarios en PostgreSQL. El backend guarda esos archivos debajo de `APP_STORAGE_OBJECT_FILES_DIR`, separados internamente por objeto:
+
+El limite multipart global admite archivos individuales de hasta 10 MB y lotes de hasta 51 MB. Luego cada servicio aplica su limite de negocio: 5 MB por imagen, 10 MB por recibo y un maximo de 10 imagenes por request. Las cargas multiples de fotos son atomicas: si un archivo falla, no se confirma ninguno.
 
 ```text
 objeto-{id}/fotos/

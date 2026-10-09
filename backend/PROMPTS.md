@@ -149,8 +149,8 @@ Integrar autenticacion/autorizacion externa mediante Keycloak y mantener el back
 - `KeycloakJwtAuthenticationConverter` para roles.
 - Roles convertidos a authorities `ROLE_*`.
 - Permisos:
-  - `GET /api/**`: `ADMIN`, `OPERATOR`, `VIEWER`.
-  - escrituras en `/api/**`: `ADMIN`, `OPERATOR`.
+  - `GET /api/**`: `ADMIN`, `MUSEOLOGO`, `VIEWER`.
+  - escrituras en `/api/**`: `ADMIN`, `MUSEOLOGO`.
 - Realm local en `docker/keycloak/museo-realm.json`.
 
 ## 5. Tests de integracion con Testcontainers y PostgreSQL
@@ -555,4 +555,3 @@ Registrar el proceso de desarrollo guiado por prompts para que el equipo pueda a
 - Etapas ordenadas cronologicamente.
 - Prompt, objetivo y resultado esperado por etapa.
 - Referencia explicita a arquitectura, dominio, seguridad, testing, observabilidad, despliegue y documentacion.
-

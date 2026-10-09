@@ -5,6 +5,7 @@ import type { KeycloakTokenParsed } from "keycloak-js";
 import type { AuthSession, SessionUser, UserRole } from "@/models/session";
 import { keycloak, keycloakConfig } from "./keycloak";
 import { setLoginHandler, setTokenProvider } from "./session";
+import { clearUserDrafts } from "@/lib/storage/user-drafts";
 
 type AuthContextValue = AuthSession & {
   getToken: () => Promise<string | null>;
@@ -29,7 +30,7 @@ type MuseoTokenParsed = KeycloakTokenParsed & {
 };
 
 function isUserRole(role: string): role is UserRole {
-  return role === "ADMIN" || role === "OPERATOR" || role === "VIEWER";
+  return role === "ADMIN" || role === "MUSEOLOGO" || role === "VIEWER";
 }
 
 function getRoles(token?: MuseoTokenParsed) {
@@ -90,12 +91,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     loginRedirectInProgress = false;
     window.sessionStorage.setItem("museo.logout", "1");
+    clearUserDrafts(user?.id);
     setAuthenticated(false);
     setUser(null);
     await keycloak.logout({
       redirectUri: `${window.location.origin}${logoutRedirectPath}`
     });
-  }, []);
+  }, [user?.id]);
 
   const getToken = useCallback(async () => {
     if (!keycloak.authenticated) {

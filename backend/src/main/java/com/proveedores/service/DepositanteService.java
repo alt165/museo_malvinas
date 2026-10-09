@@ -5,6 +5,7 @@ import com.proveedores.dto.DepositanteResponseDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
 import com.proveedores.entity.Depositante;
 import com.proveedores.entity.TipoDepositante;
+import com.proveedores.entity.TipoOperacionAuditoria;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ConflictException;
 import com.proveedores.exception.ResourceNotFoundException;
@@ -30,15 +31,18 @@ public class DepositanteService {
     private final DepositanteRepository depositanteRepository;
     private final ObjetoDepositanteRepository objetoDepositanteRepository;
     private final ObjetoMuseoService objetoMuseoService;
+    private final AuditoriaObjetoService auditoriaService;
 
     public DepositanteService(
             DepositanteRepository depositanteRepository,
             ObjetoDepositanteRepository objetoDepositanteRepository,
-            ObjetoMuseoService objetoMuseoService
+            ObjetoMuseoService objetoMuseoService,
+            AuditoriaObjetoService auditoriaService
     ) {
         this.depositanteRepository = depositanteRepository;
         this.objetoDepositanteRepository = objetoDepositanteRepository;
         this.objetoMuseoService = objetoMuseoService;
+        this.auditoriaService = auditoriaService;
     }
 
     @Transactional
@@ -62,7 +66,10 @@ public class DepositanteService {
                 throw new ConflictException("Ya existe un depositante activo con este " + tipoIdentificacion);
             }
         }
-        return DepositanteMapper.toResponse(depositanteRepository.save(DepositanteMapper.toEntity(dto)));
+        Depositante saved = depositanteRepository.save(DepositanteMapper.toEntity(dto));
+        auditoriaService.registrarEvento("DEPOSITANTE", saved.getId(), null, TipoOperacionAuditoria.CREACION,
+                "DEPOSITANTE_CREADO", "Alta de depositante", "DEPOSITANTES", null, snapshot(saved), null);
+        return DepositanteMapper.toResponse(saved);
     }
 
     @Transactional
@@ -72,7 +79,10 @@ public class DepositanteService {
         entity.setActivo(true);
         entity.setEliminado(false);
         entity.setFechaEliminacion(null);
-        return DepositanteMapper.toResponse(depositanteRepository.save(entity));
+        Depositante saved = depositanteRepository.save(entity);
+        auditoriaService.registrarEvento("DEPOSITANTE", saved.getId(), null, TipoOperacionAuditoria.MODIFICACION,
+                "DEPOSITANTE_RESTAURADO", "Restauración de depositante", "DEPOSITANTES", null, snapshot(saved), null);
+        return DepositanteMapper.toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -134,13 +144,17 @@ public class DepositanteService {
     @Transactional
     public DepositanteResponseDTO actualizar(Long id, DepositanteRequestDTO dto) {
         Depositante entity = buscarActivo(id);
+        Object anterior = snapshot(entity);
         entity.setNombre(dto.nombre());
         entity.setTipo(dto.tipo());
         entity.setContacto(dto.contacto());
         entity.setDni(dto.dni());
         entity.setCuit(dto.cuit());
         entity.setObservaciones(dto.observaciones());
-        return DepositanteMapper.toResponse(depositanteRepository.save(entity));
+        Depositante saved = depositanteRepository.save(entity);
+        auditoriaService.registrarEvento("DEPOSITANTE", saved.getId(), null, TipoOperacionAuditoria.MODIFICACION,
+                "DEPOSITANTE_ACTUALIZADO", "Actualización de depositante", "DEPOSITANTES", anterior, snapshot(saved), null);
+        return DepositanteMapper.toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -183,6 +197,13 @@ public class DepositanteService {
         entity.setEliminado(true);
         entity.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         depositanteRepository.save(entity);
+        auditoriaService.registrarEvento("DEPOSITANTE", entity.getId(), null, TipoOperacionAuditoria.ELIMINACION,
+                "DEPOSITANTE_ELIMINADO", "Baja lógica de depositante", "DEPOSITANTES", snapshot(entity), null, null);
+    }
+
+    private Object snapshot(Depositante depositante) {
+        return auditoriaService.mapOf("nombre", depositante.getNombre(), "tipo", depositante.getTipo(),
+                "activo", depositante.getActivo(), "eliminado", depositante.getEliminado());
     }
 
     Depositante buscarActivo(Long id) {

@@ -322,15 +322,8 @@ public class ObjetoMuseoController {
             archivosParaSubir.add(archivo);
         }
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(java.util.stream.IntStream.range(0, archivosParaSubir.size())
-                        .mapToObj(index -> fotoObjetoMuseoService.subir(
-                                id,
-                                archivosParaSubir.get(index),
-                                descripcion,
-                                visibilidadFoto(index, visibilidades, visibilidad),
-                                usuario(authentication)
-                        ))
-                        .toList());
+                .body(fotoObjetoMuseoService.subirTodos(
+                        id, archivosParaSubir, descripcion, visibilidades, visibilidad, usuario(authentication)));
     }
 
     @Operation(summary = "Listar fotos del objeto")
@@ -434,13 +427,6 @@ public class ObjetoMuseoController {
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(objetoMuseoService.cargaRapida(dto, usuario(authentication), nombreCompleto(authentication)));
-    }
-
-    private VisibilidadCampo visibilidadFoto(int index, List<VisibilidadCampo> visibilidades, VisibilidadCampo visibilidad) {
-        if (visibilidades != null && index < visibilidades.size() && visibilidades.get(index) != null) {
-            return visibilidades.get(index);
-        }
-        return visibilidad == null ? VisibilidadCampo.PUBLICO : visibilidad;
     }
 
     private String nombreArchivoObjetosPdf() {

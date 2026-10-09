@@ -17,6 +17,12 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -53,27 +59,27 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/objetos/vencimientos-proximos").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/objetos/pendientes-completar/export/pdf").hasAnyRole("ADMIN", "OPERATOR")
-                        .requestMatchers(HttpMethod.GET, "/api/objetos/pendientes-completar").hasAnyRole("ADMIN", "OPERATOR")
-                        .requestMatchers(HttpMethod.GET, "/api/objetos/*/movimientos").hasAnyRole("ADMIN", "OPERATOR")
-                        .requestMatchers(HttpMethod.GET, "/api/objetos/*/recibos").hasAnyRole("ADMIN", "OPERATOR")
-                        .requestMatchers(HttpMethod.GET, "/api/objetos/*/recibo-escaneado").hasAnyRole("ADMIN", "OPERATOR")
-                        .requestMatchers(HttpMethod.GET, "/api/objetos/*/recibo-escaneado/**").hasAnyRole("ADMIN", "OPERATOR")
+                        .requestMatchers(HttpMethod.GET, "/api/objetos/pendientes-completar/export/pdf").hasAnyRole("ADMIN", "MUSEOLOGO")
+                        .requestMatchers(HttpMethod.GET, "/api/objetos/pendientes-completar").hasAnyRole("ADMIN", "MUSEOLOGO")
+                        .requestMatchers(HttpMethod.GET, "/api/objetos/*/movimientos").hasAnyRole("ADMIN", "MUSEOLOGO")
+                        .requestMatchers(HttpMethod.GET, "/api/objetos/*/recibos").hasAnyRole("ADMIN", "MUSEOLOGO")
+                        .requestMatchers(HttpMethod.GET, "/api/objetos/*/recibo-escaneado").hasAnyRole("ADMIN", "MUSEOLOGO")
+                        .requestMatchers(HttpMethod.GET, "/api/objetos/*/recibo-escaneado/**").hasAnyRole("ADMIN", "MUSEOLOGO")
                         .requestMatchers(HttpMethod.GET, "/api/objetos/*/fotos/*/original").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/objetos/*/fotos", "/api/objetos/*/fotos/*").hasAnyRole("ADMIN", "OPERATOR", "MUSEOLOGO", "VIEWER")
-                        .requestMatchers(HttpMethod.GET, "/api/recibos/**").hasAnyRole("ADMIN", "OPERATOR")
+                        .requestMatchers(HttpMethod.GET, "/api/objetos/*/fotos", "/api/objetos/*/fotos/*").hasAnyRole("ADMIN", "MUSEOLOGO", "VIEWER")
+                        .requestMatchers(HttpMethod.GET, "/api/recibos/**").hasAnyRole("ADMIN", "MUSEOLOGO")
                         .requestMatchers(HttpMethod.DELETE, "/api/colecciones/*").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/ubicaciones/**").hasAnyRole("ADMIN", "OPERATOR")
-                        .requestMatchers(HttpMethod.GET, "/api/depositantes/**").hasAnyRole("ADMIN", "OPERATOR")
-                        .requestMatchers(HttpMethod.GET, "/api/depositantes").hasAnyRole("ADMIN", "OPERATOR")
+                        .requestMatchers(HttpMethod.GET, "/api/ubicaciones/**").hasAnyRole("ADMIN", "MUSEOLOGO")
+                        .requestMatchers(HttpMethod.GET, "/api/depositantes/**").hasAnyRole("ADMIN", "MUSEOLOGO")
+                        .requestMatchers(HttpMethod.GET, "/api/depositantes").hasAnyRole("ADMIN", "MUSEOLOGO")
                         .requestMatchers(HttpMethod.POST, "/api/ubicaciones/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/ubicaciones/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/ubicaciones/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole("ADMIN", "OPERATOR", "VIEWER")
-                        .requestMatchers(HttpMethod.POST, "/api/**").hasAnyRole("ADMIN", "OPERATOR")
-                        .requestMatchers(HttpMethod.PUT, "/api/**").hasAnyRole("ADMIN", "OPERATOR")
-                        .requestMatchers(HttpMethod.PATCH, "/api/**").hasAnyRole("ADMIN", "OPERATOR")
-                        .requestMatchers(HttpMethod.DELETE, "/api/**").hasAnyRole("ADMIN", "OPERATOR")
+                        .requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole("ADMIN", "MUSEOLOGO", "VIEWER")
+                        .requestMatchers(HttpMethod.POST, "/api/**").hasAnyRole("ADMIN", "MUSEOLOGO")
+                        .requestMatchers(HttpMethod.PUT, "/api/**").hasAnyRole("ADMIN", "MUSEOLOGO")
+                        .requestMatchers(HttpMethod.PATCH, "/api/**").hasAnyRole("ADMIN", "MUSEOLOGO")
+                        .requestMatchers(HttpMethod.DELETE, "/api/**").hasAnyRole("ADMIN", "MUSEOLOGO")
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
@@ -94,6 +100,27 @@ public class SecurityConfig {
                         ))
                 )
                 .build();
+    }
+
+    @Bean
+    public OAuth2TokenValidator<Jwt> jwtTokenValidator(
+            @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}") String issuer,
+            KeycloakSecurityProperties properties
+    ) {
+        return new DelegatingOAuth2TokenValidator<>(
+                JwtValidators.createDefaultWithIssuer(issuer),
+                new RequiredAudienceValidator(properties.clientId())
+        );
+    }
+
+    @Bean
+    public JwtDecoder jwtDecoder(
+            @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}") String jwkSetUri,
+            OAuth2TokenValidator<Jwt> jwtTokenValidator
+    ) {
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
+        decoder.setJwtValidator(jwtTokenValidator);
+        return decoder;
     }
 
     @Bean

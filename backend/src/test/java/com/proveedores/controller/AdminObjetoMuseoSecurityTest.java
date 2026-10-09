@@ -57,8 +57,8 @@ class AdminObjetoMuseoSecurityTest {
     }
 
     @Test
-    void operatorNoPuedeListarEliminados() throws Exception {
-        mockMvc.perform(get("/api/admin/objetos/eliminados").with(user("operator").roles("OPERATOR")))
+    void museologoNoPuedeListarEliminados() throws Exception {
+        mockMvc.perform(get("/api/admin/objetos/eliminados").with(user("museologo").roles("MUSEOLOGO")))
                 .andExpect(status().isForbidden());
     }
 
@@ -71,8 +71,8 @@ class AdminObjetoMuseoSecurityTest {
     }
 
     @Test
-    void operatorNoPuedeConsultarHistorial() throws Exception {
-        mockMvc.perform(get("/api/admin/objetos/1/historial").with(user("operator").roles("OPERATOR")))
+    void museologoNoPuedeConsultarHistorial() throws Exception {
+        mockMvc.perform(get("/api/admin/objetos/1/historial").with(user("museologo").roles("MUSEOLOGO")))
                 .andExpect(status().isForbidden());
     }
 

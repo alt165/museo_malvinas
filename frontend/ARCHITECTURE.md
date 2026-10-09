@@ -193,7 +193,7 @@ feature hook
 Roles actuales:
 
 - `ADMIN`: acceso total.
-- `OPERATOR`: gestion operativa sin administracion sensible.
+- `MUSEOLOGO`: gestion operativa sin administracion sensible.
 - `VIEWER`: solo lectura.
 
 Rutas principales:
@@ -220,7 +220,7 @@ Rutas principales:
 /perfil
 ```
 
-Las rutas de lectura admiten `ADMIN`, `OPERATOR` y `VIEWER`. Las rutas de alta, edicion, movimiento y verificacion admiten `ADMIN` y `OPERATOR`. Cualquier ruta futura de administracion de usuarios o configuracion debe quedar limitada a `ADMIN`.
+Las rutas de lectura admiten `ADMIN`, `MUSEOLOGO` y `VIEWER`. Las rutas de alta, edicion, movimiento y verificacion admiten `ADMIN` y `MUSEOLOGO`. Cualquier ruta futura de administracion de usuarios o configuracion debe quedar limitada a `ADMIN`.
 
 ## UI y formularios
 

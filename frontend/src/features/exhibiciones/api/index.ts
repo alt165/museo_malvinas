@@ -4,7 +4,6 @@ export {
   buscarExhibicionesFinalizadas,
   buscarObjetosDisponibilidadExhibicion,
   cancelarExhibicion,
-  actualizarObjetoDeExhibicion,
   agregarObjetoAExhibicion,
   bajaLogicaExhibicion,
   crearExhibicion,

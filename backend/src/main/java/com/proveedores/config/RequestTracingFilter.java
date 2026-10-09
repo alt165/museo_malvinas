@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -26,6 +27,8 @@ public class RequestTracingFilter extends OncePerRequestFilter {
     private static final String HTTP_METHOD = "httpMethod";
     private static final String ENDPOINT = "endpoint";
     private static final String HTTP_STATUS = "httpStatus";
+    private static final int MAX_REQUEST_ID_LENGTH = 64;
+    private static final Pattern SAFE_REQUEST_ID = Pattern.compile("[A-Za-z0-9._-]{1," + MAX_REQUEST_ID_LENGTH + "}");
 
     @Override
     protected void doFilterInternal(
@@ -53,7 +56,7 @@ public class RequestTracingFilter extends OncePerRequestFilter {
 
     private String resolveRequestId(HttpServletRequest request) {
         return Optional.ofNullable(request.getHeader(REQUEST_ID_HEADER))
-                .filter(value -> !value.isBlank())
+                .filter(value -> SAFE_REQUEST_ID.matcher(value).matches())
                 .orElseGet(() -> UUID.randomUUID().toString());
     }
 

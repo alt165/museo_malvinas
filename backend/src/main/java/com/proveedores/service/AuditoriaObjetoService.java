@@ -18,6 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.util.StringUtils;
 
 @Service
@@ -56,6 +57,73 @@ public class AuditoriaObjetoService {
         auditoria.setEntidad(ENTIDAD_OBJETO);
         auditoria.setEntidadId(objeto.getId());
         auditoria.setNumeroInventario(objeto.getNumeroInventario());
+        auditoria.setAccion(accion);
+        auditoria.setDescripcion(descripcion);
+        auditoria.setOrigen(origen);
+        auditoria.setUsuarioIdentificador(actor.identificador());
+        auditoria.setUsuarioNombre(actor.nombreVisible());
+        auditoria.setRol(actor.rol());
+        auditoria.setDatosPrevios(serializar(valoresAnteriores));
+        auditoria.setDatosNuevos(serializar(valoresNuevos));
+        auditoriaRepository.save(auditoria);
+    }
+
+    @Transactional
+    public void registrarEvento(
+            String entidad,
+            Long entidadId,
+            String referenciaExterna,
+            TipoOperacionAuditoria tipoOperacion,
+            String accion,
+            String descripcion,
+            String origen,
+            Object valoresAnteriores,
+            Object valoresNuevos,
+            String usuarioFallback
+    ) {
+        guardarEvento(entidad, entidadId, referenciaExterna, tipoOperacion, accion, descripcion, origen,
+                valoresAnteriores, valoresNuevos, usuarioFallback);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void registrarEventoIndependiente(
+            String entidad,
+            Long entidadId,
+            String referenciaExterna,
+            TipoOperacionAuditoria tipoOperacion,
+            String accion,
+            String descripcion,
+            String origen,
+            Object valoresAnteriores,
+            Object valoresNuevos,
+            String usuarioFallback
+    ) {
+        guardarEvento(entidad, entidadId, referenciaExterna, tipoOperacion, accion, descripcion, origen,
+                valoresAnteriores, valoresNuevos, usuarioFallback);
+    }
+
+    private void guardarEvento(
+            String entidad,
+            Long entidadId,
+            String referenciaExterna,
+            TipoOperacionAuditoria tipoOperacion,
+            String accion,
+            String descripcion,
+            String origen,
+            Object valoresAnteriores,
+            Object valoresNuevos,
+            String usuarioFallback
+    ) {
+        if (!StringUtils.hasText(entidad) || (entidadId == null && !StringUtils.hasText(referenciaExterna))) {
+            return;
+        }
+        ActorAuditoria actor = actorActual(usuarioFallback);
+        Auditoria auditoria = new Auditoria();
+        auditoria.setFecha(com.proveedores.time.MuseoTime.now());
+        auditoria.setTipoOperacion(tipoOperacion);
+        auditoria.setEntidad(entidad.trim());
+        auditoria.setEntidadId(entidadId);
+        auditoria.setReferenciaExterna(StringUtils.hasText(referenciaExterna) ? referenciaExterna.trim() : null);
         auditoria.setAccion(accion);
         auditoria.setDescripcion(descripcion);
         auditoria.setOrigen(origen);

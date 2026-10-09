@@ -8,7 +8,7 @@
         "name": "ADMIN"
       },
       {
-        "name": "OPERATOR"
+        "name": "MUSEOLOGO"
       },
       {
         "name": "VIEWER"
@@ -41,6 +41,20 @@
         "http://localhost:8080",
         "http://localhost:18080"
       ],
+      "protocolMappers": [
+        {
+          "name": "museo-backend-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "museo-backend",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "lightweight.claim": "false"
+          }
+        }
+      ],
       "protocol": "openid-connect"
     },
     {
@@ -62,6 +76,20 @@
       "attributes": {
         "pkce.code.challenge.method": "S256"
       },
+      "protocolMappers": [
+        {
+          "name": "museo-backend-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "museo-backend",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "lightweight.claim": "false"
+          }
+        }
+      ],
       "protocol": "openid-connect"
     },
     {
@@ -101,23 +129,23 @@
       }
     },
     {
-      "username": "operator",
+      "username": "museologo",
       "enabled": true,
       "emailVerified": true,
       "credentials": [
         {
           "type": "password",
-          "value": "operator",
+          "value": "museologo",
           "temporary": false
         }
       ],
       "realmRoles": [
-        "OPERATOR"
+        "MUSEOLOGO"
       ],
-      "firstName": "Operator",
+      "firstName": "Museologo",
       "lastName": "Local",
       "requiredActions": [],
-      "email": "operator@local.test",
+      "email": "museologo@local.test",
       "attributes": {
         "dni": [
           "10000002"

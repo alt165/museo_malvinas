@@ -3,6 +3,7 @@ package com.proveedores.repository;
 import com.proveedores.entity.Fuerza;
 import com.proveedores.entity.RangoMilitar;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface RangoMilitarRepository extends JpaRepository<RangoMilitar, Long> {
@@ -10,4 +11,6 @@ public interface RangoMilitarRepository extends JpaRepository<RangoMilitar, Long
     List<RangoMilitar> findByFuerzaAndActivoTrueAndEliminadoFalseOrderByOrdenJerarquicoAsc(Fuerza fuerza);
 
     List<RangoMilitar> findByActivoTrueAndEliminadoFalseOrderByFuerzaAscOrdenJerarquicoAscNombreAsc();
+
+    Optional<RangoMilitar> findByFuerzaAndNombre(Fuerza fuerza, String nombre);
 }

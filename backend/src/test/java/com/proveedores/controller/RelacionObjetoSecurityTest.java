@@ -62,7 +62,7 @@ class RelacionObjetoSecurityTest {
     }
 
     @Test
-    void adminYOperatorPuedenCrearRelaciones() throws Exception {
+    void adminYMuseologoPuedenCrearRelaciones() throws Exception {
         String body = "{\"objetoOrigenId\":1,\"objetoDestinoId\":2,\"tipoRelacion\":\"similar\",\"descripcion\":null}";
         when(relacionObjetoService.crear(any(), any())).thenReturn(new RelacionObjetoResponseDTO(
                 1L,
@@ -80,7 +80,7 @@ class RelacionObjetoSecurityTest {
 
         mockMvc.perform(post("/api/relaciones-objetos").contentType(MediaType.APPLICATION_JSON).content(body).with(user("admin").roles("ADMIN")))
                 .andExpect(status().isCreated());
-        mockMvc.perform(post("/api/relaciones-objetos").contentType(MediaType.APPLICATION_JSON).content(body).with(user("operator").roles("OPERATOR")))
+        mockMvc.perform(post("/api/relaciones-objetos").contentType(MediaType.APPLICATION_JSON).content(body).with(user("museologo").roles("MUSEOLOGO")))
                 .andExpect(status().isCreated());
     }
 }

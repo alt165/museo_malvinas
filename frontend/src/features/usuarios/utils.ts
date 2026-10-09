@@ -48,8 +48,8 @@ export function getRolPrincipal(roles?: UserRole[]): UserRole {
     return "ADMIN";
   }
 
-  if (roles?.includes("OPERATOR")) {
-    return "OPERATOR";
+  if (roles?.includes("MUSEOLOGO")) {
+    return "MUSEOLOGO";
   }
 
   return "VIEWER";

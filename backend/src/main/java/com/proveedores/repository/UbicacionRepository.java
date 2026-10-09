@@ -8,5 +8,7 @@ public interface UbicacionRepository extends JpaRepository<Ubicacion, Long> {
 
     Optional<Ubicacion> findByNombreAndEliminadoFalse(String nombre);
 
+    Optional<Ubicacion> findByNombre(String nombre);
+
     boolean existsByNombre(String nombre);
 }

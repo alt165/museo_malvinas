@@ -124,13 +124,6 @@ export function agregarObjetoAExhibicion(payload: ExhibicionObjetoRequestDTO) {
   });
 }
 
-export function actualizarObjetoDeExhibicion(id: number, payload: ExhibicionObjetoRequestDTO) {
-  return apiRequest<ExhibicionObjetoResponseDTO>(`${exhibicionesObjetosPath}/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(payload)
-  });
-}
-
 export function verificarDevolucionObjeto(id: number, observaciones?: string) {
   const params = new URLSearchParams();
 

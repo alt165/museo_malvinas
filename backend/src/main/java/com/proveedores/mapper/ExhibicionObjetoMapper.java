@@ -1,25 +1,10 @@
 package com.proveedores.mapper;
 
-import com.proveedores.dto.ExhibicionObjetoRequestDTO;
 import com.proveedores.dto.ExhibicionObjetoResponseDTO;
 import com.proveedores.entity.ExhibicionObjeto;
 
 public final class ExhibicionObjetoMapper {
     private ExhibicionObjetoMapper() {
-    }
-
-    public static ExhibicionObjeto toEntity(ExhibicionObjetoRequestDTO dto) {
-        ExhibicionObjeto entity = new ExhibicionObjeto();
-        entity.setExhibicion(MapperReferences.exhibicion(dto.exhibicionId()));
-        entity.setObjetoMuseo(MapperReferences.objetoMuseo(dto.objetoMuseoId()));
-        entity.setFechaInclusion(dto.fechaInclusion());
-        entity.setFechaRetiro(dto.fechaRetiro());
-        entity.setEstado(dto.estado());
-        entity.setDevolucionVerificada(Boolean.TRUE.equals(dto.devolucionVerificada()));
-        entity.setVerificadoPor(MapperReferences.usuario(dto.verificadoPorUsuarioId()));
-        entity.setFechaVerificacion(dto.fechaVerificacion());
-        entity.setObservacionesDevolucion(dto.observacionesDevolucion());
-        return entity;
     }
 
     public static ExhibicionObjetoResponseDTO toResponse(ExhibicionObjeto entity) {

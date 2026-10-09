@@ -3,6 +3,7 @@ package com.proveedores.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.when;
 
 import com.proveedores.dto.ExhibicionObjetoRequestDTO;
@@ -13,11 +14,11 @@ import com.proveedores.entity.ExhibicionObjeto;
 import com.proveedores.entity.ObjetoMuseo;
 import com.proveedores.entity.Usuario;
 import com.proveedores.exception.BusinessException;
+import com.proveedores.exception.ConflictException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.ExhibicionObjetoRepository;
 import com.proveedores.repository.ExhibicionRepository;
 import com.proveedores.repository.ObjetoMuseoRepository;
-import com.proveedores.repository.UsuarioRepository;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -37,7 +38,7 @@ class ExhibicionObjetoServiceTest {
     @Mock
     private ObjetoMuseoRepository objetoMuseoRepository;
     @Mock
-    private UsuarioRepository usuarioRepository;
+    private UsuarioMovimientoService usuarioMovimientoService;
 
     @Mock
     private AuditoriaObjetoService auditoriaObjetoService;
@@ -53,11 +54,11 @@ class ExhibicionObjetoServiceTest {
         existente.setId(50L);
         existente.setExhibicion(activaExistente);
         existente.setEliminado(false);
-        when(exhibicionRepository.findById(1L)).thenReturn(Optional.of(nueva));
+        when(exhibicionRepository.lockByIdForUpdate(1L)).thenReturn(Optional.of(nueva));
         when(objetoMuseoRepository.findById(10L)).thenReturn(Optional.of(objeto()));
         when(exhibicionObjetoRepository.findByObjetoMuseoIdAndEliminadoFalse(10L)).thenReturn(List.of(existente));
 
-        assertThatThrownBy(() -> service.crear(request())).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> service.crear(request())).isInstanceOf(ConflictException.class);
     }
 
     @Test
@@ -74,10 +75,11 @@ class ExhibicionObjetoServiceTest {
         usuario.setNombre("Operador");
         usuario.setEliminado(false);
         when(exhibicionObjetoRepository.findById(1L)).thenReturn(Optional.of(relacion));
-        when(usuarioRepository.findById(7L)).thenReturn(Optional.of(usuario));
+        when(exhibicionRepository.lockByIdForUpdate(1L)).thenReturn(Optional.of(relacion.getExhibicion()));
+        when(usuarioMovimientoService.resolver(nullable(String.class))).thenReturn(Optional.of(usuario));
         when(exhibicionObjetoRepository.save(any(ExhibicionObjeto.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var response = service.verificarDevolucion(1L, 7L, "OK");
+        var response = service.verificarDevolucion(1L, "OK", null);
 
         assertThat(response.estado()).isEqualTo(EstadoExhibicionObjeto.DEVUELTO);
         assertThat(response.devolucionVerificada()).isTrue();
@@ -86,14 +88,14 @@ class ExhibicionObjetoServiceTest {
 
     @Test
     void crearConObjetoInexistenteLanzaResourceNotFoundException() {
-        when(exhibicionRepository.findById(1L)).thenReturn(Optional.of(exhibicion(1L)));
+        when(exhibicionRepository.lockByIdForUpdate(1L)).thenReturn(Optional.of(exhibicion(1L)));
         when(objetoMuseoRepository.findById(10L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.crear(request())).isInstanceOf(ResourceNotFoundException.class);
     }
 
     private ExhibicionObjetoRequestDTO request() {
-        return new ExhibicionObjetoRequestDTO(1L, 10L, LocalDate.now(), null, EstadoExhibicionObjeto.EN_EXHIBICION, false, null, null, null);
+        return new ExhibicionObjetoRequestDTO(1L, 10L);
     }
 
     private Exhibicion exhibicion(Long id) {
@@ -101,6 +103,8 @@ class ExhibicionObjetoServiceTest {
         exhibicion.setId(id);
         exhibicion.setNombre("Muestra " + id);
         exhibicion.setEstado(EstadoExhibicion.ACTIVA);
+        exhibicion.setFechaInicio(LocalDate.now());
+        exhibicion.setFechaFin(LocalDate.now().plusDays(30));
         exhibicion.setEliminado(false);
         return exhibicion;
     }

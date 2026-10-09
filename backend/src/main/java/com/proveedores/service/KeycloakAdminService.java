@@ -7,6 +7,7 @@ import com.proveedores.dto.UsuarioKeycloakRequestDTO;
 import com.proveedores.dto.UsuarioKeycloakResponseDTO;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
+import com.proveedores.entity.TipoOperacionAuditoria;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
@@ -31,16 +32,18 @@ import org.springframework.stereotype.Service;
 @Service
 public class KeycloakAdminService {
 
-    private static final Set<String> ROLES_GESTIONABLES = Set.of("ADMIN", "OPERATOR", "VIEWER");
+    private static final Set<String> ROLES_GESTIONABLES = Set.of("ADMIN", "MUSEOLOGO", "VIEWER");
     private static final String DNI_ATTRIBUTE = "dni";
     private static final String UPDATE_PASSWORD_REQUIRED_ACTION = "UPDATE_PASSWORD";
 
     private final Keycloak keycloak;
     private final KeycloakAdminProperties properties;
+    private final AuditoriaObjetoService auditoriaService;
 
-    public KeycloakAdminService(Keycloak keycloak, KeycloakAdminProperties properties) {
+    public KeycloakAdminService(Keycloak keycloak, KeycloakAdminProperties properties, AuditoriaObjetoService auditoriaService) {
         this.keycloak = keycloak;
         this.properties = properties;
+        this.auditoriaService = auditoriaService;
     }
 
     public List<UsuarioKeycloakResponseDTO> listarUsuarios() {
@@ -75,12 +78,15 @@ public class KeycloakAdminService {
                 String id = extraerIdCreado(response.getLocation());
                 try {
                     actualizarDniUsuarioCreado(id, dto);
-                    if (dto.roles() != null && !dto.roles().isEmpty()) {
-                        return asignarRoles(id, new AsignarRolRequestDTO(dto.roles(), true), null);
-                    }
-                    return obtenerUsuario(id);
+                    UsuarioKeycloakResponseDTO creado = dto.roles() != null && !dto.roles().isEmpty()
+                            ? asignarRolesInterno(id, new AsignarRolRequestDTO(dto.roles(), true), null)
+                            : obtenerUsuario(id);
+                    auditarExito(id, TipoOperacionAuditoria.CREACION, "USUARIO_CREADO", "Creación de usuario en Keycloak", null,
+                            auditoriaService.mapOf("username", dto.username(), "email", dto.email(), "dni", dto.dni(), "roles", creado.roles()));
+                    return creado;
                 } catch (RuntimeException exception) {
                     eliminarUsuarioCreado(id);
+                    auditarFallo(id, "USUARIO_CREACION_FALLIDA", exception);
                     throw exception;
                 }
             }
@@ -92,33 +98,70 @@ public class KeycloakAdminService {
     }
 
     public UsuarioKeycloakResponseDTO actualizarDatosBasicos(String id, UsuarioKeycloakRequestDTO dto) {
-        UserResource userResource = userResource(id);
-        UserRepresentation usuario = obtenerRepresentacion(id);
-        usuario.setUsername(dto.username());
-        usuario.setEmail(dto.email());
-        usuario.setFirstName(dto.nombre());
-        usuario.setLastName(dto.apellido());
-        setDniAttribute(usuario, dto.dni());
-        if (dto.habilitado() != null) {
-            usuario.setEnabled(dto.habilitado());
+        try {
+            UserResource userResource = userResource(id);
+            UserRepresentation usuario = obtenerRepresentacion(id);
+            Map<String, Object> anterior = auditoriaService.mapOf(
+                    "username", usuario.getUsername(), "email", usuario.getEmail(), "habilitado", usuario.isEnabled());
+            usuario.setUsername(dto.username());
+            usuario.setEmail(dto.email());
+            usuario.setFirstName(dto.nombre());
+            usuario.setLastName(dto.apellido());
+            setDniAttribute(usuario, dto.dni());
+            if (dto.habilitado() != null) {
+                usuario.setEnabled(dto.habilitado());
+            }
+            ejecutarOperacionKeycloak(() -> userResource.update(usuario));
+            UsuarioKeycloakResponseDTO actualizado = obtenerUsuario(id);
+            auditarExito(id, "USUARIO_ACTUALIZADO", "Actualización de datos de usuario en Keycloak", anterior,
+                    auditoriaService.mapOf("username", actualizado.username(), "email", actualizado.email(), "habilitado", actualizado.habilitado()));
+            return actualizado;
+        } catch (RuntimeException exception) {
+            auditarFallo(id, "USUARIO_ACTUALIZACION_FALLIDA", exception);
+            throw exception;
         }
-        ejecutarOperacionKeycloak(() -> userResource.update(usuario));
-        return obtenerUsuario(id);
     }
 
     public UsuarioKeycloakResponseDTO cambiarEstado(String id, boolean habilitado) {
-        UserResource userResource = userResource(id);
-        UserRepresentation usuario = obtenerRepresentacion(id);
-        usuario.setEnabled(habilitado);
-        ejecutarOperacionKeycloak(() -> userResource.update(usuario));
-        return obtenerUsuario(id);
+        try {
+            UserResource userResource = userResource(id);
+            UserRepresentation usuario = obtenerRepresentacion(id);
+            boolean anterior = Boolean.TRUE.equals(usuario.isEnabled());
+            usuario.setEnabled(habilitado);
+            ejecutarOperacionKeycloak(() -> userResource.update(usuario));
+            UsuarioKeycloakResponseDTO actualizado = obtenerUsuario(id);
+            auditarExito(id, habilitado ? "USUARIO_HABILITADO" : "USUARIO_DESHABILITADO",
+                    "Cambio de estado de usuario en Keycloak",
+                    auditoriaService.mapOf("habilitado", anterior), auditoriaService.mapOf("habilitado", habilitado));
+            return actualizado;
+        } catch (RuntimeException exception) {
+            auditarFallo(id, "USUARIO_ESTADO_FALLIDO", exception);
+            throw exception;
+        }
     }
 
     public void resetearContrasenaTemporal(String id, ResetPasswordRequestDTO dto) {
-        ejecutarOperacionKeycloak(() -> userResource(id).resetPassword(crearCredencialTemporal(dto.contrasena())));
+        try {
+            ejecutarOperacionKeycloak(() -> userResource(id).resetPassword(crearCredencialTemporal(dto.contrasena())));
+            auditarExito(id, "PASSWORD_TEMPORAL_RESETEADA", "Reset de contraseña temporal en Keycloak", null,
+                    auditoriaService.mapOf("credencialTemporalConfigurada", true));
+        } catch (RuntimeException exception) {
+            auditarFallo(id, "PASSWORD_RESET_FALLIDO", exception);
+            throw exception;
+        }
     }
 
     public UsuarioKeycloakResponseDTO asignarRoles(String id, AsignarRolRequestDTO dto, String administradorActualId) {
+        try {
+            UsuarioKeycloakResponseDTO resultado = asignarRolesInterno(id, dto, administradorActualId);
+            return resultado;
+        } catch (RuntimeException exception) {
+            auditarFallo(id, "ROLES_CAMBIO_FALLIDO", exception);
+            throw exception;
+        }
+    }
+
+    private UsuarioKeycloakResponseDTO asignarRolesInterno(String id, AsignarRolRequestDTO dto, String administradorActualId) {
         Set<String> rolesSolicitados = validarRoles(dto.roles());
         if (Objects.equals(id, administradorActualId)
                 && !rolesSolicitados.contains("ADMIN")
@@ -130,16 +173,65 @@ public class KeycloakAdminService {
         List<RoleRepresentation> rolesActualesGestionados = realmRoles.listAll().stream()
                 .filter(role -> ROLES_GESTIONABLES.contains(role.getName()))
                 .toList();
-        if (!rolesActualesGestionados.isEmpty()) {
-            ejecutarOperacionKeycloak(() -> realmRoles.remove(rolesActualesGestionados));
-        }
-
+        Set<String> nombresActuales = nombresRoles(rolesActualesGestionados);
         List<RoleRepresentation> rolesNuevos = obtenerRepresentacionesRolesRealm(rolesSolicitados);
-        if (!rolesNuevos.isEmpty()) {
-            ejecutarOperacionKeycloak(() -> realmRoles.add(rolesNuevos));
-        }
+        List<RoleRepresentation> rolesAAgregar = rolesNuevos.stream()
+                .filter(role -> !nombresActuales.contains(role.getName()))
+                .toList();
+        List<RoleRepresentation> rolesAQuitar = rolesActualesGestionados.stream()
+                .filter(role -> !rolesSolicitados.contains(role.getName()))
+                .toList();
 
-        return obtenerUsuario(id);
+        if (!rolesAAgregar.isEmpty()) {
+            ejecutarOperacionKeycloak(() -> realmRoles.add(rolesAAgregar));
+            Set<String> despuesDeAgregar = nombresRolesGestionados(realmRoles.listAll());
+            if (!despuesDeAgregar.containsAll(rolesSolicitados)) {
+                throw new BusinessException("Keycloak no confirmó la asignación de todos los roles solicitados");
+            }
+        }
+        if (!rolesAQuitar.isEmpty()) {
+            ejecutarOperacionKeycloak(() -> realmRoles.remove(rolesAQuitar));
+        }
+        Set<String> estadoFinal = nombresRolesGestionados(realmRoles.listAll());
+        if (!estadoFinal.equals(rolesSolicitados)) {
+            throw new BusinessException("Keycloak no confirmó el estado final de roles del usuario");
+        }
+        UsuarioKeycloakResponseDTO resultado = obtenerUsuario(id);
+        auditarExito(id, "ROLES_ACTUALIZADOS", "Cambio de roles de usuario en Keycloak",
+                auditoriaService.mapOf("roles", nombresActuales), auditoriaService.mapOf("roles", rolesSolicitados));
+        return resultado;
+    }
+
+    private Set<String> nombresRoles(List<RoleRepresentation> roles) {
+        return roles.stream().map(RoleRepresentation::getName)
+                .filter(Objects::nonNull)
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private Set<String> nombresRolesGestionados(List<RoleRepresentation> roles) {
+        return nombresRoles(roles).stream().filter(ROLES_GESTIONABLES::contains)
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private void auditarExito(String usuarioId, String accion, String descripcion, Object anterior, Object nuevo) {
+        auditarExito(usuarioId, TipoOperacionAuditoria.MODIFICACION, accion, descripcion, anterior, nuevo);
+    }
+
+    private void auditarExito(String usuarioId, TipoOperacionAuditoria tipoOperacion, String accion,
+                              String descripcion, Object anterior, Object nuevo) {
+        auditoriaService.registrarEventoIndependiente("USUARIO_KEYCLOAK", null, usuarioId,
+                tipoOperacion, accion, descripcion, "KEYCLOAK", anterior, nuevo, null);
+    }
+
+    private void auditarFallo(String usuarioId, String accion, RuntimeException exception) {
+        try {
+            auditoriaService.registrarEventoIndependiente("USUARIO_KEYCLOAK", null, usuarioId,
+                    TipoOperacionAuditoria.MODIFICACION, accion,
+                    "La operación de administración en Keycloak no se completó", "KEYCLOAK",
+                    null, auditoriaService.mapOf("resultado", "FALLO", "tipoError", exception.getClass().getSimpleName()), null);
+        } catch (RuntimeException auditException) {
+            // La causa original de Keycloak conserva prioridad; el fallo de auditoría queda en logs del handler.
+        }
     }
 
     private void actualizarDniUsuarioCreado(String id, UsuarioKeycloakRequestDTO dto) {
@@ -230,7 +322,7 @@ public class KeycloakAdminService {
                 .filter(role -> !role.isBlank())
                 .collect(java.util.stream.Collectors.toCollection(HashSet::new));
         if (!ROLES_GESTIONABLES.containsAll(rolesNormalizados)) {
-            throw new BusinessException("Solo se pueden asignar los roles ADMIN, OPERATOR o VIEWER");
+            throw new BusinessException("Solo se pueden asignar los roles ADMIN, MUSEOLOGO o VIEWER");
         }
         return rolesNormalizados;
     }

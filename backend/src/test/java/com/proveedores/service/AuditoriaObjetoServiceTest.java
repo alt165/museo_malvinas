@@ -108,4 +108,41 @@ class AuditoriaObjetoServiceTest {
         assertThat(historial.get(0).valoresNuevos()).contains("datosCompletos");
         verify(auditoriaRepository).findByEntidadAndEntidadIdOrderByFechaDesc(AuditoriaObjetoService.ENTIDAD_OBJETO, 7L);
     }
+
+    @Test
+    void registrarEventoAdmiteReferenciaExternaYAtribuyeActorSinGuardarSecretosNoIncluidos() {
+        Jwt jwt = Jwt.withTokenValue("token-no-persistido")
+                .header("alg", "none")
+                .subject("admin-sub")
+                .claim("preferred_username", "admin")
+                .build();
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(
+                jwt,
+                List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
+        ));
+
+        service.registrarEvento(
+                "USUARIO_KEYCLOAK",
+                null,
+                "usuario-externo-123",
+                TipoOperacionAuditoria.MODIFICACION,
+                "RESET_PASSWORD",
+                "Se configuró una credencial temporal",
+                "KEYCLOAK_ADMIN",
+                null,
+                service.mapOf("credencialTemporalConfigurada", true),
+                null
+        );
+
+        ArgumentCaptor<Auditoria> captor = ArgumentCaptor.forClass(Auditoria.class);
+        verify(auditoriaRepository).save(captor.capture());
+        Auditoria auditoria = captor.getValue();
+        assertThat(auditoria.getEntidad()).isEqualTo("USUARIO_KEYCLOAK");
+        assertThat(auditoria.getEntidadId()).isNull();
+        assertThat(auditoria.getReferenciaExterna()).isEqualTo("usuario-externo-123");
+        assertThat(auditoria.getUsuarioIdentificador()).isEqualTo("admin");
+        assertThat(auditoria.getRol()).isEqualTo("ADMIN");
+        assertThat(auditoria.getDatosNuevos()).isEqualTo("{\"credencialTemporalConfigurada\":true}");
+        assertThat(auditoria.getDatosNuevos()).doesNotContain("token-no-persistido");
+    }
 }

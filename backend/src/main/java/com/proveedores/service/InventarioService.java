@@ -7,7 +7,9 @@ import com.proveedores.entity.Inventario;
 import com.proveedores.entity.MovimientoInventario;
 import com.proveedores.entity.ObjetoMuseo;
 import com.proveedores.entity.TipoMovimientoInventario;
+import com.proveedores.entity.TipoOperacionAuditoria;
 import com.proveedores.entity.Ubicacion;
+import com.proveedores.exception.ConflictException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.mapper.InventarioMapper;
 import com.proveedores.repository.InventarioRepository;
@@ -32,31 +34,51 @@ public class InventarioService {
     private final UbicacionRepository ubicacionRepository;
     private final MovimientoInventarioRepository movimientoInventarioRepository;
     private final UsuarioMovimientoService usuarioMovimientoService;
+    private final AuditoriaObjetoService auditoriaService;
 
     public InventarioService(
             InventarioRepository inventarioRepository,
             ObjetoMuseoRepository objetoMuseoRepository,
             UbicacionRepository ubicacionRepository,
             MovimientoInventarioRepository movimientoInventarioRepository,
-            UsuarioMovimientoService usuarioMovimientoService
+            UsuarioMovimientoService usuarioMovimientoService,
+            AuditoriaObjetoService auditoriaService
     ) {
         this.inventarioRepository = inventarioRepository;
         this.objetoMuseoRepository = objetoMuseoRepository;
         this.ubicacionRepository = ubicacionRepository;
         this.movimientoInventarioRepository = movimientoInventarioRepository;
         this.usuarioMovimientoService = usuarioMovimientoService;
+        this.auditoriaService = auditoriaService;
     }
 
     @Transactional
     public InventarioResponseDTO crear(InventarioRequestDTO dto) {
         ObjetoMuseo objeto = buscarObjeto(dto.objetoMuseoId());
         Ubicacion ubicacion = buscarUbicacion(dto.ubicacionId());
-        Inventario entity = InventarioMapper.toEntity(dto);
+        Inventario entity = inventarioRepository.findByObjetoMuseoId(dto.objetoMuseoId()).orElse(null);
+        if (entity != null && !entity.getEliminado()) {
+            throw new ConflictException("El objeto ya tiene un inventario activo");
+        }
+        if (entity == null) entity = InventarioMapper.toEntity(dto);
+        else {
+            entity.setActivo(true);
+            entity.setEliminado(false);
+            entity.setFechaEliminacion(null);
+            entity.setEstado(dto.estado());
+            entity.setEstadoConservacion(dto.estadoConservacion());
+            entity.setFechaIngreso(dto.fechaIngreso());
+            entity.setFechaSalida(dto.fechaSalida());
+            entity.setObservaciones(dto.observaciones());
+        }
         entity.setObjetoMuseo(objeto);
         entity.setUbicacion(ubicacion);
         entity.setFechaUltimoMovimiento(com.proveedores.time.MuseoTime.now());
         Inventario saved = inventarioRepository.save(entity);
         registrarMovimiento(saved, TipoMovimientoInventario.INGRESO, null, ubicacion);
+        auditoriaService.registrarEvento("INVENTARIO", saved.getId(), null, TipoOperacionAuditoria.CREACION,
+                "INVENTARIO_CREADO", "Alta o reactivación de inventario", "INVENTARIO", null,
+                snapshot(saved), null);
         log.info("event=inventario.created inventarioId={} objetoMuseoId={} ubicacionId={} estado={}", saved.getId(), objeto.getId(), ubicacion.getId(), saved.getEstado());
         return InventarioMapper.toResponse(saved);
     }
@@ -74,14 +96,16 @@ public class InventarioService {
     @Transactional
     public InventarioResponseDTO actualizar(Long id, InventarioRequestDTO dto) {
         Inventario entity = buscarActivo(id);
-        ObjetoMuseo objeto = buscarObjeto(dto.objetoMuseoId());
+        if (!Objects.equals(entity.getObjetoMuseo().getId(), dto.objetoMuseoId())) {
+            throw new ConflictException("El objeto asociado al inventario es inmutable");
+        }
+        ObjetoMuseo objeto = entity.getObjetoMuseo();
         Ubicacion nuevaUbicacion = buscarUbicacion(dto.ubicacionId());
         Ubicacion ubicacionAnterior = entity.getUbicacion();
         EstadoInventario estadoAnterior = entity.getEstado();
         boolean cambioUbicacion = !Objects.equals(ubicacionAnterior.getId(), nuevaUbicacion.getId());
         boolean cambioEstado = estadoAnterior != dto.estado();
 
-        entity.setObjetoMuseo(objeto);
         entity.setUbicacion(nuevaUbicacion);
         entity.setEstado(dto.estado());
         entity.setEstadoConservacion(dto.estadoConservacion());
@@ -105,6 +129,9 @@ public class InventarioService {
         } else {
             log.info("event=inventario.updated inventarioId={} objetoMuseoId={} estado={}", saved.getId(), objeto.getId(), saved.getEstado());
         }
+        auditoriaService.registrarEvento("INVENTARIO", saved.getId(), null, TipoOperacionAuditoria.MODIFICACION,
+                "INVENTARIO_ACTUALIZADO", "Actualización de inventario", "INVENTARIO",
+                auditoriaService.mapOf("estado", estadoAnterior, "ubicacionId", ubicacionAnterior.getId()), snapshot(saved), null);
         return InventarioMapper.toResponse(saved);
     }
 
@@ -115,7 +142,18 @@ public class InventarioService {
         entity.setEliminado(true);
         entity.setFechaEliminacion(com.proveedores.time.MuseoTime.now());
         inventarioRepository.save(entity);
+        auditoriaService.registrarEvento("INVENTARIO", entity.getId(), null, TipoOperacionAuditoria.ELIMINACION,
+                "INVENTARIO_ELIMINADO", "Baja lógica de inventario", "INVENTARIO", snapshot(entity), null, null);
         log.info("event=inventario.deleted inventarioId={} objetoMuseoId={}", entity.getId(), entity.getObjetoMuseo().getId());
+    }
+
+    private Object snapshot(Inventario inventario) {
+        return auditoriaService.mapOf(
+                "objetoId", inventario.getObjetoMuseo().getId(),
+                "estado", inventario.getEstado(),
+                "ubicacionId", inventario.getUbicacion().getId(),
+                "fechaUltimoMovimiento", inventario.getFechaUltimoMovimiento()
+        );
     }
 
     private void registrarMovimiento(Inventario inventario, TipoMovimientoInventario tipo, Ubicacion origen, Ubicacion destino) {

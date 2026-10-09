@@ -4,6 +4,7 @@ import com.proveedores.dto.UnidadMilitarRequestDTO;
 import com.proveedores.dto.UnidadMilitarResponseDTO;
 import com.proveedores.entity.Fuerza;
 import com.proveedores.entity.UnidadMilitar;
+import com.proveedores.exception.ConflictException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.UnidadMilitarRepository;
 import java.time.LocalDateTime;
@@ -23,7 +24,13 @@ public class UnidadMilitarService {
 
     @Transactional
     public UnidadMilitarResponseDTO crear(UnidadMilitarRequestDTO dto) {
-        UnidadMilitar unidad = new UnidadMilitar();
+        String nombre = dto.nombre().trim();
+        UnidadMilitar unidad = unidadMilitarRepository.findByFuerzaAndNombre(dto.fuerza(), nombre).orElse(null);
+        if (unidad != null && !unidad.getEliminado()) {
+            throw new ConflictException("Ya existe una unidad militar activa con esa fuerza y nombre");
+        }
+        if (unidad == null) unidad = new UnidadMilitar();
+        else reactivar(unidad);
         aplicar(unidad, dto);
         return toResponse(unidadMilitarRepository.save(unidad));
     }
@@ -88,6 +95,12 @@ public class UnidadMilitarService {
         unidad.setSigla(normalizar(dto.sigla()));
         unidad.setTipoUnidad(normalizar(dto.tipoUnidad()));
         unidad.setDescripcion(normalizar(dto.descripcion()));
+    }
+
+    private void reactivar(UnidadMilitar unidad) {
+        unidad.setActivo(true);
+        unidad.setEliminado(false);
+        unidad.setFechaEliminacion(null);
     }
 
     private String normalizar(String value) {

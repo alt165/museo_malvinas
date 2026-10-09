@@ -2,6 +2,7 @@ package com.proveedores.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -63,7 +64,7 @@ class AdminObjetoMuseoControllerTest {
                 null,
                 List.of()
         );
-        when(objetoMuseoService.listarEliminados(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(eliminado)));
+        when(objetoMuseoService.listarEliminados(isNull(), any(Pageable.class))).thenReturn(new PageImpl<>(List.of(eliminado)));
 
         mockMvc.perform(get("/api/admin/objetos/eliminados"))
                 .andExpect(status().isOk())

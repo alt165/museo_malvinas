@@ -3,6 +3,7 @@ package com.proveedores.repository;
 import com.proveedores.entity.EstadoExhibicion;
 import com.proveedores.entity.ExhibicionObjeto;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,6 +15,8 @@ public interface ExhibicionObjetoRepository extends JpaRepository<ExhibicionObje
     List<ExhibicionObjeto> findByObjetoMuseoIdAndEliminadoFalse(Long objetoMuseoId);
 
     List<ExhibicionObjeto> findByObjetoMuseoIdInAndEliminadoFalse(List<Long> objetoMuseoIds);
+
+    Optional<ExhibicionObjeto> findByExhibicionIdAndObjetoMuseoId(Long exhibicionId, Long objetoMuseoId);
 
     @Query("""
             select count(eo) > 0
