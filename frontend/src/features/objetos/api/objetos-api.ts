@@ -99,6 +99,10 @@ export function obtenerObjetoPorId(id: number) {
   return apiRequest<ObjetoMuseoResponseDTO>(`${basePath}/${id}`);
 }
 
+export function descargarFichaObjetoPdf(id: number) {
+  return apiBlobRequest(`${basePath}/${id}/ficha-pdf`);
+}
+
 export function listarObjetosVencimientosProximos(dias?: number) {
   const query = dias ? `?dias=${dias}` : "";
   return apiRequest<ObjetoVencimientoProximoResponseDTO[]>(`${basePath}/vencimientos-proximos${query}`);

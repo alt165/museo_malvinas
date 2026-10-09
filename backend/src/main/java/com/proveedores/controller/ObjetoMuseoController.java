@@ -19,6 +19,7 @@ import com.proveedores.entity.VisibilidadCampo;
 import com.proveedores.service.ComodatoPrestamoService;
 import com.proveedores.service.FotoObjetoMuseoService;
 import com.proveedores.service.ObjetoMuseoExportService;
+import com.proveedores.service.ObjetoMuseoFichaPdfService;
 import com.proveedores.service.ObjetoMuseoService;
 import com.proveedores.service.ReciboEscaneadoObjetoMuseoService;
 import com.proveedores.service.ReciboIngresoObjetoService;
@@ -66,6 +67,7 @@ public class ObjetoMuseoController {
 
     private final ObjetoMuseoService objetoMuseoService;
     private final ObjetoMuseoExportService objetoMuseoExportService;
+    private final ObjetoMuseoFichaPdfService objetoMuseoFichaPdfService;
     private final ComodatoPrestamoService comodatoPrestamoService;
     private final FotoObjetoMuseoService fotoObjetoMuseoService;
     private final ReciboEscaneadoObjetoMuseoService reciboEscaneadoObjetoMuseoService;
@@ -75,6 +77,7 @@ public class ObjetoMuseoController {
     public ObjetoMuseoController(
             ObjetoMuseoService objetoMuseoService,
             ObjetoMuseoExportService objetoMuseoExportService,
+            ObjetoMuseoFichaPdfService objetoMuseoFichaPdfService,
             ComodatoPrestamoService comodatoPrestamoService,
             FotoObjetoMuseoService fotoObjetoMuseoService,
             ReciboEscaneadoObjetoMuseoService reciboEscaneadoObjetoMuseoService,
@@ -83,6 +86,7 @@ public class ObjetoMuseoController {
     ) {
         this.objetoMuseoService = objetoMuseoService;
         this.objetoMuseoExportService = objetoMuseoExportService;
+        this.objetoMuseoFichaPdfService = objetoMuseoFichaPdfService;
         this.comodatoPrestamoService = comodatoPrestamoService;
         this.fotoObjetoMuseoService = fotoObjetoMuseoService;
         this.reciboEscaneadoObjetoMuseoService = reciboEscaneadoObjetoMuseoService;
@@ -102,6 +106,20 @@ public class ObjetoMuseoController {
     @GetMapping("/{id}")
     public ResponseEntity<ObjetoMuseoResponseDTO> obtenerPorId(@PathVariable Long id) {
         return ResponseEntity.ok(objetoMuseoService.obtenerPorId(id));
+    }
+
+    @Operation(summary = "Descargar la ficha completa de un objeto en PDF")
+    @ApiResponse(responseCode = "200", description = "PDF generado")
+    @GetMapping(value = "/{id}/ficha-pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> descargarFichaPdf(@PathVariable Long id, Authentication authentication) {
+        ObjetoMuseoFichaPdfService.FichaPdf ficha = objetoMuseoFichaPdfService.generar(id, usuario(authentication));
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(ficha.nombreArchivo(), StandardCharsets.UTF_8)
+                        .build()
+                        .toString())
+                .body(ficha.contenido());
     }
 
     @Operation(summary = "Listar recursos")

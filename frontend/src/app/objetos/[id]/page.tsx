@@ -16,6 +16,7 @@ import { useEditingMode } from "@/lib/editing-mode";
 import { ApiClientError } from "@/lib/errors/api-error";
 import {
   descargarCopiaFirmadaRecibo,
+  descargarFichaObjetoPdf,
   descargarFotoObjeto,
   descargarFotoOriginalObjeto,
   descargarReciboPdf
@@ -553,6 +554,27 @@ export default function DetalleObjetoPage() {
   const detallesConservacionQuery = useDetallesConservacionQuery();
   const detallesConservacionLabels = useMemo(() => new Map((detallesConservacionQuery.data ?? []).map((detalle) => [detalle.codigo, detalle.nombre])), [detallesConservacionQuery.data]);
   const { data: recibos = [] } = useRecibosObjetoQuery(id, puedeVerRecibos);
+  const [descargandoFicha, setDescargandoFicha] = useState(false);
+  const [errorDescargaFicha, setErrorDescargaFicha] = useState<unknown>(null);
+
+  const descargarFicha = async () => {
+    if (!data || descargandoFicha) return;
+    setDescargandoFicha(true);
+    setErrorDescargaFicha(null);
+    try {
+      const blob = await descargarFichaObjetoPdf(data.id);
+      const inventarioSeguro = (data.numeroInventario || String(data.id))
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^A-Za-z0-9._-]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      descargarBlob(blob, `ficha-objeto-${inventarioSeguro || data.id}.pdf`);
+    } catch (downloadError) {
+      setErrorDescargaFicha(downloadError);
+    } finally {
+      setDescargandoFicha(false);
+    }
+  };
 
   const datosDetalle: DatoDetalle[] = data ? [
     { label: "Numero de inventario", value: data.numeroInventario },
@@ -649,6 +671,17 @@ export default function DetalleObjetoPage() {
                 </Link>
               ) : null}
               {data ? (
+                <button
+                  className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={descargandoFicha}
+                  onClick={descargarFicha}
+                  type="button"
+                >
+                  <Download className="h-4 w-4" aria-hidden="true" />
+                  {descargandoFicha ? "Generando PDF..." : "Descargar ficha PDF"}
+                </button>
+              ) : null}
+              {data ? (
                 <Link
                   className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
                   href={`/objetos/${data.id}/relaciones`}
@@ -664,6 +697,12 @@ export default function DetalleObjetoPage() {
           <ErrorState
             message={getApiErrorMessage(error)}
             requestId={error instanceof ApiClientError ? error.requestId : undefined}
+          />
+        ) : null}
+        {errorDescargaFicha ? (
+          <ErrorState
+            message={getApiErrorMessage(errorDescargaFicha)}
+            requestId={errorDescargaFicha instanceof ApiClientError ? errorDescargaFicha.requestId : undefined}
           />
         ) : null}
         {data ? (

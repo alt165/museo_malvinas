@@ -95,6 +95,13 @@ public class ExhibicionObjetoService {
         return exhibicionObjetoRepository.findAll().stream().filter(e -> !e.getEliminado()).map(ExhibicionObjetoMapper::toResponse).toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<ExhibicionObjetoResponseDTO> listarPorObjeto(Long objetoId) {
+        return exhibicionObjetoRepository.findByObjetoMuseoIdAndEliminadoFalse(objetoId).stream()
+                .map(ExhibicionObjetoMapper::toResponse)
+                .toList();
+    }
+
     @Transactional
     public ExhibicionObjetoResponseDTO verificarDevolucion(Long id, String observaciones, String operador) {
         ExhibicionObjeto entity = buscarActivo(id);
