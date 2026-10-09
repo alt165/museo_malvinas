@@ -20,6 +20,7 @@ import com.proveedores.security.KeycloakJwtAuthenticationConverter;
 import com.proveedores.service.ComodatoPrestamoService;
 import com.proveedores.service.FotoObjetoMuseoService;
 import com.proveedores.service.ObjetoMuseoExportService;
+import com.proveedores.service.ObjetoMuseoFichaPdfService;
 import com.proveedores.service.ObjetoMuseoService;
 import com.proveedores.service.ReciboEscaneadoObjetoMuseoService;
 import com.proveedores.service.ReciboIngresoObjetoService;
@@ -52,6 +53,9 @@ class ObjetoMuseoControllerTest {
 
     @MockBean
     private ObjetoMuseoExportService objetoMuseoExportService;
+
+    @MockBean
+    private ObjetoMuseoFichaPdfService objetoMuseoFichaPdfService;
 
     @MockBean
     private ComodatoPrestamoService comodatoPrestamoService;
@@ -97,6 +101,19 @@ class ObjetoMuseoControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Type", org.hamcrest.Matchers.containsString(MediaType.APPLICATION_PDF_VALUE)))
                 .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("objetos_")));
+    }
+
+    @Test
+    void descargarFichaPdfDevuelveArchivoConNombreSeguro() throws Exception {
+        when(objetoMuseoFichaPdfService.generar(eq(12L), any()))
+                .thenReturn(new ObjetoMuseoFichaPdfService.FichaPdf(
+                        "%PDF-1.7".getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                        "ficha-objeto-INV-12.pdf"));
+
+        mockMvc.perform(get("/api/objetos/12/ficha-pdf"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", org.hamcrest.Matchers.containsString(MediaType.APPLICATION_PDF_VALUE)))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("ficha-objeto-INV-12.pdf")));
     }
 
     @Test

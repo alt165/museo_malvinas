@@ -13,6 +13,7 @@ import com.proveedores.security.SecurityConfig;
 import com.proveedores.service.ComodatoPrestamoService;
 import com.proveedores.service.FotoObjetoMuseoService;
 import com.proveedores.service.ObjetoMuseoExportService;
+import com.proveedores.service.ObjetoMuseoFichaPdfService;
 import com.proveedores.service.ObjetoMuseoService;
 import com.proveedores.service.ReciboEscaneadoObjetoMuseoService;
 import com.proveedores.service.ReciboIngresoObjetoService;
@@ -47,6 +48,9 @@ class ObjetoPendienteCompletarSecurityTest {
     private ObjetoMuseoExportService objetoMuseoExportService;
 
     @MockBean
+    private ObjetoMuseoFichaPdfService objetoMuseoFichaPdfService;
+
+    @MockBean
     private ComodatoPrestamoService comodatoPrestamoService;
 
     @MockBean
@@ -73,6 +77,23 @@ class ObjetoPendienteCompletarSecurityTest {
 
         mockMvc.perform(get("/api/objetos/export/pdf").with(user("viewer").roles("VIEWER")))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void fichaPdfExigeAutenticacionYAdmiteRolesDeConsulta() throws Exception {
+        when(objetoMuseoFichaPdfService.generar(any(), any()))
+                .thenReturn(new ObjetoMuseoFichaPdfService.FichaPdf(new byte[]{1, 2, 3}, "ficha-objeto-1.pdf"));
+
+        mockMvc.perform(get("/api/objetos/1/ficha-pdf"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/objetos/1/ficha-pdf").with(user("viewer").roles("VIEWER")))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/objetos/1/ficha-pdf").with(user("museologo").roles("MUSEOLOGO")))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/objetos/1/ficha-pdf").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/objetos/1/ficha-pdf").with(user("sin-rol").roles("OTRO")))
+                .andExpect(status().isForbidden());
     }
 
     @Test

@@ -27,6 +27,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.function.Consumer;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -57,6 +58,38 @@ public class PdfReportService {
         } catch (IOException exception) {
             throw new IllegalStateException("No se pudo generar el PDF", exception);
         }
+    }
+
+    public byte[] generatePortrait(String title, ReportMetadata metadata, Consumer<DetailedReportContext> content) {
+        try {
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            PdfWriter writer = new PdfWriter(output);
+            PdfDocument pdf = new PdfDocument(writer);
+            PdfFont regular = PdfFontFactory.createFont(StandardFonts.HELVETICA);
+            PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
+            pdf.addEventHandler(PdfDocumentEvent.END_PAGE, new HeaderFooterHandler(metadata, title, regular, bold));
+
+            Document document = new Document(pdf, PageSize.A4);
+            document.setMargins(70, 36, 48, 36);
+            document.setFont(regular);
+            content.accept(new DetailedReportContext(
+                    document, pdf, regular, bold, PRIMARY, HEADER_BACKGROUND, BORDER));
+            document.close();
+            return output.toByteArray();
+        } catch (IOException exception) {
+            throw new IllegalStateException("No se pudo generar el PDF", exception);
+        }
+    }
+
+    public record DetailedReportContext(
+            Document document,
+            PdfDocument pdfDocument,
+            PdfFont regularFont,
+            PdfFont boldFont,
+            DeviceRgb primaryColor,
+            DeviceRgb headerBackgroundColor,
+            DeviceRgb borderColor
+    ) {
     }
 
     private <T> void addReportSummary(Document document, TabularReport<T> report, ReportMetadata metadata, PdfFont bold) {

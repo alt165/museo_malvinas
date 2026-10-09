@@ -12,6 +12,7 @@ export {
   cargaRapidaObjeto,
   crearObjeto,
   descargarCopiaFirmadaRecibo,
+  descargarFichaObjetoPdf,
   descargarFotoObjeto,
   descargarFotoOriginalObjeto,
   descargarReciboEscaneadoObjeto,
