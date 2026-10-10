@@ -21,7 +21,7 @@ class FlywayPostgresIntegrationTest extends IntegrationTestBase {
 
         Integer ubicacionesSembradas = jdbcTemplate.queryForObject("select count(*) from ubicaciones", Integer.class);
 
-        assertThat(versiones).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30");
+        assertThat(versiones).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31");
         assertThat(ubicacionesSembradas).isGreaterThanOrEqualTo(5);
         assertThat(jdbcTemplate.queryForObject("select count(*) from ubicaciones where nombre = 'Pre ingreso' and eliminado = false", Integer.class))
                 .isEqualTo(1);
@@ -85,8 +85,10 @@ class FlywayPostgresIntegrationTest extends IntegrationTestBase {
                 .isEqualTo(3);
         assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.columns where table_name = 'fotos_objeto_museo' and column_name in ('ruta_publica', 'content_type_publico', 'tamanio_bytes_publico')", Integer.class))
                 .isEqualTo(3);
-        assertThat(jdbcTemplate.queryForObject("select count(*) from pg_indexes where tablename = 'recibos_escaneados_objeto_museo' and indexname in ('idx_recibos_escaneados_objeto', 'uk_recibo_escaneado_activo_objeto')", Integer.class))
-                .isEqualTo(2);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from pg_indexes where tablename = 'recibos_escaneados_objeto_museo' and indexname = 'idx_recibos_escaneados_objeto'", Integer.class))
+                .isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from pg_indexes where tablename = 'recibos_escaneados_objeto_museo' and indexname = 'uk_recibo_escaneado_activo_objeto'", Integer.class))
+                .isZero();
         assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.tables where table_name = 'colecciones_objetos'", Integer.class))
                 .isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.columns where table_name = 'objetos_museo' and column_name = 'coleccion_id'", Integer.class))

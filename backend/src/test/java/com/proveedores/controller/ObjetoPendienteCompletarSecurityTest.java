@@ -129,6 +129,22 @@ class ObjetoPendienteCompletarSecurityTest {
     }
 
     @Test
+    void recibosEscaneadosPluralesConservanPermisosDeLectura() throws Exception {
+        when(reciboEscaneadoObjetoMuseoService.listar(1L)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/objetos/1/recibos-escaneados"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/objetos/1/recibos-escaneados").with(user("viewer").roles("VIEWER")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/objetos/1/recibos-escaneados/2/archivo").with(user("viewer").roles("VIEWER")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/objetos/1/recibos-escaneados").with(user("museologo").roles("MUSEOLOGO")))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/objetos/1/recibos-escaneados").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void viewerNoPuedeExportarPendientes() throws Exception {
         mockMvc.perform(get("/api/objetos/pendientes-completar/export/pdf").with(user("viewer").roles("VIEWER")))
                 .andExpect(status().isForbidden());

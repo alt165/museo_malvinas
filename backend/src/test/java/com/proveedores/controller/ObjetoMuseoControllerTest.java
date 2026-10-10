@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -13,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.proveedores.dto.ObjetoMuseoRequestDTO;
 import com.proveedores.dto.ObjetoMuseoResponseDTO;
+import com.proveedores.dto.ReciboEscaneadoObjetoMuseoResponseDTO;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.GlobalExceptionHandler;
 import com.proveedores.exception.ResourceNotFoundException;
@@ -34,13 +36,39 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(ObjetoMuseoController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @Import(GlobalExceptionHandler.class)
 class ObjetoMuseoControllerTest {
+
+    @Test
+    void listarAnexarYDescargarReciboEscaneadoPorId() throws Exception {
+        var recibo = new ReciboEscaneadoObjetoMuseoResponseDTO(42L, 7L, "acta.pdf", "application/pdf", 8L,
+                java.time.LocalDateTime.of(2026, 10, 9, 12, 0), "tester");
+        when(reciboEscaneadoObjetoMuseoService.listar(7L)).thenReturn(java.util.List.of(recibo));
+        when(reciboEscaneadoObjetoMuseoService.agregar(eq(7L), any(), isNull())).thenReturn(recibo);
+        when(reciboEscaneadoObjetoMuseoService.descargar(7L, 42L)).thenReturn(
+                new ReciboEscaneadoObjetoMuseoService.ReciboEscaneadoArchivo(recibo,
+                        new ByteArrayResource("%PDF-1.4".getBytes(java.nio.charset.StandardCharsets.UTF_8)),
+                        "application/pdf", "acta.pdf"));
+
+        mockMvc.perform(get("/api/objetos/7/recibos-escaneados"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(42L));
+        mockMvc.perform(multipart("/api/objetos/7/recibos-escaneados")
+                        .file(new MockMultipartFile("archivo", "acta.pdf", "application/pdf", "%PDF-1.4".getBytes())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.nombreArchivoOriginal").value("acta.pdf"));
+        mockMvc.perform(get("/api/objetos/7/recibos-escaneados/42/archivo"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", org.hamcrest.Matchers.containsString(MediaType.APPLICATION_PDF_VALUE)))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("acta.pdf")));
+    }
 
     @Autowired
     private MockMvc mockMvc;

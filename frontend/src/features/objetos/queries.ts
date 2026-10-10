@@ -24,6 +24,7 @@ import {
   listarObjetosPendientesCompletar,
   listarObjetosVencimientosProximos,
   listarRecibosObjeto,
+  listarRecibosEscaneadosObjeto,
   moverObjeto,
   obtenerConfigAlertasComodatosPrestamos,
   obtenerObjetoPorId,
@@ -51,6 +52,7 @@ export const objetosQueryKeys = {
   movimientos: (id: number) => [...objetosQueryKeys.all, "detail", id, "movimientos"] as const,
   historial: (id: number) => [...objetosQueryKeys.all, "detail", id, "historial"] as const,
   reciboEscaneado: (id: number) => [...objetosQueryKeys.all, "detail", id, "recibo-escaneado"] as const,
+  recibosEscaneados: (id: number) => [...objetosQueryKeys.all, "detail", id, "recibos-escaneados"] as const,
   recibos: (id: number) => [...objetosQueryKeys.all, "detail", id, "recibos"] as const
 };
 
@@ -289,6 +291,14 @@ export function useRecibosObjetoQuery(id: number, enabled = true) {
   return useQuery({
     queryKey: objetosQueryKeys.recibos(id),
     queryFn: () => listarRecibosObjeto(id),
+    enabled: enabled && Number.isFinite(id)
+  });
+}
+
+export function useRecibosEscaneadosObjetoQuery(id: number, enabled = true) {
+  return useQuery({
+    queryKey: objetosQueryKeys.recibosEscaneados(id),
+    queryFn: () => listarRecibosEscaneadosObjeto(id),
     enabled: enabled && Number.isFinite(id)
   });
 }

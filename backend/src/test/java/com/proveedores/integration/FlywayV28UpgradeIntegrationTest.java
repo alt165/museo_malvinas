@@ -12,6 +12,34 @@ import org.testcontainers.containers.PostgreSQLContainer;
 class FlywayV28UpgradeIntegrationTest {
 
     @Test
+    void migracionConservaReciboExistenteYPermiteAgregarOtro() {
+        try (PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")) {
+            postgres.start();
+            Flyway.configure()
+                    .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
+                    .target(MigrationVersion.fromVersion("28"))
+                    .load()
+                    .migrate();
+            JdbcTemplate jdbc = new JdbcTemplate(new DriverManagerDataSource(
+                    postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword()));
+            String insert = "insert into recibos_escaneados_objeto_museo (objeto_museo_id, nombre_archivo_original, nombre_archivo_almacenado, content_type, tamanio_bytes, ruta_relativa, fecha_carga) values (1, ?, ?, 'application/pdf', 4, ?, current_timestamp)";
+            jdbc.update(insert, "anterior.pdf", "anterior.pdf", "objetos/1/recibos/anterior.pdf");
+
+            Flyway.configure()
+                    .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
+                    .load()
+                    .migrate();
+
+            jdbc.update(insert, "nuevo.pdf", "nuevo.pdf", "objetos/1/recibos/nuevo.pdf");
+            assertThat(jdbc.queryForList(
+                    "select nombre_archivo_original from recibos_escaneados_objeto_museo where objeto_museo_id = 1 and eliminado = false order by id",
+                    String.class)).containsExactly("anterior.pdf", "nuevo.pdf");
+            assertThat(jdbc.queryForObject("select count(*) from pg_indexes where indexname = 'uk_recibo_escaneado_activo_objeto'", Integer.class))
+                    .isZero();
+        }
+    }
+
+    @Test
     void actualizaV28ALatestSinDemoYConservaCatalogos() {
         try (PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")) {
             postgres.start();

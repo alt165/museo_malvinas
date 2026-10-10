@@ -19,12 +19,14 @@ import {
   descargarFichaObjetoPdf,
   descargarFotoObjeto,
   descargarFotoOriginalObjeto,
+  descargarReciboEscaneadoObjetoPorId,
   descargarReciboPdf
 } from "@/features/objetos/api";
 import {
   objetosQueryKeys,
   useEliminarFotoObjetoMutation,
   useObjetoQuery,
+  useRecibosEscaneadosObjetoQuery,
   useRecibosObjetoQuery
 } from "@/features/objetos/queries";
 import { ObjetoImagenesUploadModal } from "@/features/objetos/components/objeto-imagenes-upload-modal";
@@ -44,6 +46,19 @@ function descargarBlob(blob: Blob, nombre: string) {
   link.download = nombre;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+async function visualizarReciboEscaneado(objetoId: number, reciboId: number) {
+  const ventana = window.open("about:blank", "_blank");
+  const blob = await descargarReciboEscaneadoObjetoPorId(objetoId, reciboId);
+  if (!ventana) {
+    descargarBlob(blob, `recibo-escaneado-${reciboId}`);
+    return;
+  }
+  ventana.opener = null;
+  const url = URL.createObjectURL(blob);
+  ventana.location.href = url;
+  ventana.addEventListener("beforeunload", () => URL.revokeObjectURL(url), { once: true });
 }
 
 function hasDisplayValue(value: React.ReactNode) {
@@ -553,7 +568,8 @@ export default function DetalleObjetoPage() {
   const { data, error, isError, isLoading } = useObjetoQuery(id);
   const detallesConservacionQuery = useDetallesConservacionQuery();
   const detallesConservacionLabels = useMemo(() => new Map((detallesConservacionQuery.data ?? []).map((detalle) => [detalle.codigo, detalle.nombre])), [detallesConservacionQuery.data]);
-  const { data: recibos = [] } = useRecibosObjetoQuery(id, puedeVerRecibos);
+  const { data: recibos = [], isError: recibosError } = useRecibosObjetoQuery(id, puedeVerRecibos);
+  const { data: recibosEscaneados = [], isError: recibosEscaneadosError } = useRecibosEscaneadosObjetoQuery(id, puedeVerRecibos);
   const [descargandoFicha, setDescargandoFicha] = useState(false);
   const [errorDescargaFicha, setErrorDescargaFicha] = useState<unknown>(null);
 
@@ -751,7 +767,9 @@ export default function DetalleObjetoPage() {
               <section className="h-full min-w-0 overflow-hidden rounded-lg border border-primary/15 bg-white shadow-sm lg:col-start-2 lg:row-start-3">
                 <SectionHeader icon={Receipt} title="Recibos" />
                 <div className="grid gap-3 p-5">
-                  {recibos.length === 0 ? <p className="py-2 text-sm text-muted-foreground">Sin recibos emitidos.</p> : null}
+                  {recibosError || recibosEscaneadosError ? <p className="text-sm text-destructive">No se pudieron cargar todos los recibos.</p> : null}
+                  {!recibosError && !recibosEscaneadosError && recibos.length === 0 && recibosEscaneados.length === 0 ? <p className="py-2 text-sm text-muted-foreground">Sin recibos emitidos.</p> : null}
+                  {recibos.length > 0 ? <h3 className="text-sm font-semibold">Recibos de ingreso emitidos</h3> : null}
                   {recibos.map((recibo) => (
                     <div className="rounded-md border border-primary/10 p-3 text-sm" key={recibo.id}>
                       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -764,6 +782,21 @@ export default function DetalleObjetoPage() {
                           {recibo.tieneCopiaFirmada ? (
                             <button className="rounded-md border px-3 py-1.5 hover:bg-muted" onClick={async () => descargarBlob(await descargarCopiaFirmadaRecibo(recibo.id), recibo.copiaFirmadaNombreArchivo || `recibo-firmado-${recibo.id}`)} type="button">Copia firmada</button>
                           ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {recibosEscaneados.length > 0 ? <h3 className="pt-2 text-sm font-semibold">Recibos escaneados adjuntos</h3> : null}
+                  {recibosEscaneados.map((recibo) => (
+                    <div className="rounded-md border border-primary/10 p-3 text-sm" key={recibo.id}>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="font-medium">{recibo.nombreArchivoOriginal}</p>
+                          <p className="text-muted-foreground">Recibo escaneado #{recibo.id}</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button className="rounded-md border px-3 py-1.5 hover:bg-muted" onClick={() => void visualizarReciboEscaneado(id, recibo.id)} type="button">Ver</button>
+                          <button className="rounded-md border px-3 py-1.5 hover:bg-muted" onClick={async () => descargarBlob(await descargarReciboEscaneadoObjetoPorId(id, recibo.id), recibo.nombreArchivoOriginal)} type="button">Descargar</button>
                         </div>
                       </div>
                     </div>

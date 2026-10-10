@@ -4,9 +4,9 @@ import com.proveedores.dto.ReciboEscaneadoObjetoMuseoResponseDTO;
 import com.proveedores.entity.ObjetoMuseo;
 import com.proveedores.entity.ReciboEscaneadoObjetoMuseo;
 import com.proveedores.entity.TipoOperacionAuditoria;
-import com.proveedores.exception.BusinessException;
 import com.proveedores.exception.ResourceNotFoundException;
 import com.proveedores.repository.ReciboEscaneadoObjetoMuseoRepository;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -81,6 +81,38 @@ public class ReciboEscaneadoObjetoMuseoService {
         return toResponse(saved);
     }
 
+    @Transactional
+    public ReciboEscaneadoObjetoMuseoResponseDTO agregar(Long objetoId, MultipartFile archivo, String cargadoPor) {
+        ObjetoMuseo objeto = objetoMuseoService.buscarObjetoActivo(objetoId);
+        UploadFileValidator.ValidatedFile validated = validarArchivo(archivo);
+        ObjectFileStorageService.StoredObjectFile storedFile = objectFileStorageService.storeBytes(
+                objetoId, "recibos", validated.bytes(), validated.originalName(), validated.extension());
+        transactionalFileLifecycle.deleteOnRollback(() -> objectFileStorageService.delete(storedFile.relativePath()));
+
+        ReciboEscaneadoObjetoMuseo recibo = new ReciboEscaneadoObjetoMuseo();
+        recibo.setObjetoMuseo(objeto);
+        recibo.setNombreArchivoOriginal(validated.originalName());
+        recibo.setNombreArchivoAlmacenado(storedFile.storedName());
+        recibo.setContentType(validated.contentType());
+        recibo.setTamanioBytes((long) validated.bytes().length);
+        recibo.setRutaRelativa(storedFile.relativePath());
+        recibo.setFechaCarga(com.proveedores.time.MuseoTime.now());
+        recibo.setCargadoPor(cargadoPor);
+        ReciboEscaneadoObjetoMuseo saved = reciboEscaneadoRepository.saveAndFlush(recibo);
+        auditoriaService.registrarEvento("RECIBO_ESCANEADO", saved.getId(), null, TipoOperacionAuditoria.CREACION,
+                "RECIBO_CARGADO", "Carga de recibo escaneado", "ARCHIVOS", null,
+                auditoriaService.mapOf("objetoId", objetoId, "contentType", saved.getContentType(),
+                        "tamanioBytes", saved.getTamanioBytes()), cargadoPor);
+        return toResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReciboEscaneadoObjetoMuseoResponseDTO> listar(Long objetoId) {
+        objetoMuseoService.buscarObjetoActivo(objetoId);
+        return reciboEscaneadoRepository.findByObjetoMuseoIdAndEliminadoFalseOrderByFechaCargaDescIdDesc(objetoId)
+                .stream().map(this::toResponse).toList();
+    }
+
     @Transactional(readOnly = true)
     public Optional<ReciboEscaneadoObjetoMuseoResponseDTO> obtener(Long objetoId) {
         objetoMuseoService.buscarObjetoActivo(objetoId);
@@ -91,6 +123,15 @@ public class ReciboEscaneadoObjetoMuseoService {
     @Transactional(readOnly = true)
     public ReciboEscaneadoArchivo descargar(Long objetoId) {
         ReciboEscaneadoObjetoMuseo recibo = reciboEscaneadoRepository.findFirstByObjetoMuseoIdAndEliminadoFalseOrderByFechaCargaDesc(objetoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Recibo escaneado no encontrado"));
+        Resource resource = objectFileStorageService.load(recibo.getRutaRelativa());
+        return new ReciboEscaneadoArchivo(toResponse(recibo), resource, recibo.getContentType(), recibo.getNombreArchivoOriginal());
+    }
+
+    @Transactional(readOnly = true)
+    public ReciboEscaneadoArchivo descargar(Long objetoId, Long reciboId) {
+        objetoMuseoService.buscarObjetoActivo(objetoId);
+        ReciboEscaneadoObjetoMuseo recibo = reciboEscaneadoRepository.findByIdAndObjetoMuseoIdAndEliminadoFalse(reciboId, objetoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Recibo escaneado no encontrado"));
         Resource resource = objectFileStorageService.load(recibo.getRutaRelativa());
         return new ReciboEscaneadoArchivo(toResponse(recibo), resource, recibo.getContentType(), recibo.getNombreArchivoOriginal());

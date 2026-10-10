@@ -9,6 +9,7 @@ import com.proveedores.entity.CaracterRecepcionObjeto;
 import com.proveedores.entity.EstadoConservacion;
 import com.proveedores.exception.BusinessException;
 import com.proveedores.repository.FotoObjetoMuseoRepository;
+import com.proveedores.repository.ReciboIngresoObjetoRepository;
 import com.proveedores.service.FotoObjetoMuseoService;
 import com.proveedores.service.ObjetoMuseoService;
 import com.proveedores.service.CategoriaObjetoService;
@@ -34,6 +35,9 @@ class ObjetoArchivoServiceIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private ReciboEscaneadoObjetoMuseoService reciboEscaneadoObjetoMuseoService;
+
+    @Autowired
+    private ReciboIngresoObjetoRepository reciboIngresoObjetoRepository;
 
     @Autowired
     private FotoObjetoMuseoRepository fotoObjetoMuseoRepository;
@@ -133,6 +137,30 @@ class ObjetoArchivoServiceIntegrationTest extends IntegrationTestBase {
         reciboEscaneadoObjetoMuseoService.eliminar(objetoId, reemplazo.id());
 
         assertThat(reciboEscaneadoObjetoMuseoService.obtener(objetoId)).isEmpty();
+    }
+
+    @Test
+    void anexaDosRecibosEscaneadosYDescargaCadaUnoSinAfectarElEmitido() throws Exception {
+        Long objetoId = crearObjeto("IT-FILE-REC-MULTIPLE");
+        byte[] primerPdf = "%PDF-1.4\nprimero\n%%EOF\n".getBytes(StandardCharsets.US_ASCII);
+        byte[] segundoPdf = "%PDF-1.4\nsegundo\n%%EOF\n".getBytes(StandardCharsets.US_ASCII);
+
+        assertThat(reciboEscaneadoObjetoMuseoService.listar(objetoId)).isEmpty();
+        assertThat(reciboIngresoObjetoRepository.findByObjetoMuseoIdAndEliminadoFalse(objetoId)).hasSize(1);
+
+        var primero = reciboEscaneadoObjetoMuseoService.agregar(objetoId,
+                new MockMultipartFile("archivo", "primero.pdf", "application/pdf", primerPdf), "tester");
+        assertThat(reciboEscaneadoObjetoMuseoService.listar(objetoId)).extracting("id").containsExactly(primero.id());
+
+        var segundo = reciboEscaneadoObjetoMuseoService.agregar(objetoId,
+                new MockMultipartFile("archivo", "segundo.pdf", "application/pdf", segundoPdf), "tester");
+        assertThat(reciboEscaneadoObjetoMuseoService.listar(objetoId)).extracting("id")
+                .containsExactlyInAnyOrder(primero.id(), segundo.id());
+        assertThat(reciboEscaneadoObjetoMuseoService.descargar(objetoId, primero.id()).resource()
+                .getInputStream().readAllBytes()).containsExactly(primerPdf);
+        assertThat(reciboEscaneadoObjetoMuseoService.descargar(objetoId, segundo.id()).resource()
+                .getInputStream().readAllBytes()).containsExactly(segundoPdf);
+        assertThat(reciboIngresoObjetoRepository.findByObjetoMuseoIdAndEliminadoFalse(objetoId)).hasSize(1);
     }
 
     @Test

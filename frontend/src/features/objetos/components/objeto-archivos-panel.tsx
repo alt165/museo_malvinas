@@ -5,17 +5,18 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import {
+  agregarReciboEscaneadoObjeto,
   descargarFotoObjeto,
-  descargarReciboEscaneadoObjeto,
+  descargarReciboEscaneadoObjetoPorId,
   eliminarReciboEscaneadoObjeto,
-  subirFotoObjeto,
-  subirReciboEscaneadoObjeto
+  subirFotoObjeto
 } from "@/features/objetos/api";
 import {
   objetosQueryKeys,
   useActualizarVisibilidadFotoObjetoMutation,
   useEliminarFotoObjetoMutation,
-  useFotosObjetoQuery
+  useFotosObjetoQuery,
+  useRecibosEscaneadosObjetoQuery
 } from "@/features/objetos/queries";
 import type { ObjetoMuseoResponseDTO, VisibilidadCampo } from "@/features/objetos/types";
 
@@ -43,6 +44,19 @@ async function abrirBlobEnNuevaVentana(blob: Blob) {
   nuevaVentana.addEventListener("beforeunload", () => URL.revokeObjectURL(url), { once: true });
 }
 
+async function visualizarReciboEscaneado(objetoId: number, reciboId: number) {
+  const ventana = window.open("about:blank", "_blank");
+  const blob = await descargarReciboEscaneadoObjetoPorId(objetoId, reciboId);
+  if (!ventana) {
+    descargarBlob(blob, `recibo-escaneado-${reciboId}`);
+    return;
+  }
+  ventana.opener = null;
+  const url = URL.createObjectURL(blob);
+  ventana.location.href = url;
+  ventana.addEventListener("beforeunload", () => URL.revokeObjectURL(url), { once: true });
+}
+
 export function ObjetoArchivosPanel({ mode, objeto }: ObjetoArchivosPanelProps) {
   const editable = mode === "edit";
   const queryClient = useQueryClient();
@@ -51,6 +65,7 @@ export function ObjetoArchivosPanel({ mode, objeto }: ObjetoArchivosPanelProps) 
   const [fotoThumbUrls, setFotoThumbUrls] = useState<Record<number, string>>({});
   const fotoThumbUrlsRef = useRef<Record<number, string>>({});
   const { data: fotos = [] } = useFotosObjetoQuery(objeto.id);
+  const { data: recibosEscaneados = [], isError: recibosEscaneadosError } = useRecibosEscaneadosObjetoQuery(objeto.id);
   const actualizarVisibilidadFotoMutation = useActualizarVisibilidadFotoObjetoMutation(objeto.id);
   const eliminarFotoMutation = useEliminarFotoObjetoMutation(objeto.id);
   const subirFotoMutation = useMutation({
@@ -63,10 +78,11 @@ export function ObjetoArchivosPanel({ mode, objeto }: ObjetoArchivosPanelProps) 
     }
   });
   const subirReciboEscaneadoMutation = useMutation({
-    mutationFn: (archivo: File) => subirReciboEscaneadoObjeto(objeto.id, archivo),
+    mutationFn: (archivo: File) => agregarReciboEscaneadoObjeto(objeto.id, archivo),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.detail(objeto.id) });
       void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.reciboEscaneado(objeto.id) });
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.recibosEscaneados(objeto.id) });
     }
   });
   const eliminarReciboEscaneadoMutation = useMutation({
@@ -74,6 +90,7 @@ export function ObjetoArchivosPanel({ mode, objeto }: ObjetoArchivosPanelProps) 
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.detail(objeto.id) });
       void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.reciboEscaneado(objeto.id) });
+      void queryClient.invalidateQueries({ queryKey: objetosQueryKeys.recibosEscaneados(objeto.id) });
     }
   });
 
@@ -213,32 +230,32 @@ export function ObjetoArchivosPanel({ mode, objeto }: ObjetoArchivosPanelProps) 
       </section>
 
       <section className="rounded-lg border bg-white p-5">
-        <h2 className="text-base font-semibold">Recibo</h2>
+        <h2 className="text-base font-semibold">Recibos escaneados adjuntos</h2>
         <div className="mt-4 grid gap-3">
-          {objeto.reciboEscaneado ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3 text-sm">
+          {recibosEscaneadosError ? <p className="text-sm text-destructive">No se pudieron cargar los recibos escaneados.</p> : null}
+          {!recibosEscaneadosError && recibosEscaneados.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sin recibo escaneado adjunto.</p>
+          ) : null}
+          {recibosEscaneados.map((recibo) => (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3 text-sm" key={recibo.id}>
               <div>
-                <p className="font-medium">{objeto.reciboEscaneado.nombreArchivoOriginal}</p>
-                <p className="text-muted-foreground">{objeto.reciboEscaneado.contentType}</p>
+                <p className="font-medium">{recibo.nombreArchivoOriginal}</p>
+                <p className="text-muted-foreground">Recibo escaneado #{recibo.id} · {recibo.contentType}</p>
               </div>
               <div className="flex gap-2">
-                <button className="rounded-md border px-3 py-1.5 hover:bg-muted" onClick={async () => descargarBlob(await descargarReciboEscaneadoObjeto(objeto.id), objeto.reciboEscaneado?.nombreArchivoOriginal || `recibo-escaneado-${objeto.id}`)} type="button">
-                  Descargar recibo
-                </button>
+                <button className="rounded-md border px-3 py-1.5 hover:bg-muted" onClick={() => void visualizarReciboEscaneado(objeto.id, recibo.id)} type="button">Ver</button>
+                <button className="rounded-md border px-3 py-1.5 hover:bg-muted" onClick={async () => descargarBlob(await descargarReciboEscaneadoObjetoPorId(objeto.id, recibo.id), recibo.nombreArchivoOriginal)} type="button">Descargar</button>
                 {editable ? (
-                  <button className="rounded-md border px-3 py-1.5 text-destructive hover:bg-destructive/10" onClick={() => objeto.reciboEscaneado ? eliminarReciboEscaneadoMutation.mutate(objeto.reciboEscaneado.id) : undefined} type="button">
-                    Quitar
-                  </button>
+                  <button className="rounded-md border px-3 py-1.5 text-destructive hover:bg-destructive/10" disabled={eliminarReciboEscaneadoMutation.isPending} onClick={() => eliminarReciboEscaneadoMutation.mutate(recibo.id)} type="button">Quitar</button>
                 ) : null}
               </div>
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Sin recibo escaneado adjunto.</p>
-          )}
+          ))}
           {editable ? (
             <input
               accept="application/pdf,image/jpeg,image/png,image/webp"
               className="h-10 rounded-md border bg-background px-3 py-2 text-sm"
+              disabled={subirReciboEscaneadoMutation.isPending}
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 if (file) {
@@ -249,6 +266,8 @@ export function ObjetoArchivosPanel({ mode, objeto }: ObjetoArchivosPanelProps) 
               type="file"
             />
           ) : null}
+          {subirReciboEscaneadoMutation.isError ? <p className="text-sm text-destructive">No se pudo adjuntar el recibo escaneado.</p> : null}
+          {eliminarReciboEscaneadoMutation.isError ? <p className="text-sm text-destructive">No se pudo quitar el recibo escaneado.</p> : null}
         </div>
       </section>
     </div>

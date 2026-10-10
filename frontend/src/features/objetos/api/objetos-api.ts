@@ -327,6 +327,23 @@ export function descargarReciboEscaneadoObjeto(id: number) {
   return apiBlobRequest(`${basePath}/${id}/recibo-escaneado/archivo`);
 }
 
+export function listarRecibosEscaneadosObjeto(id: number) {
+  return apiRequest<ReciboEscaneadoObjetoMuseoResponseDTO[]>(`${basePath}/${id}/recibos-escaneados`);
+}
+
+export function agregarReciboEscaneadoObjeto(id: number, archivo: File) {
+  const formData = new FormData();
+  formData.append("archivo", archivo);
+  return apiRequest<ReciboEscaneadoObjetoMuseoResponseDTO>(`${basePath}/${id}/recibos-escaneados`, {
+    method: "POST",
+    body: formData
+  });
+}
+
+export function descargarReciboEscaneadoObjetoPorId(id: number, reciboId: number) {
+  return apiBlobRequest(`${basePath}/${id}/recibos-escaneados/${reciboId}/archivo`);
+}
+
 export function eliminarReciboEscaneadoObjeto(id: number, archivoId: number) {
   return apiRequest<void>(`${basePath}/${id}/recibo-escaneado/${archivoId}`, {
     method: "DELETE"

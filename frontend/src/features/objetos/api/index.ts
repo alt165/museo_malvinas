@@ -1,4 +1,5 @@
 export {
+  agregarReciboEscaneadoObjeto,
   actualizarConfigAlertasComodatosPrestamos,
   actualizarFechaVencimientoComodatoPrestamo,
   actualizarObjeto,
@@ -16,6 +17,7 @@ export {
   descargarFotoObjeto,
   descargarFotoOriginalObjeto,
   descargarReciboEscaneadoObjeto,
+  descargarReciboEscaneadoObjetoPorId,
   descargarReciboPdf,
   eliminarFotoObjeto,
   eliminarReciboEscaneadoObjeto,
@@ -35,6 +37,7 @@ export {
   listarObjetosVencimientosProximos,
   listarObjetosSinColeccion,
   listarRecibosObjeto,
+  listarRecibosEscaneadosObjeto,
   moverObjeto,
   obtenerConfigAlertasComodatosPrestamos,
   obtenerObjetoPorId,

@@ -430,6 +430,33 @@ public class ObjetoMuseoController {
                 .body(recibo.resource());
     }
 
+    @Operation(summary = "Listar recibos escaneados adjuntos al objeto")
+    @GetMapping("/{id}/recibos-escaneados")
+    public ResponseEntity<List<ReciboEscaneadoObjetoMuseoResponseDTO>> listarRecibosEscaneados(@PathVariable Long id) {
+        return ResponseEntity.ok(reciboEscaneadoObjetoMuseoService.listar(id));
+    }
+
+    @Operation(summary = "Adjuntar un recibo escaneado sin reemplazar los anteriores")
+    @PostMapping(path = "/{id}/recibos-escaneados", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ReciboEscaneadoObjetoMuseoResponseDTO> agregarReciboEscaneado(
+            @PathVariable Long id,
+            @RequestParam("archivo") MultipartFile archivo,
+            Authentication authentication
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(reciboEscaneadoObjetoMuseoService.agregar(id, archivo, usuario(authentication)));
+    }
+
+    @Operation(summary = "Descargar un recibo escaneado por ID")
+    @GetMapping("/{id}/recibos-escaneados/{reciboId}/archivo")
+    public ResponseEntity<Resource> descargarReciboEscaneadoPorId(@PathVariable Long id, @PathVariable Long reciboId) {
+        ReciboEscaneadoObjetoMuseoService.ReciboEscaneadoArchivo recibo = reciboEscaneadoObjetoMuseoService.descargar(id, reciboId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(recibo.contentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + recibo.nombreArchivo() + "\"")
+                .body(recibo.resource());
+    }
+
     @Operation(summary = "Eliminar recibo escaneado del objeto")
     @DeleteMapping("/{id}/recibo-escaneado/{archivoId}")
     public ResponseEntity<Void> eliminarReciboEscaneado(@PathVariable Long id, @PathVariable Long archivoId) {

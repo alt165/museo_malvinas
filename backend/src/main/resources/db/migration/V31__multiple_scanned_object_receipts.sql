@@ -1,0 +1,1 @@
+DROP INDEX uk_recibo_escaneado_activo_objeto;
