@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { protectedRouteTarget } from "./redirects";
 import type { UserRole } from "@/models/session";
 import { hasAnyRole } from "./permissions";
 import { useAuth } from "./auth-provider";
@@ -23,7 +24,7 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
     }
 
     if (!authenticated) {
-      router.replace("/login");
+      router.replace(protectedRouteTarget(window.location.pathname, window.location.search));
       return;
     }
 

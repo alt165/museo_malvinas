@@ -2,13 +2,14 @@ import { ApiClientError, isApiErrorResponse } from "@/lib/errors/api-error";
 import { getAccessToken, redirectToLogin } from "@/lib/auth/session";
 import { isEditingModeEnabled, isMutationMethod } from "@/lib/editing-mode/store";
 import type { ApiErrorResponse } from "@/models/api-error";
+import { getRuntimeConfig } from "@/lib/runtime-config";
 
 type RequestOptions = RequestInit & {
   auth?: boolean;
   token?: string | null;
 };
 
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
+const apiBaseUrl = () => getRuntimeConfig().apiBaseUrl;
 
 function assertEditingAllowed(method?: string) {
   if (!isMutationMethod(method) || isEditingModeEnabled()) {
@@ -66,7 +67,7 @@ export async function apiRequest<TResponse>(
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
 
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  const response = await fetch(`${apiBaseUrl()}${path}`, {
     ...requestOptions,
     headers
   });
@@ -97,7 +98,7 @@ export async function apiBlobRequest(path: string, options: RequestOptions = {})
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
 
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  const response = await fetch(`${apiBaseUrl()}${path}`, {
     ...requestOptions,
     headers
   });

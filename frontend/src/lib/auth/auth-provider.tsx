@@ -3,13 +3,14 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { KeycloakTokenParsed } from "keycloak-js";
 import type { AuthSession, SessionUser, UserRole } from "@/models/session";
-import { keycloak, keycloakConfig } from "./keycloak";
+import { getKeycloak, getKeycloakConfig } from "./keycloak";
+import { loginRedirectUri, logoutRedirectUri } from "./redirects";
 import { setLoginHandler, setTokenProvider } from "./session";
 import { clearUserDrafts } from "@/lib/storage/user-drafts";
 
 type AuthContextValue = AuthSession & {
   getToken: () => Promise<string | null>;
-  login: () => Promise<void>;
+  login: (returnPath?: string | null) => Promise<void>;
   logout: () => Promise<void>;
   roles: UserRole[];
 };
@@ -17,8 +18,6 @@ type AuthContextValue = AuthSession & {
 const AuthContext = createContext<AuthContextValue | null>(null);
 let keycloakInitPromise: Promise<boolean> | null = null;
 let loginRedirectInProgress = false;
-const logoutRedirectPath = "/login";
-
 type MuseoTokenParsed = KeycloakTokenParsed & {
   email?: string;
   name?: string;
@@ -35,7 +34,7 @@ function isUserRole(role: string): role is UserRole {
 
 function getRoles(token?: MuseoTokenParsed) {
   const realmRoles = token?.realm_access?.roles ?? [];
-  const frontendRoles = token?.resource_access?.[keycloakConfig.clientId]?.roles ?? [];
+  const frontendRoles = token?.resource_access?.[getKeycloakConfig().clientId]?.roles ?? [];
   const backendRoles = token?.resource_access?.["museo-backend"]?.roles ?? [];
 
   return Array.from(new Set([...realmRoles, ...frontendRoles, ...backendRoles].filter(isUserRole)));
@@ -56,6 +55,7 @@ function getUserFromToken(token?: MuseoTokenParsed): SessionUser | null {
 }
 
 function initKeycloak() {
+  const keycloak = getKeycloak();
   keycloakInitPromise ??= keycloak.init({
     onLoad: "check-sso",
     pkceMethod: "S256",
@@ -71,12 +71,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null);
 
   const syncSession = useCallback(() => {
+    const keycloak = getKeycloak();
     const nextAuthenticated = Boolean(keycloak.authenticated);
     setAuthenticated(nextAuthenticated);
     setUser(nextAuthenticated ? getUserFromToken(keycloak.tokenParsed as MuseoTokenParsed | undefined) : null);
   }, []);
 
-  const login = useCallback(async () => {
+  const login = useCallback(async (returnPath?: string | null) => {
+    const keycloak = getKeycloak();
     if (keycloak.authenticated || loginRedirectInProgress) {
       return;
     }
@@ -84,22 +86,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loginRedirectInProgress = true;
     window.sessionStorage.removeItem("museo.logout");
     await keycloak.login({
-      redirectUri: `${window.location.origin}/dashboard`
+      redirectUri: loginRedirectUri(window.location.origin, returnPath)
     });
   }, []);
 
   const logout = useCallback(async () => {
+    const keycloak = getKeycloak();
     loginRedirectInProgress = false;
     window.sessionStorage.setItem("museo.logout", "1");
     clearUserDrafts(user?.id);
     setAuthenticated(false);
     setUser(null);
     await keycloak.logout({
-      redirectUri: `${window.location.origin}${logoutRedirectPath}`
+      redirectUri: logoutRedirectUri(window.location.origin)
     });
   }, [user?.id]);
 
   const getToken = useCallback(async () => {
+    const keycloak = getKeycloak();
     if (!keycloak.authenticated) {
       return null;
     }
@@ -116,6 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    const keycloak = getKeycloak();
 
     setTokenProvider(getToken);
     setLoginHandler(login);

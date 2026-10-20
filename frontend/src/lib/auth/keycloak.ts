@@ -1,11 +1,12 @@
 "use client";
 
 import Keycloak from "keycloak-js";
+import { getRuntimeConfig } from "@/lib/runtime-config";
 
-export const keycloakConfig = {
-  url: process.env.NEXT_PUBLIC_KEYCLOAK_URL ?? "http://localhost:8081",
-  realm: process.env.NEXT_PUBLIC_KEYCLOAK_REALM ?? "museo",
-  clientId: process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID ?? "museo-frontend"
-};
+export function getKeycloakConfig() {
+  const runtime = getRuntimeConfig();
+  return { url: runtime.keycloakUrl, realm: runtime.keycloakRealm, clientId: runtime.keycloakClientId };
+}
 
-export const keycloak = new Keycloak(keycloakConfig);
+let instance: Keycloak | null = null;
+export function getKeycloak(): Keycloak { instance ??= new Keycloak(getKeycloakConfig()); return instance; }
